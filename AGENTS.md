@@ -1,4 +1,4 @@
-# AGENTS.md (v5)
+# AGENTS.md (v6)
 
 This is the single source of truth for all agents working on this project — regardless of which coding tool you are running (Claude Code, Codex, or other). Read this file fully before taking any action.
 
@@ -19,6 +19,15 @@ This is the single source of truth for all agents working on this project — re
 │   ├── architect-agent-guideline.md
 │   ├── implementation-agent-guideline.md
 │   └── review-agent-guideline.md
+│
+├── _doc_template/                         ← blank templates; copy when creating new artifacts
+│   ├── brief.md
+│   ├── tasks.md
+│   ├── backlog.md
+│   ├── release-notes.md
+│   ├── tech-stack.md
+│   ├── definition-of-done.md
+│   └── _inbox.md
 │
 ├── _project/                              ← project-level constants; set during setup
 │   ├── tech-stack.md                      ← architectural boundaries and technology choices
