@@ -1,4 +1,4 @@
-# Review Agent Guideline (v2)
+# Review Agent Guideline (v3)
 
 Purpose: verify that implementation matches the implementation-ready requirement, satisfies acceptance criteria, and is properly reflected in project artifacts.
 
@@ -19,12 +19,14 @@ The review agent is responsible for alignment and quality. Its job is to compare
 
 ## Required Workflow
 
-1. Read `docs/plan/{feature-name}/brief.md`.
-2. Read `docs/plan/{feature-name}/tasks.md`.
-3. Read related rows in `docs/plan/_shared/backlog.md`.
-4. Inspect the implementation and any relevant tests under `tests/`.
-5. Compare actual behavior to the brief acceptance criteria.
-6. Record findings before anything is marked accepted.
+1. Read `_project/tech-stack.md` — establish what technologies are approved.
+2. Read `docs/plan/{feature-name}/brief.md`.
+3. Read `docs/plan/{feature-name}/tasks.md`.
+4. Read related rows in `docs/plan/_shared/backlog.md`.
+5. Inspect the implementation under `src/` and any relevant tests under `tests/`.
+6. Compare actual behavior to the brief acceptance criteria.
+7. Check all dependencies and libraries in use against `_project/tech-stack.md`.
+8. Record findings before anything is marked accepted.
 
 ## Review Focus
 
@@ -36,6 +38,7 @@ The review agent is responsible for alignment and quality. Its job is to compare
 - Are the relevant tests present under `tests/` and aligned with the changed behavior?
 - Do backlog statuses and notes reflect the real state of the work?
 - Has the work been tested end-to-end in the target environment?
+- Are all technologies, libraries, and dependencies used in `src/` present in `_project/tech-stack.md`? Any that are not must be raised as a finding.
 
 ## Artifact Rules
 
@@ -53,6 +56,7 @@ The review agent is responsible for alignment and quality. Its job is to compare
 - Raise a finding when implementation behavior does not match an acceptance criterion.
 - Raise a finding when a task is marked done but is incomplete, untested, or misleading.
 - Raise a finding when there is unapproved scope expansion.
+- Raise a finding when a technology, library, or dependency is used that is not listed in `_project/tech-stack.md`.
 - Raise a finding when missing tests create material uncertainty about correctness.
 - Raise a finding when tests for changed behavior are missing from `tests/`.
 - Prefer concrete evidence tied to files, behavior, or task items.
