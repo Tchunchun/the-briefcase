@@ -1,4 +1,4 @@
-# AGENTS.md (v4)
+# AGENTS.md (v5)
 
 This is the single source of truth for all agents working on this project — regardless of which coding tool you are running (Claude Code, Codex, or other). Read this file fully before taking any action.
 
@@ -25,16 +25,22 @@ This is the single source of truth for all agents working on this project — re
 │   ├── definition-of-done.md             ← shared DoD reference
 │   └── decisions.md                      ← key architectural decisions log (what, why, alternatives rejected)
 │
-├── docs/plan/
-│   ├── _inbox.md                          ← raw ideas; append-only
-│   ├── _shared/
-│   │   └── backlog.md                     ← cross-feature priority list (source of truth)
-│   ├── _releases/
-│   │   └── v{version}/
-│   │       └── release-notes.md
-│   └── {feature-name}/
-│       ├── brief.md                       ← problem, goal, acceptance criteria, scope
-│       └── tasks.md                       ← atomic task checklist for this feature
+├── docs/
+│   ├── plan/                              ← agent working space
+│   │   ├── _inbox.md                      ← raw ideas; append-only
+│   │   ├── _shared/
+│   │   │   └── backlog.md                 ← cross-feature priority list (source of truth)
+│   │   ├── _releases/
+│   │   │   └── v{version}/
+│   │   │       └── release-notes.md
+│   │   └── {feature-name}/
+│   │       ├── brief.md                   ← problem, goal, acceptance criteria, scope
+│   │       └── tasks.md                   ← atomic task checklist for this feature
+│   │
+│   └── user/                              ← human-readable documentation
+│       ├── getting-started.md             ← how to set up and use the project
+│       ├── how-it-works.md                ← explains the workflow to a new reader
+│       └── {feature-name}.md             ← one doc per shipped feature
 │
 ├── src/                                   ← all runnable application code
 │   ├── core/                              ← shared infrastructure (base classes, memory, dispatcher)
@@ -45,7 +51,7 @@ This is the single source of truth for all agents working on this project — re
     └── {feature-name}/
 ```
 
-Feature folder names must be identical across `docs/plan/`, `src/`, and `tests/`. This allows agents to navigate from brief → code → tests without ambiguity.
+Feature folder names must be identical across `docs/plan/`, `src/`, `tests/`, and `docs/user/`. This allows agents to navigate from brief → code → tests → user docs without ambiguity.
 
 ---
 
@@ -160,7 +166,7 @@ The ideation and architect agents may loop — if the architect finds a brief ne
 | **2 Break Down** | Brief implementation-ready | Implementation agent creates `{feature}/tasks.md` and adds rows to `_shared/backlog.md`. |
 | **3 Build** | Tasks ready | Implementation agent picks the highest-priority `To Do`, builds under `src/`, tests under `tests/`, updates status. |
 | **4 Review** | Work implemented | Review agent validates against `brief.md`, `tasks.md`, and backlog state. |
-| **5 Ship** | Work accepted | Implementation agent creates `_releases/v{version}/release-notes.md` and closes backlog rows. |
+| **5 Ship** | Work accepted | Implementation agent creates `_releases/v{version}/release-notes.md`, closes backlog rows, and updates `docs/user/{feature-name}.md`. |
 
 ---
 
@@ -208,6 +214,7 @@ Two agents may work on the same project. Follow these rules to prevent conflicts
 | `tests/` | Implementation agent | Other agents: read-only |
 | `_project/` | Architect agent | All other agents: read-only |
 | `docs/plan/_releases/` | Implementation agent | Other agents: read-only |
+| `docs/user/` | Implementation agent (after ship) | Other agents: read-only |
 
 **Rules:**
 - Before writing any file, read its current state first.
