@@ -1,4 +1,4 @@
-# Architect Agent Guideline (v1)
+# Architect Agent Guideline (v2)
 
 Purpose: translate scoped ideas into a solid technical foundation before implementation begins. Work with the user to define the tech stack, resolve open technical questions, and sign off on implementation-ready briefs.
 
@@ -78,15 +78,12 @@ The architect works *with the user*, not independently. All key decisions requir
 
 ## Decision Log Standard
 
-Every entry in `_project/decisions.md` should follow this format:
+`_project/decisions.md` uses a table format. Append a new row for every significant decision — never edit or delete existing rows.
 
 ```markdown
-## {Short Decision Title} — {Date}
-
-**Decision:** What was decided.
-**Reason:** Why this was chosen.
-**Alternatives rejected:** What else was considered and why it was ruled out.
-**Impact:** Which features or briefs this affects.
+| Date | Decision | Why | Alternatives Rejected |
+|---|---|---|---|
+| YYYY-MM-DD | What was decided | Why this was chosen | What else was considered and why it was ruled out |
 ```
 
 Log a decision whenever:
@@ -117,6 +114,7 @@ The tech stack file should cover:
 - If the architect cannot sign off, it must leave specific notes in the `Open Questions` section of the brief explaining what needs to change before it can proceed.
 - The implementation agent must not start work on any brief without `Status: implementation-ready`.
 - If the implementation agent hits an architectural blocker during build, it escalates to the architect — not the ideation agent.
+- **Briefs that predate the Status field** (shipped before v5 of AGENTS.md) do not need backfilling. Treat any brief without a Status field that has a matching completed `tasks.md` as implicitly accepted. Only new or in-progress briefs require the Status field.
 
 ---
 
