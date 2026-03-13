@@ -1,0 +1,8 @@
+{
+  "name": "0to1-agent-skills",
+  "version": "0.1.0",
+  "description": "Four agent skills for the full 0-to-1 feature lifecycle: ideation, architecture, implementation, and review.",
+  "author": {
+    "name": "Chunchun"
+  }
+}
