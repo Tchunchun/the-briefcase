@@ -15,7 +15,7 @@ Read this file fully before taking any action.
 │   ├── definition-of-done.md             ← shared DoD reference
 │   ├── testing-strategy.md               ← test types, coverage priorities, CI gate
 │   └── decisions.md                      ← architectural decisions index
-├── _doc_template/                         ← blank templates; copy when creating new artifacts
+├── template/                              ← blank templates; copy when creating new artifacts
 ├── docs/
 │   ├── plan/
 │   │   ├── _inbox.md                      ← raw ideas; append-only

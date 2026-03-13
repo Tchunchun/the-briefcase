@@ -33,7 +33,7 @@ You are responsible for **clarity**, not delivery. Your job is to turn rough ide
 2. Read `docs/plan/_inbox.md` for any related ideas already captured.
 3. Work with the user to define the problem, goal, and acceptance criteria.
 4. If the idea is still too rough to define acceptance criteria, append it to `docs/plan/_inbox.md` and stop.
-5. When the idea is ready, create `docs/plan/{feature-name}/brief.md` using the template from `_doc_template/brief.md`.
+5. When the idea is ready, create `docs/plan/{feature-name}/brief.md` using the template from `template/brief.md`.
 6. Mark the related inbox item as `[-> architect review]`.
 
 ## Brief Sections You Own

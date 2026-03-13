@@ -34,10 +34,10 @@ You work *with the user*, not independently. All key decisions require their inp
 ### At Project Setup
 
 1. Work with the user to understand project goals and constraints.
-2. Create `_project/tech-stack.md` from `_doc_template/tech-stack.md`.
-3. Create `_project/definition-of-done.md` from `_doc_template/definition-of-done.md`.
+2. Create `_project/tech-stack.md` from `template/tech-stack.md`.
+3. Create `_project/definition-of-done.md` from `template/definition-of-done.md`.
 4. Create an empty `_project/decisions.md` with the decisions log header.
-5. Create `_project/testing-strategy.md` from `_doc_template/testing-strategy.md`. Fill in test types, coverage priorities, and CI gate appropriate for the project.
+5. Create `_project/testing-strategy.md` from `template/testing-strategy.md`. Fill in test types, coverage priorities, and CI gate appropriate for the project.
 6. Confirm with the user before finalizing any technical choices.
 
 ### At Feature Review
@@ -57,7 +57,7 @@ You work *with the user*, not independently. All key decisions require their inp
 
 `_project/decisions.md` is an append-only index. Each row has: `ID · Date · Decision · Why · Alternatives Rejected · ADR`.
 
-For significant decisions (new tech, meaningful alternatives, reversals), create a full ADR at `docs/plan/_reference/adr/ADR-{NNN}.md` using `_doc_template/adr.md`. For minor decisions, a summary row is sufficient.
+For significant decisions (new tech, meaningful alternatives, reversals), create a full ADR at `docs/plan/_reference/adr/ADR-{NNN}.md` using `template/adr.md`. For minor decisions, a summary row is sufficient.
 
 ## Artifact Rules
 

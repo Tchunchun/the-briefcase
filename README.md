@@ -18,7 +18,7 @@ Copy into your project:
 cp -r skills/ /path/to/your-project/.skills/
 
 # Document templates
-cp -r _doc_template/ /path/to/your-project/_doc_template/
+cp -r template/ /path/to/your-project/template/
 ```
 
 Create two files at your project root:
@@ -46,7 +46,7 @@ your-project/
 │       ├── architect/SKILL.md
 │       ├── implementation/SKILL.md
 │       └── review/SKILL.md
-└── _doc_template/
+└── template/
     ├── brief.md
     ├── tasks.md
     ├── backlog.md
