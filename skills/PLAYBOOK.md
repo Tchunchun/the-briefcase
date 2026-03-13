@@ -43,28 +43,28 @@ Feature folder names must be identical across docs/plan/, src/, tests/, and docs
 ### 1. Ideation Agent
 
 Use when the request is exploratory, ambiguous, or still shaping scope.
-Guideline: .skills/skills/ideation/SKILL.md
+Guideline: .skills/ideation/SKILL.md
 
 Do not use for: coding, task breakdown, or setting Status: implementation-ready.
 
 ### 2. Architect Agent
 
 Use when a brief has open technical questions, or a new project needs setup.
-Guideline: .skills/skills/architect/SKILL.md
+Guideline: .skills/architect/SKILL.md
 
 Do not use for: writing acceptance criteria, coding, or task breakdown.
 
 ### 3. Implementation Agent
 
 Use when a brief has Status: implementation-ready and work is ready to build.
-Guideline: .skills/skills/implementation/SKILL.md
+Guideline: .skills/implementation/SKILL.md
 
 Do not use for: exploration without scope, or final acceptance review of its own work.
 
 ### 4. Review Agent
 
 Use when implementation is complete and needs validation against the brief.
-Guideline: .skills/skills/review/SKILL.md
+Guideline: .skills/review/SKILL.md
 
 Do not use for: writing the brief, doing implementation, or expanding scope.
 
@@ -110,7 +110,7 @@ docs/plan/_shared/backlog.md columns: ID · Type · Use Case · Feature · Title
 ### On Session Start
 1. Read this file fully.
 2. Determine the correct agent role for the current request.
-3. Read .skills/skills/{role}/SKILL.md for that role.
+3. Read .skills/{role}/SKILL.md for that role.
 4. Read _project/tech-stack.md before touching any code.
 5. Read _project/testing-strategy.md before writing any test.
 6. Read the relevant brief.md and tasks.md before making changes.
