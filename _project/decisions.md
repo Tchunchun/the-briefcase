@@ -1,0 +1,13 @@
+# Decisions Log
+
+| ID | Date | Decision | Why | Alternatives Rejected | ADR |
+|---|---|---|---|---|---|
+| D-001 | 2026-03-16 | Python 3.11+ as primary language | Ecosystem fit (Click CLI, notion-client SDK, pytest), team familiarity, async support | Node.js/TypeScript (viable but team prefers Python), Bash (too limited for storage abstraction) | — |
+| D-002 | 2026-03-16 | Pluggable storage with interface pattern | Decouples agents from backend; enables local-first + Notion + future backends without agent changes | Hardcoded Notion-only (limits adoption), direct file access (no abstraction) | — |
+| D-003 | 2026-03-16 | Notion as first cloud backend | User preference, strong API, non-technical-friendly, free tier sufficient | Airtable (paid), Supabase (heavier setup), GitHub Projects (poor for structured planning) | — |
+| D-004 | 2026-03-16 | YAML for storage config (`_project/storage.yaml`) | Human-readable, easy to edit, lightweight | JSON (less readable), TOML (less common in this stack), env vars only (too limited for structured config) | — |
+| D-005 | 2026-03-16 | Protocol class (Python `typing.Protocol`) for storage interface | Structural subtyping, no inheritance required, clean for testing | ABC (forces inheritance), function-based adapters (less discoverable), duck typing only (no IDE support) | — |
+| D-006 | 2026-03-16 | Introduce `delivery-manager` as a dedicated orchestration role | Reduces manual handoff overhead while preserving ownership boundaries of ideation, architect, implementation, and review | Keep four roles only (continues coordination burden), embed handoff logic into each role (duplicated rules, drift risk) | — |
+| D-007 | 2026-03-16 | Reuse existing planning artifacts as handoff state source in v1 | Avoids new persistence complexity and preserves backward compatibility | New `handoffs.md` artifact (extra ownership surface), external tracker dependency (unnecessary overhead) | — |
+| D-008 | 2026-03-16 | Implement delivery-manager orchestrated mode via existing skills/playbook composition | Satisfies single-entrypoint UX without introducing a bespoke framework; preserves current role contracts | Build custom orchestration framework (higher complexity), keep manual invocation only (does not solve coordination burden) | — |
+| D-009 | 2026-03-16 | Use `tasks.md` as canonical per-feature delegation trace with supplemental backlog coordination notes | Keeps traceability in existing artifact ownership model and avoids new persistence surface | Backlog-only trace (insufficient per-feature detail), new handoff artifact file (extra ownership and migration overhead) | — |

@@ -7,7 +7,7 @@ Append-only capture for ideas, bugs, requests, and follow-ups.
 - Add one line per item.
 - Keep entries short.
 - Do not prioritize or expand here.
-- Mark an item `[-> planned]` only after its brief is implementation-ready.
+- Mark an item `[-> architect review]` when the brief is created and ready for architect assessment.
 
 ## Entries
 
