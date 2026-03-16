@@ -2,6 +2,9 @@
 
 Defines the property schemas used when provisioning databases and
 validates that existing databases match the expected schema.
+
+v2: Unified Backlog (Idea/Feature/Task) + Decisions. Templates and
+briefs are standalone pages, not databases.
 """
 
 from __future__ import annotations
@@ -16,21 +19,20 @@ def _select_options(values: list[str]) -> dict:
 
 # -- Database schemas --
 
-INTAKE_SCHEMA: dict[str, dict] = {
+BACKLOG_SCHEMA: dict[str, dict] = {
     "Title": {"title": {}},
-    "Type": _select_options(
-        ["idea", "bug", "feature-request", "tech-debt", "question", "other"]
+    "Type": _select_options(["Idea", "Feature", "Task"]),
+    "Idea Status": _select_options(["new", "exploring", "promoted", "rejected"]),
+    "Feature Status": _select_options(
+        ["draft", "architect-review", "implementation-ready", "done"]
     ),
-    "Status": _select_options(["new", "planned", "architect-review", "rejected"]),
+    "Task Status": _select_options(["to-do", "in-progress", "blocked", "done"]),
+    "Priority": _select_options(["High", "Medium", "Low"]),
     "Brief Link": {"url": {}},
+    "Notes": {"rich_text": {}},
 }
-
-BRIEFS_SCHEMA: dict[str, dict] = {
-    "Title": {"title": {}},
-    "Brief Name": {"rich_text": {}},
-    "Status": _select_options(["draft", "implementation-ready"]),
-    "Phase": _select_options(["Phase 1", "Phase 2", "Phase 3"]),
-}
+# Note: The "Parent" self-relation property is added via PATCH after
+# the database is created (the DB ID is needed as the relation target).
 
 DECISIONS_SCHEMA: dict[str, dict] = {
     "Title": {"title": {}},
@@ -39,33 +41,14 @@ DECISIONS_SCHEMA: dict[str, dict] = {
     "Status": _select_options(["proposed", "accepted", "superseded"]),
     "Why": {"rich_text": {}},
     "Alternatives Rejected": {"rich_text": {}},
+    "Feature Link": {"url": {}},
     "ADR Link": {"url": {}},
-}
-
-BACKLOG_SCHEMA: dict[str, dict] = {
-    "Title": {"title": {}},
-    "ID": {"rich_text": {}},
-    "Type": _select_options(["Feature", "Tech Debt", "Bug"]),
-    "Use Case": {"rich_text": {}},
-    "Feature": {"rich_text": {}},
-    "Priority": _select_options(["High", "Medium", "Low"]),
-    "Status": _select_options(["To Do", "In Progress", "Done", "Blocked"]),
-    "Notes": {"rich_text": {}},
-}
-
-TEMPLATES_SCHEMA: dict[str, dict] = {
-    "Name": {"title": {}},
-    "Version": {"rich_text": {}},
-    "Last Seeded": {"date": {}},
 }
 
 
 # -- Registry: name → (schema, icon, display title) --
 
 DATABASE_REGISTRY: dict[str, tuple[dict[str, dict], str, str]] = {
-    "intake": (INTAKE_SCHEMA, "📥", "Intake"),
-    "briefs": (BRIEFS_SCHEMA, "📋", "Feature Briefs"),
-    "decisions": (DECISIONS_SCHEMA, "⚖️", "Decisions"),
     "backlog": (BACKLOG_SCHEMA, "📊", "Backlog"),
-    "templates": (TEMPLATES_SCHEMA, "📄", "Templates"),
+    "decisions": (DECISIONS_SCHEMA, "⚖️", "Decisions"),
 }

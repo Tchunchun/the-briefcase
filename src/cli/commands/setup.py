@@ -100,8 +100,23 @@ def setup(backend: str | None, project_dir: str) -> None:
         summary = result.summary()
         click.echo(f"  Databases created: {summary['databases_created']}")
         click.echo(f"  Databases found (existing): {summary['databases_found_existing']}")
+        click.echo(f"  Pages created: {summary['pages_created']}")
         click.echo(f"  Templates seeded: {summary['templates_seeded']}")
         click.echo(f"\nNotion token saved to {root / '.env'}")
+
+        # Add docs/plan/ to .gitignore (Notion is source of truth)
+        _ensure_gitignore_entry(root, "docs/plan/")
+
+        # Initialize sync snapshot orphan branch
+        try:
+            from src.sync.snapshots import init_orphan_branch
+            created = init_orphan_branch(root)
+            if created:
+                click.echo("  ✓ Created sync snapshot branch (notion-sync-snapshots)")
+            else:
+                click.echo("  ✓ Sync snapshot branch already exists")
+        except Exception:
+            click.echo("  ⚠ Could not create sync snapshot branch (non-fatal)")
 
     # Save config
     config_path = save_config(config, project_config_dir)
@@ -112,6 +127,14 @@ def setup(backend: str | None, project_dir: str) -> None:
     if backend == "local":
         click.echo("  No additional configuration needed.")
         click.echo("  Artifacts will be stored in local markdown files.")
+    elif backend == "notion":
+        click.echo("\n  Next steps:")
+        click.echo("  1. Open the Notion project page and create three board views:")
+        click.echo("     - Idea Board: filter Type=Idea, grouped by Idea Status")
+        click.echo("     - Feature Board: filter Type=Feature, grouped by Feature Status")
+        click.echo("     - Task Board: filter Type=Task, grouped by Task Status")
+        click.echo("  2. Run `agent sync local` to pull Notion → local before working")
+        click.echo("  3. Run `agent sync notion` to push local → Notion after working")
 
 
 def _save_env_token(project_root: Path, token: str) -> None:
@@ -142,3 +165,15 @@ def _save_env_token(project_root: Path, token: str) -> None:
                 f.write("\n.env\n")
     else:
         gitignore_path.write_text(".env\n")
+
+
+def _ensure_gitignore_entry(project_root: Path, entry: str) -> None:
+    """Add an entry to .gitignore if it's not already present."""
+    gitignore_path = project_root / ".gitignore"
+    if gitignore_path.exists():
+        content = gitignore_path.read_text()
+        if entry not in content:
+            with open(gitignore_path, "a") as f:
+                f.write(f"\n{entry}\n")
+    else:
+        gitignore_path.write_text(f"{entry}\n")

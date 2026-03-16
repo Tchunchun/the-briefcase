@@ -1,7 +1,7 @@
 .DS_Store
 **/.DS_Store
 *.plugin
-eval/
+docs/plan/
 .env
 __pycache__/
 **/__pycache__/
