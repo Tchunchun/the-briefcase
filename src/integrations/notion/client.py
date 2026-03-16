@@ -166,6 +166,33 @@ class NotionClient:
         """Retrieve database metadata."""
         return self._client.databases.retrieve(database_id=database_id)
 
+    def update_database(
+        self,
+        database_id: str,
+        properties: dict[str, dict],
+    ) -> dict:
+        """Update a database's properties (e.g., add a self-relation).
+
+        Uses httpx directly because notion-client v3.0.0 SDK does not
+        reliably pass property updates through databases.update.
+        """
+        import httpx
+
+        body: dict[str, Any] = {"properties": properties}
+        headers = {
+            "Authorization": f"Bearer {self._token}",
+            "Content-Type": "application/json",
+            "Notion-Version": "2022-06-28",
+        }
+        resp = httpx.patch(
+            f"https://api.notion.com/v1/databases/{database_id}",
+            headers=headers,
+            json=body,
+            timeout=30,
+        )
+        resp.raise_for_status()
+        return resp.json()
+
     # -- Database pages (rows) --
 
     def create_database_page(

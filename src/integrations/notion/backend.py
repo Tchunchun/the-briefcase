@@ -2,6 +2,9 @@
 
 Reads/writes planning artifacts directly to Notion databases via the API.
 When Notion is the active backend, this is the source of truth.
+
+v2: Unified Backlog (Idea/Feature/Task) + Decisions database +
+standalone brief pages + Templates as child pages.
 """
 
 from __future__ import annotations
@@ -23,12 +26,13 @@ class NotionBackend:
         self._root = Path(project_root)
         self._client = NotionClient()
         self._dbs = config.databases
+        self._parent_page_id = config.parent_page_id
 
     def _db(self, name: str) -> str:
         db_id = self._dbs.get(name)
         if not db_id:
             raise ValueError(
-                f"Notion database '{name}' not configured. "
+                f"Notion resource '{name}' not configured. "
                 "Run `agent setup --backend notion` to provision."
             )
         return db_id
@@ -59,6 +63,11 @@ class NotionBackend:
     def _get_url(props: dict, key: str) -> str:
         return props.get(key, {}).get("url", "") or ""
 
+    @staticmethod
+    def _get_relation_ids(props: dict, key: str) -> list[str]:
+        items = props.get(key, {}).get("relation", [])
+        return [item["id"] for item in items if "id" in item]
+
     # -- Property builders --
 
     @staticmethod
@@ -81,15 +90,40 @@ class NotionBackend:
     def _url_prop(url: str) -> dict:
         return {"url": url if url else None}
 
-    # -- Inbox --
+    @staticmethod
+    def _relation_prop(page_ids: list[str]) -> dict:
+        return {"relation": [{"id": pid} for pid in page_ids]}
+
+    # -- Status helpers for unified Backlog --
+
+    @staticmethod
+    def _status_key_for_type(item_type: str) -> str:
+        """Return the status property name for a given work item type."""
+        mapping = {
+            "Idea": "Idea Status",
+            "Feature": "Feature Status",
+            "Task": "Task Status",
+        }
+        return mapping.get(item_type, "Task Status")
+
+    def _get_status_for_row(self, props: dict) -> str:
+        """Extract the relevant status based on the row's Type."""
+        item_type = self._get_select(props, "Type")
+        status_key = self._status_key_for_type(item_type)
+        return self._get_select(props, status_key)
+
+    # -- Inbox (Backlog rows where Type = Idea) --
 
     def read_inbox(self) -> list[dict]:
-        rows = self._client.query_database(self._db("intake"))
+        rows = self._client.query_database(
+            self._db("backlog"),
+            filter={"property": "Type", "select": {"equals": "Idea"}},
+        )
         return [
             {
                 "text": self._get_title(r["properties"]),
-                "type": self._get_select(r["properties"], "Type"),
-                "status": self._get_select(r["properties"], "Status"),
+                "type": "idea",
+                "status": self._get_select(r["properties"], "Idea Status"),
                 "notion_id": r["id"],
             }
             for r in rows
@@ -98,37 +132,38 @@ class NotionBackend:
     def append_inbox(self, entry: dict) -> None:
         props = {
             "Title": self._title_prop(entry["text"]),
-            "Type": self._select_prop(entry.get("type", "idea")),
-            "Status": self._select_prop(entry.get("status", "new")),
+            "Type": self._select_prop("Idea"),
+            "Idea Status": self._select_prop(entry.get("status", "new")),
         }
-        self._client.create_database_page(self._db("intake"), props)
+        if entry.get("priority"):
+            props["Priority"] = self._select_prop(entry["priority"])
+        self._client.create_database_page(self._db("backlog"), props)
 
-    # -- Briefs --
+    # -- Briefs (standalone pages under project root) --
 
     def read_brief(self, brief_name: str) -> dict:
-        rows = self._client.query_database(
-            self._db("briefs"),
-            filter={
-                "property": "Brief Name",
-                "rich_text": {"equals": brief_name},
-            },
-        )
-        if not rows:
+        page_id = self._find_brief_page(brief_name)
+        if not page_id:
             raise KeyError(f"Brief not found: {brief_name}")
-        row = rows[0]
-        props = row["properties"]
 
-        # Get page body content
-        blocks = self._client.get_block_children(row["id"])
+        page = self._client.get_page(page_id)
+        blocks = self._client.get_block_children(page_id)
         body_text = self._blocks_to_markdown(blocks)
+
+        # Extract title from page properties
+        title_items = page.get("properties", {}).get("title", {}).get("title", [])
+        title = title_items[0].get("plain_text", brief_name) if title_items else brief_name
 
         data = {
             "name": brief_name,
-            "status": self._get_select(props, "Status"),
-            "title": self._get_title(props),
+            "title": title,
             "raw": body_text,
-            "notion_id": row["id"],
+            "notion_id": page_id,
         }
+
+        # Parse status from body text
+        status_match = re.search(r"\*\*Status:\s*(\S+)\*\*", body_text)
+        data["status"] = status_match.group(1) if status_match else "draft"
 
         # Parse sections from body
         sections = {
@@ -146,43 +181,77 @@ class NotionBackend:
         return data
 
     def write_brief(self, brief_name: str, data: dict) -> None:
-        # Check if brief exists
-        existing = self._client.query_database(
-            self._db("briefs"),
-            filter={
-                "property": "Brief Name",
-                "rich_text": {"equals": brief_name},
-            },
-        )
-
-        props = {
-            "Title": self._title_prop(data.get("title", brief_name)),
-            "Brief Name": self._rich_text_prop(brief_name),
-            "Status": self._select_prop(data.get("status", "draft")),
-        }
-
         from src.integrations.notion.provisioner import NotionProvisioner
 
         body = self._render_brief_body(brief_name, data)
         blocks = NotionProvisioner._markdown_to_blocks(body)
 
-        if existing:
-            self._client.update_database_page(existing[0]["id"], props)
+        existing_id = self._find_brief_page(brief_name)
+        if existing_id:
+            # Can't replace blocks easily — update title only
+            self._client.update_page(
+                existing_id,
+                {"title": self._title_prop(data.get("title", brief_name))["title"]},
+            )
         else:
-            self._client.create_database_page(
-                self._db("briefs"), props, children=blocks[:100]
+            self._client.create_page(
+                self._parent_page_id,
+                data.get("title", brief_name),
+                icon="📄",
+                children=blocks[:100],
             )
 
     def list_briefs(self) -> list[dict]:
-        rows = self._client.query_database(self._db("briefs"))
-        return [
-            {
-                "name": self._get_rich_text(r["properties"], "Brief Name"),
-                "status": self._get_select(r["properties"], "Status"),
-                "title": self._get_title(r["properties"]),
-            }
-            for r in rows
-        ]
+        """List brief pages under the project root.
+
+        Brief pages are child pages that are NOT README or Templates.
+        """
+        briefs = []
+        children = self._client.get_block_children(self._parent_page_id)
+        skip_titles = {"README", "Templates"}
+
+        for child in children:
+            if child.get("type") != "child_page":
+                continue
+            title = child.get("child_page", {}).get("title", "")
+            if title in skip_titles:
+                continue
+            # Read status from page content
+            try:
+                blocks = self._client.get_block_children(child["id"])
+                body = self._blocks_to_markdown(blocks)
+                status_match = re.search(r"\*\*Status:\s*(\S+)\*\*", body)
+                status = status_match.group(1) if status_match else "draft"
+            except Exception:
+                status = "draft"
+            briefs.append({
+                "name": self._title_to_brief_name(title),
+                "status": status,
+                "title": title,
+                "notion_id": child["id"],
+            })
+        return briefs
+
+    def _find_brief_page(self, brief_name: str) -> str | None:
+        """Find a brief page by name under the project root."""
+        children = self._client.get_block_children(self._parent_page_id)
+        for child in children:
+            if child.get("type") != "child_page":
+                continue
+            title = child.get("child_page", {}).get("title", "")
+            if self._title_to_brief_name(title) == brief_name:
+                return child["id"]
+        return None
+
+    @staticmethod
+    def _title_to_brief_name(title: str) -> str:
+        """Convert a page title to a kebab-case brief name."""
+        # Strip version suffix like "(v3)"
+        name = re.sub(r"\s*\(v\d+\)\s*$", "", title)
+        # Convert to kebab-case
+        name = name.lower().strip()
+        name = re.sub(r"[^a-z0-9]+", "-", name)
+        return name.strip("-")
 
     # -- Decisions --
 
@@ -198,6 +267,7 @@ class NotionBackend:
                 "alternatives_rejected": self._get_rich_text(
                     r["properties"], "Alternatives Rejected"
                 ),
+                "feature_link": self._get_url(r["properties"], "Feature Link"),
                 "adr_link": self._get_url(r["properties"], "ADR Link"),
                 "notion_id": r["id"],
             }
@@ -215,112 +285,148 @@ class NotionBackend:
                 entry.get("alternatives_rejected", "")
             ),
         }
+        if entry.get("feature_link"):
+            props["Feature Link"] = self._url_prop(entry["feature_link"])
         if entry.get("adr_link"):
             props["ADR Link"] = self._url_prop(entry["adr_link"])
         self._client.create_database_page(self._db("decisions"), props)
 
-    # -- Backlog --
+    # -- Backlog (unified: Idea/Feature/Task) --
 
     def read_backlog(self) -> list[dict]:
         rows = self._client.query_database(self._db("backlog"))
         return [
             {
-                "id": self._get_rich_text(r["properties"], "ID"),
-                "type": self._get_select(r["properties"], "Type"),
-                "use_case": self._get_rich_text(r["properties"], "Use Case"),
-                "feature": self._get_rich_text(r["properties"], "Feature"),
                 "title": self._get_title(r["properties"]),
+                "type": self._get_select(r["properties"], "Type"),
+                "status": self._get_status_for_row(r["properties"]),
                 "priority": self._get_select(r["properties"], "Priority"),
-                "status": self._get_select(r["properties"], "Status"),
+                "brief_link": self._get_url(r["properties"], "Brief Link"),
                 "notes": self._get_rich_text(r["properties"], "Notes"),
+                "parent_ids": self._get_relation_ids(r["properties"], "Parent"),
                 "notion_id": r["id"],
             }
             for r in rows
         ]
 
     def write_backlog_row(self, row: dict) -> None:
-        # Check if row exists by ID
+        item_type = row.get("type", "Task")
+        status_key = self._status_key_for_type(item_type)
+
+        # Check if row exists by title + type
         existing = self._client.query_database(
             self._db("backlog"),
-            filter={"property": "ID", "rich_text": {"equals": row["id"]}},
+            filter={
+                "and": [
+                    {"property": "Title", "title": {"equals": row["title"]}},
+                    {"property": "Type", "select": {"equals": item_type}},
+                ]
+            },
         )
 
-        props = {
+        props: dict[str, Any] = {
             "Title": self._title_prop(row["title"]),
-            "ID": self._rich_text_prop(row["id"]),
-            "Type": self._select_prop(row["type"]),
-            "Use Case": self._rich_text_prop(row.get("use_case", "")),
-            "Feature": self._rich_text_prop(row["feature"]),
-            "Priority": self._select_prop(row["priority"]),
-            "Status": self._select_prop(row["status"]),
+            "Type": self._select_prop(item_type),
+            status_key: self._select_prop(row.get("status", "to-do")),
+            "Priority": self._select_prop(row.get("priority", "Medium")),
             "Notes": self._rich_text_prop(row.get("notes", "")),
         }
+        if row.get("brief_link"):
+            props["Brief Link"] = self._url_prop(row["brief_link"])
+        if row.get("parent_ids"):
+            props["Parent"] = self._relation_prop(row["parent_ids"])
 
         if existing:
             self._client.update_database_page(existing[0]["id"], props)
         else:
             self._client.create_database_page(self._db("backlog"), props)
 
-    # -- Templates --
+    # -- Templates (child pages of Templates page) --
 
     def read_templates(self) -> list[dict]:
-        rows = self._client.query_database(self._db("templates"))
+        templates_page_id = self._dbs.get("templates")
+        if not templates_page_id:
+            return []
+
+        children = self._client.get_block_children(templates_page_id)
         templates = []
-        for r in rows:
-            props = r["properties"]
-            blocks = self._client.get_block_children(r["id"])
+        for child in children:
+            if child.get("type") != "child_page":
+                continue
+            title = child.get("child_page", {}).get("title", "")
+            blocks = self._client.get_block_children(child["id"])
             content = self._blocks_to_markdown(blocks)
-            templates.append(
-                {
-                    "name": self._get_title(props, "Name"),
-                    "version": self._get_rich_text(props, "Version"),
-                    "content": content,
-                    "notion_id": r["id"],
-                }
-            )
+
+            # Parse version from title like "brief (v3)"
+            version_match = re.search(r"\(v(\d+)\)", title)
+            version = f"v{version_match.group(1)}" if version_match else "v1"
+            name = re.sub(r"\s*\(v\d+\)\s*$", "", title).strip()
+
+            templates.append({
+                "name": name,
+                "version": version,
+                "content": content,
+                "notion_id": child["id"],
+            })
         return templates
 
     def write_template(self, name: str, content: str, version: str) -> None:
-        existing = self._client.query_database(
-            self._db("templates"),
-            filter={"property": "Name", "title": {"equals": name}},
-        )
-
         from src.integrations.notion.provisioner import NotionProvisioner
 
-        props = {
-            "Name": self._title_prop(name),
-            "Version": self._rich_text_prop(version),
-            "Last Seeded": self._date_prop(date.today().isoformat()),
-        }
-        blocks = NotionProvisioner._markdown_to_blocks(content)
+        templates_page_id = self._dbs.get("templates")
+        if not templates_page_id:
+            raise ValueError(
+                "Templates page not configured. "
+                "Run `agent setup --backend notion` to provision."
+            )
 
-        if existing:
-            self._client.update_database_page(existing[0]["id"], props)
+        blocks = NotionProvisioner._markdown_to_blocks(content)
+        page_title = f"{name} ({version})"
+
+        # Check if template page exists
+        children = self._client.get_block_children(templates_page_id)
+        existing_id = None
+        for child in children:
+            if child.get("type") != "child_page":
+                continue
+            title = child.get("child_page", {}).get("title", "")
+            child_name = re.sub(r"\s*\(v\d+\)\s*$", "", title).strip()
+            if child_name == name:
+                existing_id = child["id"]
+                break
+
+        if existing_id:
+            self._client.update_page(
+                existing_id,
+                {"title": {"title": [{"text": {"content": page_title}}]}},
+            )
         else:
-            self._client.create_database_page(
-                self._db("templates"), props, children=blocks[:100]
+            self._client.create_page(
+                templates_page_id,
+                page_title,
+                children=blocks[:100],
             )
 
     # -- SyncableStore methods --
 
     def sync_to_local(self, target_dir: str, *, dry_run: bool = False) -> dict:
-        """Generate local markdown from Notion for git audit trail."""
+        """Generate local markdown from Notion."""
         target = Path(target_dir)
         summary = {"fetched": 0, "created": 0, "skipped": 0, "failed": 0}
 
-        # Sync inbox (append-only)
+        # Sync Ideas → _inbox.md
         try:
-            entries = self.read_inbox()
-            summary["fetched"] += len(entries)
+            ideas = self.read_inbox()
+            summary["fetched"] += len(ideas)
             inbox_path = target / "docs" / "plan" / "_inbox.md"
-            if inbox_path.exists():
-                existing_text = inbox_path.read_text()
-            else:
-                existing_text = ""
-            for entry in entries:
-                line = f"- [{entry['type']}] {entry['text']}"
-                if line not in existing_text:
+            inbox_path.parent.mkdir(parents=True, exist_ok=True)
+            existing_text = inbox_path.read_text() if inbox_path.exists() else ""
+            for entry in ideas:
+                status_tag = ""
+                if entry["status"] not in ("new", ""):
+                    status_tag = f" [{entry['status']}]"
+                line = f"- [idea] {entry['text']}{status_tag}"
+                if entry["text"] not in existing_text:
                     if not dry_run:
                         with open(inbox_path, "a") as f:
                             f.write(line + "\n")
@@ -330,7 +436,7 @@ class NotionBackend:
         except Exception:
             summary["failed"] += 1
 
-        # Sync briefs (overwrite)
+        # Sync briefs → docs/plan/{brief-name}/brief.md
         try:
             briefs = self.list_briefs()
             for brief_summary in briefs:
@@ -348,15 +454,52 @@ class NotionBackend:
         except Exception:
             summary["failed"] += 1
 
-        # Sync decisions (append-only)
+        # Sync backlog (Feature + Task rows) → backlog.md
+        try:
+            rows = self._client.query_database(
+                self._db("backlog"),
+                filter={
+                    "or": [
+                        {"property": "Type", "select": {"equals": "Feature"}},
+                        {"property": "Type", "select": {"equals": "Task"}},
+                    ]
+                },
+            )
+            summary["fetched"] += len(rows)
+            backlog_path = target / "docs" / "plan" / "_shared" / "backlog.md"
+            backlog_path.parent.mkdir(parents=True, exist_ok=True)
+            if not dry_run:
+                lines = [
+                    "# Backlog\n",
+                    "\nCross-feature source of truth for task priority "
+                    "and execution status.\n",
+                    "\n| Type | Title | Status | Priority | Notes |",
+                    "\n|---|---|---|---|---|",
+                ]
+                for r in rows:
+                    props = r["properties"]
+                    item_type = self._get_select(props, "Type")
+                    title = self._get_title(props)
+                    status = self._get_status_for_row(props)
+                    priority = self._get_select(props, "Priority")
+                    notes = self._get_rich_text(props, "Notes")
+                    lines.append(
+                        f"\n| {item_type} | {title} | {status} "
+                        f"| {priority} | {notes} |"
+                    )
+                backlog_path.write_text("".join(lines) + "\n")
+            summary["created"] += 1
+        except Exception:
+            summary["failed"] += 1
+
+        # Sync decisions → _project/decisions.md
         try:
             decisions = self.read_decisions()
             summary["fetched"] += len(decisions)
             decisions_path = target / "_project" / "decisions.md"
-            if decisions_path.exists():
-                existing_text = decisions_path.read_text()
-            else:
-                existing_text = ""
+            existing_text = (
+                decisions_path.read_text() if decisions_path.exists() else ""
+            )
             for d in decisions:
                 if d["id"] and d["id"] in existing_text:
                     summary["skipped"] += 1
@@ -365,7 +508,7 @@ class NotionBackend:
                         row = (
                             f"| {d['id']} | {d['date']} | {d['title']} "
                             f"| {d['why']} | {d['alternatives_rejected']} "
-                            f"| {d.get('adr_link', '—')} |\n"
+                            f"| {d.get('adr_link') or '—'} |\n"
                         )
                         with open(decisions_path, "a") as f:
                             f.write(row)
@@ -390,7 +533,6 @@ class NotionBackend:
                 filename = f"_{name}.md" if name == "inbox" else f"{name}.md"
                 local_path = target / filename
 
-                # Compare versions
                 if local_path.exists():
                     local_content = local_path.read_text()
                     version_match = re.search(r"\(v(\d+)\)", local_content)
@@ -430,6 +572,8 @@ class NotionBackend:
                 lines.append(f"### {text}")
             elif btype == "bulleted_list_item":
                 lines.append(f"- {text}")
+            elif btype == "numbered_list_item":
+                lines.append(f"1. {text}")
             elif btype == "to_do":
                 checked = data.get("checked", False)
                 mark = "x" if checked else " "
