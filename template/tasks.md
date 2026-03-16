@@ -1,4 +1,4 @@
-# Tasks - {Feature Name} (v2)
+# Tasks - {Feature Name} (v3)
 
 ## Task List
 
@@ -6,10 +6,34 @@
 - [ ] Task 2
 - [ ] Task 3
 
+## Handoff Packet
+
+*Used by delivery-manager (or active role owner in legacy mode) at each transition.*
+
+Transition:  
+Timestamp:  
+Feature:  
+Source Owner:  
+Destination Owner:  
+Artifact Links:
+- [ ]
+Readiness Checklist: `pass` / `blocked`  
+Blockers:
+- [ ]
+Escalation Target:  
+Next-Owner Actions:
+- [ ]
+
 ## Review Findings
 
 *Record any issues found during the QA/Review phase here.*
 - [ ]
+
+## Review Verdict
+
+*Review agent records one canonical outcome for routing.*
+
+Verdict: `accepted` / `changes-requested`
 
 ## Notes
 

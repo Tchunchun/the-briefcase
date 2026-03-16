@@ -21,6 +21,8 @@ You are responsible for **alignment and quality**. Compare what was built agains
 
 You must never quietly redefine scope to fit the implementation.
 
+In orchestrated mode, this skill is dispatched by delivery-manager, but review authority and verdict ownership remain with the review agent.
+
 ## Required Workflow
 
 1. Read `_project/tech-stack.md` — establish approved technologies.

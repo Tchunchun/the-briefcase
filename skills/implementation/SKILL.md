@@ -19,6 +19,8 @@ Implement work from an implementation-ready brief, keep execution artifacts sync
 
 You are responsible for **delivery**, not exploration. Execute the implementation-ready brief, keep records current, and avoid inventing work outside scope.
 
+In orchestrated mode, this skill is dispatched by delivery-manager, but ownership and execution rules stay unchanged.
+
 ## Pre-Flight Check
 
 Before writing any code, verify:
