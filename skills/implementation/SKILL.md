@@ -6,7 +6,7 @@ description: >
   brief.md has Status: implementation-ready and the user wants to start building, when the
   user says "build this", "implement this", "write the code", "start coding", "let's ship
   this", or "continue building." Also trigger when the user wants to break down an
-  implementation-ready brief into tasks, resume work on an existing tasks.md, or ship a
+  implementation-ready brief into tasks, resume work on existing backlog tasks, or ship a
   completed feature with release notes. Do NOT use this skill for brainstorming, scoping,
   architecture decisions, or reviewing completed work.
 ---
@@ -25,24 +25,25 @@ In orchestrated mode, this skill is dispatched by delivery-manager, but ownershi
 
 Before writing any code, verify:
 
-1. Does `brief.md` have `Status: implementation-ready`? If not, STOP. Flag this and escalate.
+1. Run `agent brief read {feature-name}` — does it have `Status: implementation-ready`? If not, STOP. Flag this and escalate.
 2. Read `_project/tech-stack.md` — never introduce unlisted technology without logging a decision.
 3. Read `_project/testing-strategy.md` — this tells you what types of tests to write and what "relevant test scope" means.
 
 ## Required Workflow
 
-1. Read `docs/plan/_shared/backlog.md`.
-2. Read `docs/plan/{feature-name}/brief.md`.
-3. Read `docs/plan/{feature-name}/tasks.md` if it exists.
-4. If `tasks.md` does not exist, create it from the brief's acceptance criteria.
-5. Add or update matching rows in `docs/plan/_shared/backlog.md`.
-6. Pick the highest-priority available task.
+1. Run `agent backlog list` to see current backlog state.
+2. Run `agent brief read {feature-name}` to read the brief.
+3. Run `agent backlog list --type Task` to check for existing tasks for this feature.
+4. If no tasks exist, create them from the brief's acceptance criteria: `agent backlog upsert --title "Task title" --type Task --status to-do --priority High --parent-id "<feature-notion-id>" --notes "Covers AC ..."`
+5. Pick the highest-priority available task.
+6. Mark it in-progress: `agent backlog upsert --title "Task title" --type Task --status in-progress`
 7. Write code under `src/{feature-name}/`, tests under `tests/{feature-name}/` following `_project/testing-strategy.md`.
-8. Run the relevant test scope, then update task and backlog status before moving on.
+8. Run the relevant test scope, then mark task done: `agent backlog upsert --title "Task title" --type Task --status done --notes "Tests: X/X pass"`
 
 ## How to Access Artifacts
 
-**CLI (works with any backend — local or Notion):**
+All planning artifacts are accessed through CLI commands. The CLI routes to the correct backend (local files or Notion) based on `_project/storage.yaml`.
+
 - List inbox: `agent inbox list`
 - Add idea: `agent inbox add --type idea --text "Short title" --notes "Description"`
 - Read brief: `agent brief read {feature-name}`
@@ -53,14 +54,7 @@ Before writing any code, verify:
 - List decisions: `agent decision list`
 - Add decision: `agent decision add --id D-NNN --title "..." --date YYYY-MM-DD --why "..."`
 
-**File paths (local backend only — fallback if CLI unavailable):**
-- Inbox: `docs/plan/_inbox.md`
-- Brief: `docs/plan/{feature-name}/brief.md`
-- Backlog: `docs/plan/_shared/backlog.md`
-- Decisions: `_project/decisions.md`
-- Templates: `template/{name}.md`
-
-The CLI automatically routes to the correct backend (local files or Notion) based on `_project/storage.yaml`. When backend is `notion`, use CLI commands — file paths do not reach Notion.
+Direct file access is only for project constants (`_project/tech-stack.md`, `_project/testing-strategy.md`, `_project/definition-of-done.md`), source code (`src/`, `tests/`), and ADR templates.
 
 ## Status Updates You Own
 
@@ -93,24 +87,23 @@ agent backlog upsert --title "Feature Title" --type Feature --status done --note
 
 ## Artifact Rules
 
-- `brief.md` — read-only during implementation. This defines scope.
-- `tasks.md` — owned by you. Source of truth for feature-level execution.
-- `docs/plan/_shared/backlog.md` — owned by you. Source of truth for cross-feature status.
+- Brief — read-only during implementation. Read via `agent brief read`. This defines scope.
+- Backlog — owned by you. Manage via `agent backlog upsert`. Source of truth for task and feature status.
 - `src/{feature-name}/` — your code. `src/core/` for shared infrastructure.
 - `tests/{feature-name}/` — your tests. Must mirror `src/` structure.
 - `_releases/v{version}/release-notes.md` — created by you when work ships.
 - `_project/tech-stack.md` — read-only. Escalate to architect if new tech is needed.
-- Tech debt found during build → log in `docs/plan/_inbox.md` with `[tech-debt]` prefix. Do not fix it mid-task.
+- Tech debt found during build → log via `agent inbox add --type idea --text "[tech-debt] ..." --notes "Context"`. Do not fix it mid-task.
 
 For cross-agent ownership and handoff rules, read `AGENTS.md`.
 
 ## Execution Rules
 
-- Do not implement anything not in `brief.md`.
-- If a task exposes missing scope or architectural ambiguity → STOP. Escalate using the template below. Log the blocker in `_inbox.md` or the Notes field of `backlog.md`.
+- Do not implement anything not in the brief (read via `agent brief read`).
+- If a task exposes missing scope or architectural ambiguity → STOP. Escalate using the template below. Log the blocker via `agent inbox add` or in the `--notes` field of the task's backlog row.
 - Run tests after each completed task or meaningful step.
 - Do not mark a task done until tested in the target environment.
-- Update both `tasks.md` and `backlog.md` whenever task state changes.
+- Update backlog rows via `agent backlog upsert` whenever task state changes.
 - When all scoped work ships, create release notes (what shipped, deploy steps, rollback steps, known limitations).
 
 ### Escalation Template
@@ -133,9 +126,8 @@ Do not guess or proceed without a decision if the blocker is architectural. Do n
 
 A task is done only when:
 
-- Acceptance criteria in `brief.md` are satisfied.
-- Checkbox in `tasks.md` is updated.
-- Backlog row reflects the correct status.
+- Acceptance criteria in the brief (via `agent brief read`) are satisfied.
+- Task backlog row status is `done` (via `agent backlog upsert`).
 - Work functions end-to-end in the target environment.
 - Relevant tests are added or updated per `_project/testing-strategy.md`.
 - Non-trivial notes or blockers are recorded.
@@ -144,7 +136,7 @@ A task is done only when:
 
 Implementation is complete when:
 
-- All tasks in `tasks.md` are done.
+- All Task backlog rows are `done`.
 - All backlog items are marked correctly.
 - The feature meets the brief's acceptance criteria.
 - Release notes are created when the feature ships.

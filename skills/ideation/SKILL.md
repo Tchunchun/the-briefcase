@@ -30,11 +30,14 @@ You are responsible for **clarity**, not delivery. Your job is to turn rough ide
 ## Required Workflow
 
 1. Read `_project/tech-stack.md` to understand existing architectural constraints.
-2. Read `docs/plan/_inbox.md` for any related ideas already captured.
-3. Work with the user to define the problem, goal, and acceptance criteria.
-4. If the idea is still too rough to define acceptance criteria, append it to `docs/plan/_inbox.md` and stop.
-5. When the idea is ready, create `docs/plan/{feature-name}/brief.md` using the template from `template/brief.md`.
-6. Mark the related inbox item as `[-> architect review]`.
+2. Run `agent inbox list` to check for related ideas already captured.
+3. Set the Idea status to exploring: `agent backlog upsert --title "..." --type Idea --status exploring`
+4. Work with the user to define the problem, goal, and acceptance criteria.
+5. If the idea is still too rough to define acceptance criteria, capture it via `agent inbox add --type idea --text "Short title" --notes "Context"` and stop.
+6. When the idea is ready, create the brief: `agent brief write {feature-name} --status draft --problem "..." --goal "..."`
+7. Attach the brief link to the Idea: `agent backlog upsert --title "..." --type Idea --status exploring --brief-link "<brief-url>"`
+8. Create a Feature backlog row: `agent backlog upsert --title "..." --type Feature --status draft --brief-link "<brief-url>"`
+9. Set the Feature to architect-review: `agent backlog upsert --title "..." --type Feature --status architect-review`
 
 ## Brief Sections You Own
 
@@ -56,15 +59,15 @@ When the user's idea is early-stage:
 1. Start by restating the problem in your own words. Ask the user if you've got it right.
 2. Ask about the user or persona affected — who benefits?
 3. Ask about the desired outcome — what does the user want to be able to do that they can't today?
-4. **Prior-art check:** Before going further, scan `src/` and `docs/plan/` to see whether anything in the existing codebase already addresses this need. If partial overlap exists, note it explicitly — the new feature should extend or replace, not duplicate.
+4. **Prior-art check:** Before going further, run `agent brief list`, `agent inbox list`, and `agent backlog list` to check for planning overlap. Scan `src/` to check for code-level overlap. If partial overlap exists, note it explicitly — the new feature should extend or replace, not duplicate.
 5. Explore scope boundaries early — what should this NOT do?
 6. **Single-idea test:** If the scope touches more than 2 unrelated user jobs-to-be-done, split the idea. Each distinct job becomes its own brief or inbox entry.
 7. If implementation details dominate the conversation too early, pull the work back to goals and constraints.
-8. If a new unrelated idea surfaces, append it to `_inbox.md` instead of expanding the current brief.
+8. If a new unrelated idea surfaces, capture it via `agent inbox add` instead of expanding the current brief.
 
 ## Decision Rules
 
-- If the idea is not specific enough to define acceptance criteria → keep it in `_inbox.md`.
+- If the idea is not specific enough to define acceptance criteria → capture it via `agent inbox add` and stop.
 - If multiple ideas are mixed together → split them before creating a brief.
 - If the scope touches more than 2 unrelated user jobs → split into separate briefs.
 - If the user jumps to implementation details → redirect to goals and constraints first.
@@ -90,7 +93,8 @@ Every title — inbox, backlog, or brief — must be **3–7 words**. Put the lo
 
 ## How to Access Artifacts
 
-**CLI (works with any backend — local or Notion):**
+All planning artifacts are accessed through CLI commands. The CLI routes to the correct backend (local files or Notion) based on `_project/storage.yaml`.
+
 - List inbox: `agent inbox list`
 - Add idea: `agent inbox add --type idea --text "Short title" --notes "Longer description and context"`
 - Read brief: `agent brief read {feature-name}`
@@ -101,14 +105,7 @@ Every title — inbox, backlog, or brief — must be **3–7 words**. Put the lo
 - List decisions: `agent decision list`
 - Add decision: `agent decision add --id D-NNN --title "..." --date YYYY-MM-DD --why "..."`
 
-**File paths (local backend only — fallback if CLI unavailable):**
-- Inbox: `docs/plan/_inbox.md`
-- Brief: `docs/plan/{feature-name}/brief.md`
-- Backlog: `docs/plan/_shared/backlog.md`
-- Decisions: `_project/decisions.md`
-- Templates: `template/{name}.md`
-
-The CLI automatically routes to the correct backend (local files or Notion) based on `_project/storage.yaml`. When backend is `notion`, use CLI commands — file paths do not reach Notion.
+Direct file access is only for project constants (`_project/tech-stack.md`, `_project/testing-strategy.md`, `_project/definition-of-done.md`), source code (`src/`, `tests/`), and ADR templates.
 
 ## Status Updates You Own
 
@@ -145,10 +142,10 @@ agent backlog upsert --title "Short Title" --type Feature --status architect-rev
 
 ## Artifact Rules
 
-- `docs/plan/_inbox.md` — the only place for raw ideas and side thoughts.
-- `docs/plan/{feature-name}/brief.md` — the only planning artifact you may create or update.
-- Do NOT create `tasks.md`.
-- Do NOT edit `docs/plan/_shared/backlog.md`.
+- Inbox — managed via `agent inbox add`. The only place for raw ideas and side thoughts.
+- Briefs — managed via `agent brief write`. The only planning artifact you may create or update.
+- Backlog — managed via `agent backlog upsert`. You may create Idea and Feature rows and update Idea status.
+- Do NOT create Task backlog rows.
 - Do NOT write to `src/` or `tests/`.
 - Do NOT create release notes.
 - Do NOT create extra brainstorming files, scratch notes, or duplicate summaries.
@@ -165,5 +162,5 @@ Ideation is complete only when:
 - Non-Functional Requirements are filled in to the best of current knowledge.
 - Out-of-scope items are explicit.
 - Open technical questions are clearly listed for the architect to resolve.
-- The inbox item is marked `[-> architect review]`.
-- `Status: draft` is set — the architect will change it to `implementation-ready`.
+- The Feature backlog row is set to `architect-review`.
+- The brief `Status: draft` is set — the architect will change it to `implementation-ready`.

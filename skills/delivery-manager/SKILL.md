@@ -27,7 +27,8 @@ You are responsible for **flow and readiness**, not content ownership. Verify th
 
 ## How to Access Artifacts
 
-**CLI (works with any backend — local or Notion):**
+All planning artifacts are accessed through CLI commands. The CLI routes to the correct backend (local files or Notion) based on `_project/storage.yaml`.
+
 - List inbox: `agent inbox list`
 - Add idea: `agent inbox add --type idea --text "Short title" --notes "Description"`
 - Read brief: `agent brief read {feature-name}`
@@ -38,14 +39,7 @@ You are responsible for **flow and readiness**, not content ownership. Verify th
 - List decisions: `agent decision list`
 - Add decision: `agent decision add --id D-NNN --title "..." --date YYYY-MM-DD --why "..."`
 
-**File paths (local backend only — fallback if CLI unavailable):**
-- Inbox: `docs/plan/_inbox.md`
-- Brief: `docs/plan/{feature-name}/brief.md`
-- Backlog: `docs/plan/_shared/backlog.md`
-- Decisions: `_project/decisions.md`
-- Templates: `template/{name}.md`
-
-The CLI automatically routes to the correct backend (local files or Notion) based on `_project/storage.yaml`. When backend is `notion`, use CLI commands — file paths do not reach Notion.
+Direct file access is only for project constants (`_project/tech-stack.md`, `_project/testing-strategy.md`, `_project/definition-of-done.md`), source code (`src/`, `tests/`), and ADR templates.
 
 ## Status Updates You Own
 
@@ -81,7 +75,7 @@ agent backlog upsert --title "Short Title" --type Idea --status shipped --notes 
 ## Required Workflow
 
 1. Read `skills/PLAYBOOK.md` and identify the current transition.
-2. Read the relevant `docs/plan/{feature-name}/brief.md`, `tasks.md`, and backlog row(s).
+2. Run `agent brief read {feature-name}` to read the brief, `agent backlog list --type Task` to review tasks, and `agent backlog list` for backlog state.
 3. Run the transition-specific checklist.
 4. Produce a handoff packet using the contract below.
 5. If checklist passes, route to the next role owner.
@@ -103,27 +97,27 @@ Dispatch rule:
 
 ### Ideation -> Architect
 
-- `brief.md` exists
+- Brief exists (verify via `agent brief read {feature-name}`)
 - `Status: draft`
 - Problem, Goal, Acceptance Criteria, and Out of Scope are present
 - Open Questions are present or explicitly "none"
 
 ### Architect -> Implementation
 
-- `brief.md` has `Status: implementation-ready`
+- Brief has `Status: implementation-ready` (verify via `agent brief read`)
 - `Technical Approach` is filled
 - No unresolved architectural blocker is recorded
 
 ### Implementation -> Review
 
-- `tasks.md` exists and reflects actual implementation progress
+- Task backlog rows exist and reflect actual implementation progress (verify via `agent backlog list --type Task`)
 - Required tests are noted/run per `_project/testing-strategy.md`
-- Backlog row exists and status reflects reality
+- Feature backlog row exists and status reflects reality
 
 ### Review -> Implementation (Fix Cycle)
 
 - Review verdict is `changes-requested`
-- Blocking findings are explicit and actionable
+- Blocking findings are explicit and actionable (in Task `--notes`)
 - Next-owner action list is clear
 
 ### Review -> Ship
@@ -174,9 +168,8 @@ Never silently continue after repeated delegation failure.
 
 ## Artifact Rules
 
-- `docs/plan/{feature}/tasks.md` — may append/update handoff packet and route notes only.
-- `docs/plan/_shared/backlog.md` — may append coordination notes only; do not change ownership status fields.
-- `docs/plan/{feature}/brief.md` — read-only for delivery manager.
+- Backlog — may append coordination notes via `agent backlog upsert --notes` only; do not change ownership status fields.
+- Brief — read-only for delivery manager. Read via `agent brief read`.
 - `src/`, `tests/`, `_project/` — read-only for delivery manager.
 
 For cross-agent ownership and handoff rules, read `AGENTS.md`.
