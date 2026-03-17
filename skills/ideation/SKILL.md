@@ -71,16 +71,23 @@ When the user's idea is early-stage:
 - If the codebase already solves the problem → note the overlap and confirm intent before creating a new brief.
 - A brief is ready for architect review when problem, goal, acceptance criteria, and out-of-scope items are clear enough that the architect can assess the technical approach without asking basic scope questions.
 
+## Title Rule
+
+Every title — inbox, backlog, or brief — must be **3–7 words**. Put the longer description in `--notes`.
+
+✅ `Notion project assets`
+✗ `Notion project assets — use Notion as the management surface for project assets with on-demand sync`
+
 ## How to Access Artifacts
 
 **CLI (works with any backend — local or Notion):**
 - List inbox: `agent inbox list`
-- Add idea: `agent inbox add --type idea --text "description"`
+- Add idea: `agent inbox add --type idea --text "Short title" --notes "Longer description and context"`
 - Read brief: `agent brief read {feature-name}`
 - Write brief: `agent brief write {feature-name} --status draft --problem "..." --goal "..."`
 - List briefs: `agent brief list`
 - List backlog: `agent backlog list`
-- Upsert backlog item: `agent backlog upsert --title "..." --type Task --status to-do --priority High`
+- Upsert backlog item: `agent backlog upsert --title "Short title" --type Task --status to-do --priority High --notes "Context"`
 - List decisions: `agent decision list`
 - Add decision: `agent decision add --id D-NNN --title "..." --date YYYY-MM-DD --why "..."`
 
@@ -99,30 +106,30 @@ You are responsible for updating these statuses in the backlog:
 
 **When capturing a new idea:**
 ```
-agent inbox add --type idea --text "description"
+agent inbox add --type idea --text "Short title" --notes "Longer description"
 ```
 (Creates Idea with `Idea Status: new` automatically)
 
 **When brainstorming/exploring an idea:**
 ```
-agent backlog upsert --title "Idea Title" --type Idea --status exploring
+agent backlog upsert --title "Short Title" --type Idea --status exploring
 ```
 
 **When promoting an idea to a Feature (brief is ready):**
 ```
-agent backlog upsert --title "Idea Title" --type Idea --status promoted
-agent backlog upsert --title "Feature Title" --type Feature --status draft --brief-link "<notion-url>"
+agent backlog upsert --title "Short Title" --type Idea --status promoted
+agent backlog upsert --title "Short Title" --type Feature --status draft --brief-link "<notion-url>"
 agent brief write {feature-name} --status draft --problem "..." --goal "..."
 ```
 
 **When marking an idea as rejected:**
 ```
-agent backlog upsert --title "Idea Title" --type Idea --status rejected --notes "Reason"
+agent backlog upsert --title "Short Title" --type Idea --status rejected --notes "Reason"
 ```
 
 **When brief is ready for architect review:**
 ```
-agent backlog upsert --title "Feature Title" --type Feature --status architect-review
+agent backlog upsert --title "Short Title" --type Feature --status architect-review
 ```
 
 ## Artifact Rules

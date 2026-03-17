@@ -91,15 +91,24 @@ def _push_inbox(
         )
         if not match:
             continue
-        text = match.group("text").strip()
-        if text in existing_texts:
+        raw_text = match.group("text").strip()
+        # Split title from notes on " — " (em-dash)
+        if " \u2014 " in raw_text:
+            title, notes = raw_text.split(" \u2014 ", 1)
+        else:
+            title, notes = raw_text, ""
+        title = title.strip()
+        if title in existing_texts:
             summary["skipped"] += 1
             continue
         if dry_run:
             summary["pushed"] += 1
             continue
         try:
-            store.append_inbox({"text": text, "type": match.group("type")})
+            entry = {"text": title, "type": match.group("type")}
+            if notes.strip():
+                entry["notes"] = notes.strip()
+            store.append_inbox(entry)
             summary["pushed"] += 1
         except Exception:
             summary["failed"] += 1

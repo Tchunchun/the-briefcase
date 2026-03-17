@@ -33,14 +33,21 @@ class LocalBackend:
         entries = []
         for line in content.splitlines():
             match = re.match(
-                r"^- \[(?P<type>[^\]]+)\]\s*(?P<text>.+?)(?:\s*\[-> (?P<status>[^\]]+)\])?$",
+                r"^- \[(?P<type>[^\]]+)\]\s*(?P<text>.+?)(?:\s+\[-> (?P<status>[^\]]+)\])?(?:\s+\u2192\s.+)?$",
                 line,
             )
             if match:
+                raw_text = match.group("text").strip()
+                # Split title from notes on " \u2014 " (em-dash)
+                if " \u2014 " in raw_text:
+                    title, notes = raw_text.split(" \u2014 ", 1)
+                else:
+                    title, notes = raw_text, ""
                 entry = {
                     "type": match.group("type"),
-                    "text": match.group("text").strip(),
+                    "text": title.strip(),
                     "status": match.group("status") or "new",
+                    "notes": notes.strip(),
                 }
                 entries.append(entry)
         return entries
@@ -49,7 +56,11 @@ class LocalBackend:
         path = self.plan_dir / "_inbox.md"
         entry_type = entry.get("type", "idea")
         text = entry["text"]
-        line = f"- [{entry_type}] {text}\n"
+        notes = entry.get("notes", "")
+        if notes:
+            line = f"- [{entry_type}] {text} \u2014 {notes}\n"
+        else:
+            line = f"- [{entry_type}] {text}\n"
         with open(path, "a") as f:
             f.write(line)
 

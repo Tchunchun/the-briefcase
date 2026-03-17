@@ -26,14 +26,18 @@ def inbox_list(project_dir: str) -> None:
 
 
 @inbox.command(name="add")
-@click.option("--text", required=True, help="Idea text.")
+@click.option("--text", required=True, help="Short idea title (3-7 words).")
+@click.option("--notes", default="", help="Longer description, context, or rationale.")
 @click.option("--type", "entry_type", default="idea", help="Entry type (default: idea).")
 @project_dir_option
-def inbox_add(text: str, entry_type: str, project_dir: str) -> None:
+def inbox_add(text: str, notes: str, entry_type: str, project_dir: str) -> None:
     """Add an idea to the inbox."""
     try:
         store = get_store_from_dir(project_dir)
-        store.append_inbox({"text": text, "type": entry_type})
+        entry = {"text": text, "type": entry_type}
+        if notes:
+            entry["notes"] = notes
+        store.append_inbox(entry)
         output_json({"added": text, "type": entry_type})
     except Exception as e:
         output_error(str(e))

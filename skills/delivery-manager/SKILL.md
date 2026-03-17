@@ -29,7 +29,7 @@ You are responsible for **flow and readiness**, not content ownership. Verify th
 
 **CLI (works with any backend — local or Notion):**
 - List inbox: `agent inbox list`
-- Add idea: `agent inbox add --type idea --text "description"`
+- Add idea: `agent inbox add --type idea --text "Short title" --notes "Description"`
 - Read brief: `agent brief read {feature-name}`
 - Write brief: `agent brief write {feature-name} --status draft --problem "..." --goal "..."`
 - List briefs: `agent brief list`

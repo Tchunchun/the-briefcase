@@ -124,6 +124,7 @@ class NotionBackend:
                 "text": self._get_title(r["properties"]),
                 "type": "idea",
                 "status": self._get_select(r["properties"], "Idea Status"),
+                "notes": self._get_rich_text(r["properties"], "Notes"),
                 "notion_id": r["id"],
             }
             for r in rows
@@ -135,6 +136,8 @@ class NotionBackend:
             "Type": self._select_prop("Idea"),
             "Idea Status": self._select_prop(entry.get("status", "new")),
         }
+        if entry.get("notes"):
+            props["Notes"] = self._rich_text_prop(entry["notes"])
         if entry.get("priority"):
             props["Priority"] = self._select_prop(entry["priority"])
         self._client.create_database_page(self._db("backlog"), props)

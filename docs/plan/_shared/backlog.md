@@ -36,7 +36,7 @@ Cross-feature source of truth for task priority and execution status.
 - `Type`: `Feature`, `Tech Debt`, or `Bug`
 - `Use Case`: user scenario or job-to-be-done
 - `Feature`: matches `docs/plan/{feature-name}`
-- `Title`: short, action-oriented task name
+- `Title`: **3–7 words**, action-oriented. Move longer context to `Notes`.
 - `Priority`: `High`, `Medium`, or `Low`
 - `Status`: `To Do`, `In Progress`, `Done`, or `Blocked`
 - `Notes`: blockers, context, dependencies, or meaningful test outcomes

@@ -23,7 +23,8 @@ class ArtifactStore(Protocol):
     def read_inbox(self) -> list[dict]:
         """Return all inbox entries.
 
-        Each entry is a dict with at least: {text, type, status}.
+        Each entry is a dict with at least: {text, type, status, notes}.
+        text is a short title (3-7 words). notes holds the longer description.
         """
         ...
 
@@ -31,6 +32,8 @@ class ArtifactStore(Protocol):
         """Append a single entry to the inbox.
 
         entry must include at least: {text, type}.
+        Optional: {notes} for longer description/context.
+        text should be a short title (3-7 words).
         """
         ...
 
