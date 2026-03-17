@@ -53,6 +53,9 @@ All planning artifacts are accessed through CLI commands. The CLI routes to the 
 - Upsert backlog item: `agent backlog upsert --title "..." --type Task --status to-do --priority High`
 - List decisions: `agent decision list`
 - Add decision: `agent decision add --id D-NNN --title "..." --date YYYY-MM-DD --why "..."`
+- Write release note: `agent release write --version v0.x.0 --notes "..."`
+- Read release note: `agent release read --version v0.x.0`
+- List release notes: `agent release list`
 
 Direct file access is only for project constants (`_project/tech-stack.md`, `_project/testing-strategy.md`, `_project/definition-of-done.md`), source code (`src/`, `tests/`), and ADR templates.
 
@@ -104,7 +107,7 @@ For cross-agent ownership and handoff rules, read `AGENTS.md`.
 - Run tests after each completed task or meaningful step.
 - Do not mark a task done until tested in the target environment.
 - Update backlog rows via `agent backlog upsert` whenever task state changes.
-- When all scoped work ships, create release notes (what shipped, deploy steps, rollback steps, known limitations).
+- When all scoped work ships, write release notes via `agent release write --version v0.x.0 --notes "..."` (what shipped, deploy steps, rollback steps, known limitations).
 
 ### Escalation Template
 

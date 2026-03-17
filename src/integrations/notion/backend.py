@@ -10,7 +10,6 @@ standalone brief pages + Templates as child pages.
 from __future__ import annotations
 
 import re
-from datetime import date
 from pathlib import Path
 from typing import Any
 
@@ -219,6 +218,8 @@ class NotionBackend:
             title = child.get("child_page", {}).get("title", "")
             if title in skip_titles:
                 continue
+            if title.endswith(self._RELEASE_NOTE_TITLE_SUFFIX):
+                continue
             # Read status from page content
             try:
                 blocks = self._client.get_block_children(child["id"])
@@ -410,6 +411,146 @@ class NotionBackend:
                 children=blocks[:100],
             )
 
+    # -- Release Notes --
+
+    _RELEASE_NOTE_TITLE_SUFFIX = " Release Notes"
+
+    def write_release_note(self, version: str, content: str) -> None:
+        from src.integrations.notion.provisioner import NotionProvisioner
+
+        page_title = f"{version}{self._RELEASE_NOTE_TITLE_SUFFIX}"
+        blocks = NotionProvisioner._markdown_to_blocks(content)
+
+        existing_id = self._find_release_note_page(version)
+        if existing_id:
+            # Replace content: delete old blocks then append new ones
+            old_blocks = self._client.get_block_children(existing_id)
+            for block in old_blocks:
+                self._client.delete_block(block["id"])
+            if blocks:
+                self._client.append_block_children(existing_id, blocks[:100])
+        else:
+            result = self._client.create_page(
+                self._parent_page_id,
+                page_title,
+                icon="📦",
+                children=blocks[:100],
+            )
+            existing_id = result["id"]
+
+        # Ensure README index has a link for this version
+        self._ensure_readme_release_link(version, existing_id)
+
+    def read_release_note(self, version: str) -> dict:
+        page_id = self._find_release_note_page(version)
+        if not page_id:
+            raise KeyError(f"Release note not found: {version}")
+        blocks = self._client.get_block_children(page_id)
+        content = self._blocks_to_markdown(blocks)
+        return {
+            "version": version,
+            "title": f"{version}{self._RELEASE_NOTE_TITLE_SUFFIX}",
+            "content": content,
+            "notion_id": page_id,
+        }
+
+    def list_release_notes(self) -> list[dict]:
+        children = self._client.get_block_children(self._parent_page_id)
+        notes = []
+        for child in children:
+            if child.get("type") != "child_page":
+                continue
+            title = child.get("child_page", {}).get("title", "")
+            if title.endswith(self._RELEASE_NOTE_TITLE_SUFFIX):
+                version = title[: -len(self._RELEASE_NOTE_TITLE_SUFFIX)]
+                notes.append({
+                    "version": version,
+                    "title": title,
+                    "notion_id": child["id"],
+                })
+        return notes
+
+    def _find_release_note_page(self, version: str) -> str | None:
+        page_title = f"{version}{self._RELEASE_NOTE_TITLE_SUFFIX}"
+        children = self._client.get_block_children(self._parent_page_id)
+        for child in children:
+            if child.get("type") != "child_page":
+                continue
+            title = child.get("child_page", {}).get("title", "")
+            if title == page_title:
+                return child["id"]
+        return None
+
+    def _ensure_readme_release_link(
+        self, version: str, release_page_id: str
+    ) -> None:
+        readme_id = self._dbs.get("readme")
+        if not readme_id:
+            return
+
+        blocks = self._client.get_block_children(readme_id)
+
+        # Find the "Release Notes" heading
+        heading_idx = None
+        for i, block in enumerate(blocks):
+            btype = block.get("type", "")
+            if btype == "heading_2":
+                text_items = block.get("heading_2", {}).get("rich_text", [])
+                text = "".join(t.get("plain_text", "") for t in text_items)
+                if text.strip() == "Release Notes":
+                    heading_idx = i
+                    break
+
+        # If heading not found, append it
+        if heading_idx is None:
+            self._client.append_block_children(readme_id, [
+                {
+                    "type": "heading_2",
+                    "heading_2": {
+                        "rich_text": [{"text": {"content": "Release Notes"}}],
+                    },
+                },
+            ])
+            # Re-fetch to find the heading block for after_id positioning
+            blocks = self._client.get_block_children(readme_id)
+            for i, block in enumerate(blocks):
+                btype = block.get("type", "")
+                if btype == "heading_2":
+                    text_items = block.get("heading_2", {}).get("rich_text", [])
+                    text = "".join(t.get("plain_text", "") for t in text_items)
+                    if text.strip() == "Release Notes":
+                        heading_idx = i
+                        break
+
+        # Check if a bullet for this version already exists
+        link_text = f"{version} Release Notes"
+        for block in blocks:
+            if block.get("type") == "bulleted_list_item":
+                text_items = block.get("bulleted_list_item", {}).get(
+                    "rich_text", []
+                )
+                text = "".join(t.get("plain_text", "") for t in text_items)
+                if version in text:
+                    return  # Already linked
+
+        # Add bulleted list item linking to the release-note page
+        notion_link = f"https://notion.so/{release_page_id.replace('-', '')}"
+        bullet = {
+            "type": "bulleted_list_item",
+            "bulleted_list_item": {
+                "rich_text": [
+                    {
+                        "type": "text",
+                        "text": {
+                            "content": link_text,
+                            "link": {"url": notion_link},
+                        },
+                    }
+                ],
+            },
+        }
+        self._client.append_block_children(readme_id, [bullet])
+
     # -- SyncableStore methods --
 
     def sync_to_local(self, target_dir: str, *, dry_run: bool = False) -> dict:
@@ -592,7 +733,7 @@ class NotionBackend:
         """Render brief sections to markdown for Notion block content."""
         return "\n".join(
             [
-                f"## Problem",
+                "## Problem",
                 data.get("problem", ""),
                 "",
                 "## Goal",

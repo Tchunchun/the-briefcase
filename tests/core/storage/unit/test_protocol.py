@@ -33,6 +33,15 @@ class _MockLocalBackend:
     def write_backlog_row(self, row: dict) -> None:
         pass
 
+    def write_release_note(self, version: str, content: str) -> None:
+        pass
+
+    def read_release_note(self, version: str) -> dict:
+        return {}
+
+    def list_release_notes(self) -> list[dict]:
+        return []
+
     def read_templates(self) -> list[dict]:
         return []
 
@@ -101,6 +110,9 @@ def test_artifact_store_has_all_required_methods():
         "append_decision",
         "read_backlog",
         "write_backlog_row",
+        "write_release_note",
+        "read_release_note",
+        "list_release_notes",
         "read_templates",
         "write_template",
     ]

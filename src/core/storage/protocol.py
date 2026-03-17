@@ -98,6 +98,32 @@ class ArtifactStore(Protocol):
         """
         ...
 
+    # -- Release Notes --
+
+    def write_release_note(self, version: str, content: str) -> None:
+        """Create or overwrite a release note for the given version.
+
+        version: version string (e.g., 'v0.5.0'), used as primary key.
+        content: full release note text in markdown.
+        """
+        ...
+
+    def read_release_note(self, version: str) -> dict:
+        """Return release note data for a given version.
+
+        Returns a dict with at least: {version, title, content}.
+        Backend-specific metadata (e.g., notion_id) may be included.
+        Raises KeyError if the version does not exist.
+        """
+        ...
+
+    def list_release_notes(self) -> list[dict]:
+        """Return summaries of all release notes.
+
+        Each entry is a dict with at least: {version, title}.
+        """
+        ...
+
     # -- Templates --
 
     def read_templates(self) -> list[dict]:

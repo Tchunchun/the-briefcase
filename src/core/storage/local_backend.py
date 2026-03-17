@@ -206,6 +206,38 @@ class LocalBackend:
             lines.insert(insert_idx, new_line)
         path.write_text("\n".join(lines) + "\n")
 
+    # -- Release Notes --
+
+    def write_release_note(self, version: str, content: str) -> None:
+        release_dir = self.plan_dir / "_releases" / version
+        release_dir.mkdir(parents=True, exist_ok=True)
+        path = release_dir / "release-notes.md"
+        path.write_text(content)
+
+    def read_release_note(self, version: str) -> dict:
+        path = self.plan_dir / "_releases" / version / "release-notes.md"
+        if not path.exists():
+            raise KeyError(f"Release note not found: {version}")
+        content = path.read_text()
+        return {
+            "version": version,
+            "title": f"{version} Release Notes",
+            "content": content,
+        }
+
+    def list_release_notes(self) -> list[dict]:
+        releases_dir = self.plan_dir / "_releases"
+        if not releases_dir.exists():
+            return []
+        notes = []
+        for child in sorted(releases_dir.iterdir()):
+            if child.is_dir() and (child / "release-notes.md").exists():
+                notes.append({
+                    "version": child.name,
+                    "title": f"{child.name} Release Notes",
+                })
+        return notes
+
     # -- Templates --
 
     def read_templates(self) -> list[dict]:

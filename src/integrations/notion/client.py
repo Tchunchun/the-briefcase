@@ -239,6 +239,10 @@ class NotionClient:
 
         return results
 
+    def delete_block(self, block_id: str) -> dict:
+        """Delete (archive) a block by ID."""
+        return self._client.blocks.delete(block_id=block_id)
+
     def append_block_children(self, block_id: str, children: list[dict]) -> dict:
         """Append child blocks to a page/block."""
         return self._client.blocks.children.append(

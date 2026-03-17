@@ -1,7 +1,6 @@
 """Unit + integration tests for LocalBackend."""
 
 import pytest
-from pathlib import Path
 
 from src.core.storage.local_backend import LocalBackend
 from src.core.storage.protocol import ArtifactStore
@@ -228,3 +227,54 @@ def test_write_template(backend, project):
     path = project / "template" / "custom.md"
     assert path.exists()
     assert "Custom Template" in path.read_text()
+
+
+# --- Release Notes ---
+
+
+def test_write_release_note(backend, project):
+    backend.write_release_note("v0.5.0", "# v0.5.0\n\nNew feature added.\n")
+    path = project / "docs" / "plan" / "_releases" / "v0.5.0" / "release-notes.md"
+    assert path.exists()
+    assert "New feature added" in path.read_text()
+
+
+def test_read_release_note(backend, project):
+    release_dir = project / "docs" / "plan" / "_releases" / "v0.1.0"
+    release_dir.mkdir(parents=True)
+    (release_dir / "release-notes.md").write_text("# v0.1.0\n\nInitial release.\n")
+    note = backend.read_release_note("v0.1.0")
+    assert note["version"] == "v0.1.0"
+    assert note["title"] == "v0.1.0 Release Notes"
+    assert "Initial release" in note["content"]
+
+
+def test_read_release_note_not_found(backend):
+    with pytest.raises(KeyError, match="Release note not found"):
+        backend.read_release_note("v99.0.0")
+
+
+def test_list_release_notes(backend, project):
+    releases = project / "docs" / "plan" / "_releases"
+    for v in ["v0.1.0", "v0.2.0"]:
+        d = releases / v
+        d.mkdir(parents=True)
+        (d / "release-notes.md").write_text(f"# {v}\n")
+    notes = backend.list_release_notes()
+    assert len(notes) == 2
+    assert notes[0]["version"] == "v0.1.0"
+    assert notes[1]["version"] == "v0.2.0"
+
+
+def test_list_release_notes_empty(tmp_path):
+    (tmp_path / "docs" / "plan").mkdir(parents=True)
+    b = LocalBackend(tmp_path)
+    assert b.list_release_notes() == []
+
+
+def test_write_release_note_overwrites(backend, project):
+    backend.write_release_note("v0.5.0", "Original content.\n")
+    backend.write_release_note("v0.5.0", "Updated content.\n")
+    note = backend.read_release_note("v0.5.0")
+    assert "Updated content" in note["content"]
+    assert "Original content" not in note["content"]

@@ -8,7 +8,6 @@ Run:
     python3 -m pytest tests/e2e/test_local_workflow.py -v
 """
 
-import os
 import shutil
 from pathlib import Path
 
@@ -165,7 +164,31 @@ class TestLocalWorkflowE2E:
         assert (consumer_project / "docs" / "plan" / "_inbox.md").exists()
         assert (consumer_project / "docs" / "plan" / "disk-check" / "brief.md").exists()
 
-    def test_step8_config_roundtrip(self, consumer_project):
+    def test_step8_release_notes_write_read_list(self, consumer_project):
+        store = get_store(load_config(consumer_project / "_project"), str(consumer_project))
+
+        store.write_release_note("v0.1.0", "# v0.1.0\n\nInitial release.\n")
+        store.write_release_note("v0.2.0", "# v0.2.0\n\nBug fixes.\n")
+
+        note = store.read_release_note("v0.1.0")
+        assert note["version"] == "v0.1.0"
+        assert "Initial release" in note["content"]
+
+        notes = store.list_release_notes()
+        versions = [n["version"] for n in notes]
+        assert "v0.1.0" in versions
+        assert "v0.2.0" in versions
+
+        # Overwrite and verify
+        store.write_release_note("v0.1.0", "# v0.1.0\n\nUpdated.\n")
+        note = store.read_release_note("v0.1.0")
+        assert "Updated" in note["content"]
+
+        # Verify on disk
+        path = consumer_project / "docs" / "plan" / "_releases" / "v0.1.0" / "release-notes.md"
+        assert path.exists()
+
+    def test_step9_config_roundtrip(self, consumer_project):
         config = load_config(consumer_project / "_project")
         assert config.backend == "local"
         assert config.notion is None

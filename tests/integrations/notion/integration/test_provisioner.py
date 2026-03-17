@@ -40,7 +40,7 @@ def test_backlog_type_options():
 def test_backlog_idea_status_options():
     opts = BACKLOG_SCHEMA["Idea Status"]["select"]["options"]
     names = [o["name"] for o in opts]
-    assert names == ["new", "exploring", "promoted", "rejected"]
+    assert names == ["new", "exploring", "promoted", "rejected", "shipped"]
 
 
 def test_backlog_feature_status_options():
