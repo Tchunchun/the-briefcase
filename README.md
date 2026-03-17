@@ -1,6 +1,6 @@
 # 0-to-1 Agent Skills
 
-Four agent skills for the full lifecycle of building a feature — from idea to shipped code.
+Five agent skills for the full lifecycle of building a feature — from idea to shipped code.
 
 | Skill | What it does |
 |---|---|
@@ -8,6 +8,7 @@ Four agent skills for the full lifecycle of building a feature — from idea to 
 | **architect** | Resolves technical questions, signs off briefs as implementation-ready |
 | **implementation** | Breaks briefs into tasks, writes code and tests, ships with release notes |
 | **review** | Validates implementation against the brief and acceptance criteria |
+| **delivery-manager** | Coordinates handoffs between roles with readiness checks and escalation |
 
 ## Setup
 
@@ -83,6 +84,33 @@ agent sync notion --project-dir .
 # Optional: sync template updates from backend
 agent sync templates --project-dir .
 ```
+
+### Agent Artifact CLI (direct read/write — no sync needed)
+
+Agents can read and write artifacts directly via CLI commands that route to the active backend:
+
+```bash
+# Inbox
+agent inbox list                                    # List all ideas
+agent inbox add --type idea --text "Build auth"     # Add an idea
+
+# Briefs
+agent brief list                                    # List all briefs
+agent brief read my-feature                         # Read a brief as JSON
+agent brief write my-feature --problem "..." --goal "..."  # Create/update inline
+agent brief write my-feature --file brief.md        # Import from markdown file
+
+# Backlog
+agent backlog list                                  # List all items
+agent backlog list --type Feature                   # Filter by type
+agent backlog upsert --title "Build login" --type Task --status to-do --priority High
+
+# Decisions
+agent decision list                                 # List all decisions
+agent decision add --id D-001 --title "Use Next.js" --date 2026-03-16 --why "SSR"
+```
+
+All commands output JSON (`{"success": true, "data": ...}`), respect the active backend from `_project/storage.yaml`, and work with both local and Notion backends transparently.
 
 Ownership boundaries:
 - Keep your application code in your own `src/` and `tests/`.
