@@ -67,6 +67,10 @@ mkdir -p /path/to/your-project/.briefcase
 cp -r skills/   /path/to/your-project/.briefcase/skills/
 cp -r template/  /path/to/your-project/.briefcase/template/
 cp -r src/       /path/to/your-project/.briefcase/src/
+
+# Patch skill paths for consumer project layout
+find /path/to/your-project/.briefcase/skills/ -name '*.md' \
+  -exec sed -i '' 's|\.skills/|.briefcase/skills/|g' {} +
 ```
 
 ### 2. Add the `agent` entry point

@@ -16,15 +16,17 @@ def test_get_notion_client_with_explicit_token():
 
 
 def test_get_notion_client_from_env(monkeypatch):
-    monkeypatch.setenv("NOTION_API_TOKEN", "env-token")
+    monkeypatch.setenv("NOTION_API_KEY", "env-token")
+    monkeypatch.delenv("NOTION_API_TOKEN", raising=False)
     with patch("src.integrations.notion.client.Client") as mock_cls:
         client = get_notion_client()
         mock_cls.assert_called_once_with(auth="env-token")
 
 
 def test_get_notion_client_raises_without_token(monkeypatch):
+    monkeypatch.delenv("NOTION_API_KEY", raising=False)
     monkeypatch.delenv("NOTION_API_TOKEN", raising=False)
-    with pytest.raises(ValueError, match="Notion API token not found"):
+    with pytest.raises(ValueError, match="Notion API key not found"):
         get_notion_client()
 
 

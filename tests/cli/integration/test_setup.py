@@ -84,7 +84,7 @@ def test_setup_notion_backend_provisions_and_saves_db_ids(runner, project):
     # Verify .env token
     env_path = project / ".env"
     assert env_path.exists()
-    assert "NOTION_API_TOKEN=test-token-123" in env_path.read_text()
+    assert "NOTION_API_KEY=test-token-123" in env_path.read_text()
 
 
 def test_setup_notion_fails_on_provision_error(runner, project):
