@@ -88,6 +88,7 @@ You are responsible for updating these statuses in the backlog:
 **When signing off a Feature as implementation-ready:**
 ```
 agent backlog upsert --title "Feature Title" --type Feature --status implementation-ready
+agent backlog upsert --title "Short Title" --type Idea --status promoted --notes "Brief reviewed; graduated to Feature"
 ```
 
 **When logging a new decision:**
