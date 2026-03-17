@@ -88,6 +88,18 @@ Prefer concrete evidence tied to specific files, behavior, or task items.
 
 The CLI automatically routes to the correct backend (local files or Notion) based on `_project/storage.yaml`. When backend is `notion`, use CLI commands — file paths do not reach Notion.
 
+## Status Updates You Own
+
+The review agent does not directly change Feature or Task status. Instead:
+
+**After review — add findings as notes:**
+```
+agent backlog upsert --title "Feature Title" --type Feature --status implementation-ready --notes "Review: accepted" 
+agent backlog upsert --title "Feature Title" --type Feature --status implementation-ready --notes "Review: changes-requested — see findings"
+```
+
+The implementation agent sets `Feature Status: done` after review acceptance. The review agent confirms or blocks.
+
 ## Artifact Rules
 
 - `brief.md` — source of truth for requirements. Do NOT modify.

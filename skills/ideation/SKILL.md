@@ -93,6 +93,38 @@ When the user's idea is early-stage:
 
 The CLI automatically routes to the correct backend (local files or Notion) based on `_project/storage.yaml`. When backend is `notion`, use CLI commands — file paths do not reach Notion.
 
+## Status Updates You Own
+
+You are responsible for updating these statuses in the backlog:
+
+**When capturing a new idea:**
+```
+agent inbox add --type idea --text "description"
+```
+(Creates Idea with `Idea Status: new` automatically)
+
+**When brainstorming/exploring an idea:**
+```
+agent backlog upsert --title "Idea Title" --type Idea --status exploring
+```
+
+**When promoting an idea to a Feature (brief is ready):**
+```
+agent backlog upsert --title "Idea Title" --type Idea --status promoted
+agent backlog upsert --title "Feature Title" --type Feature --status draft --brief-link "<notion-url>"
+agent brief write {feature-name} --status draft --problem "..." --goal "..."
+```
+
+**When marking an idea as rejected:**
+```
+agent backlog upsert --title "Idea Title" --type Idea --status rejected --notes "Reason"
+```
+
+**When brief is ready for architect review:**
+```
+agent backlog upsert --title "Feature Title" --type Feature --status architect-review
+```
+
 ## Artifact Rules
 
 - `docs/plan/_inbox.md` — the only place for raw ideas and side thoughts.

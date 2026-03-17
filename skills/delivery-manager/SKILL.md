@@ -47,6 +47,24 @@ You are responsible for **flow and readiness**, not content ownership. Verify th
 
 The CLI automatically routes to the correct backend (local files or Notion) based on `_project/storage.yaml`. When backend is `notion`, use CLI commands — file paths do not reach Notion.
 
+## Status Updates You Own
+
+Delivery manager verifies statuses are correct during handoffs but does not own status transitions. Use the CLI to read and verify:
+
+**Verify before handoff:**
+```
+agent backlog list --type Feature    # Check Feature statuses
+agent backlog list --type Task       # Check Task statuses
+agent inbox list                     # Check Idea statuses
+```
+
+**Add routing notes:**
+```
+agent backlog upsert --title "Feature Title" --type Feature --status <current-status> --notes "Routed to <agent> on <date>"
+```
+
+Do NOT change Feature/Task/Idea status — that is owned by the role agent doing the work.
+
 ## What You Never Do
 
 - Do not edit `brief.md` scope sections.

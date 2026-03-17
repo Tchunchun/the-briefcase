@@ -62,6 +62,35 @@ Before writing any code, verify:
 
 The CLI automatically routes to the correct backend (local files or Notion) based on `_project/storage.yaml`. When backend is `notion`, use CLI commands — file paths do not reach Notion.
 
+## Status Updates You Own
+
+You are responsible for updating these statuses in the backlog:
+
+**When creating Tasks from a brief:**
+```
+agent backlog upsert --title "Task Title" --type Task --status to-do --priority High --parent-id "<feature-notion-id>"
+```
+
+**When starting work on a Task:**
+```
+agent backlog upsert --title "Task Title" --type Task --status in-progress
+```
+
+**When a Task is blocked:**
+```
+agent backlog upsert --title "Task Title" --type Task --status blocked --notes "Blocked on: ..."
+```
+
+**When a Task is done (tests pass):**
+```
+agent backlog upsert --title "Task Title" --type Task --status done --notes "Tests: X/X pass"
+```
+
+**When all Tasks are done and Feature is shipped:**
+```
+agent backlog upsert --title "Feature Title" --type Feature --status done --notes "Shipped in vX.Y.Z"
+```
+
 ## Artifact Rules
 
 - `brief.md` — read-only during implementation. This defines scope.

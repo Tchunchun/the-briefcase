@@ -81,6 +81,20 @@ For significant decisions (new tech, meaningful alternatives, reversals), create
 
 The CLI automatically routes to the correct backend (local files or Notion) based on `_project/storage.yaml`. When backend is `notion`, use CLI commands — file paths do not reach Notion.
 
+## Status Updates You Own
+
+You are responsible for updating these statuses in the backlog:
+
+**When signing off a Feature as implementation-ready:**
+```
+agent backlog upsert --title "Feature Title" --type Feature --status implementation-ready
+```
+
+**When logging a new decision:**
+```
+agent decision add --id D-NNN --title "Decision" --date YYYY-MM-DD --why "Rationale"
+```
+
 ## Artifact Rules
 
 - `_project/tech-stack.md` — owned by you. Updated only on deliberate, logged decisions.
