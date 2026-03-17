@@ -58,18 +58,15 @@ your-project/
 
 For projects that want both agent skills and Notion as the planning database:
 
-### 1. Install skills, templates, and CLI tooling
+### 1. Install the briefcase
+
+One folder, everything the framework needs:
 
 ```bash
-# Skills + PLAYBOOK
-cp -r skills/ /path/to/your-project/.skills/
-
-# Document templates
-cp -r template/ /path/to/your-project/template/
-
-# CLI framework (hidden from git, won't pollute your project)
 mkdir -p /path/to/your-project/.briefcase
-cp -r src/ /path/to/your-project/.briefcase/src/
+cp -r skills/   /path/to/your-project/.briefcase/skills/
+cp -r template/  /path/to/your-project/.briefcase/template/
+cp -r src/       /path/to/your-project/.briefcase/src/
 ```
 
 ### 2. Add the `agent` entry point
@@ -97,6 +94,14 @@ _project/storage.yaml
 docs/plan/.sync-manifest.json
 ```
 
+### 4. Update AGENTS.md
+
+Point to the briefcase:
+
+```markdown
+Read `.briefcase/skills/PLAYBOOK.md` fully before taking any action.
+```
+
 ### 4. Provision Notion workspace
 
 ```bash
@@ -110,15 +115,16 @@ This will prompt for your Notion API token and parent page ID, provision databas
 ```
 your-project/
 ├── agent                  ← entry point (executable, committed to git)
-├── .skills/               ← agent behavior rules (committed)
-├── .briefcase/            ← CLI framework code (gitignored)
+├── .briefcase/            ← THE FRAMEWORK (gitignored)
+│   ├── skills/            ← agent behavior rules (PLAYBOOK + 5 SKILL.md)
+│   ├── template/          ← document templates (brief, tasks, backlog, etc.)
+│   └── src/               ← CLI + storage + sync code
 ├── _project/
 │   ├── storage.yaml       ← backend config (gitignored)
 │   ├── tech-stack.md
 │   └── decisions.md
-├── template/              ← document templates (committed)
-├── AGENTS.md
-├── CLAUDE.md
+├── AGENTS.md              ← points to .briefcase/skills/PLAYBOOK.md
+├── CLAUDE.md              ← points to AGENTS.md
 └── src/                   ← YOUR app code (untouched)
 ```
 
