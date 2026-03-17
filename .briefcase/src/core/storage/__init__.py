@@ -1,1 +1,0 @@
-"""Pluggable artifact storage backends."""
