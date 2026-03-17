@@ -23,11 +23,16 @@ In orchestrated mode, this skill is dispatched by delivery-manager, but ownershi
 
 ## Pre-Flight Check
 
+> **IMPORTANT — artifacts live in the configured backend (see `_project/storage.yaml`).**
+> When the backend is `notion`, briefs, backlog, decisions, and inbox exist **only in Notion**.
+> You MUST use `agent` CLI commands to read and write them.
+> Do NOT open `docs/plan/` files directly — they may not exist or may be stale.
+
 Before writing any code, verify:
 
 1. Run `agent brief read {feature-name}` — does it have `Status: implementation-ready`? If not, STOP. Flag this and escalate.
-2. Read `_project/tech-stack.md` — never introduce unlisted technology without logging a decision.
-3. Read `_project/testing-strategy.md` — this tells you what types of tests to write and what "relevant test scope" means.
+2. Open `_project/tech-stack.md` (local file, always safe to read directly) — never introduce unlisted technology without logging a decision.
+3. Open `_project/testing-strategy.md` (local file, always safe to read directly) — this tells you what types of tests to write and what "relevant test scope" means.
 
 ## Required Workflow
 
@@ -44,6 +49,8 @@ Before writing any code, verify:
 
 All planning artifacts are accessed through CLI commands. The CLI routes to the correct backend (local files or Notion) based on `_project/storage.yaml`.
 
+**Run the CLI** — never read `docs/plan/` files directly:
+
 - List inbox: `agent inbox list`
 - Add idea: `agent inbox add --type idea --text "Short title" --notes "Description"`
 - Read brief: `agent brief read {feature-name}`
@@ -57,7 +64,17 @@ All planning artifacts are accessed through CLI commands. The CLI routes to the 
 - Read release note: `agent release read --version v0.x.0`
 - List release notes: `agent release list`
 
-Direct file access is only for project constants (`_project/tech-stack.md`, `_project/testing-strategy.md`, `_project/definition-of-done.md`), source code (`src/`, `tests/`), and ADR templates.
+**Direct file access** is allowed only for:
+- Project constants: `_project/tech-stack.md`, `_project/testing-strategy.md`, `_project/definition-of-done.md`
+- Source code and tests: `src/`, `tests/`
+- ADR templates
+
+### Anti-Pattern — Do NOT Do This
+
+- ❌ `cat docs/plan/{feature-name}/brief.md` — the file may not exist when backend is Notion.
+- ❌ `cat docs/plan/_shared/backlog.md` — stale or missing when backend is Notion.
+- ❌ Reading any file under `docs/plan/` to get brief, backlog, inbox, or decision data.
+- ✅ Always use `agent brief read`, `agent backlog list`, etc.
 
 ## Status Updates You Own
 
@@ -94,7 +111,7 @@ agent backlog upsert --title "Feature Title" --type Feature --status done --note
 - Backlog — owned by you. Manage via `agent backlog upsert`. Source of truth for task and feature status.
 - `src/{feature-name}/` — your code. `src/core/` for shared infrastructure.
 - `tests/{feature-name}/` — your tests. Must mirror `src/` structure.
-- `_releases/v{version}/release-notes.md` — created by you when work ships.
+- Release notes — written via `agent release write --version v0.x.0 --notes "..."` when work ships. **Always use the CLI command** — it routes to the active backend (Notion or local). Never write release note files directly.
 - `_project/tech-stack.md` — read-only. Escalate to architect if new tech is needed.
 - Tech debt found during build → log via `agent inbox add --type idea --text "[tech-debt] ..." --notes "Context"`. Do not fix it mid-task.
 
