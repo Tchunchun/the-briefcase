@@ -201,3 +201,56 @@ Read .skills/skills/ideation/SKILL.md and follow it for this task.
 - **Skills** define how each agent behaves — what it produces, what it must not touch.
 - **PLAYBOOK.md** defines who owns what, when to hand off, and where files live.
 - **AGENTS.md** is the project entrypoint that points to `PLAYBOOK.md`. Add project-specific overrides here.
+
+## Repository Structure (Upstream)
+
+```
+{project-root}/
+├── AGENTS.md                      ← project entrypoint; agent-facing conventions
+├── CLAUDE.md                      ← Claude Code entrypoint; points to AGENTS.md
+├── README.md                      ← public-facing project overview
+│
+├── skills/                        ← distributable skills (consumers get .briefcase/skills/)
+│   ├── PLAYBOOK.md                ← shared workflow rules; source of truth for all agents
+│   ├── ideation/SKILL.md
+│   ├── architect/SKILL.md
+│   ├── implementation/SKILL.md
+│   ├── review/SKILL.md
+│   └── delivery-manager/SKILL.md
+│
+├── template/                      ← blank document templates (consumers get .briefcase/template/)
+│   ├── brief.md, tasks.md, backlog.md, release-notes.md
+│   ├── tech-stack.md, testing-strategy.md, definition-of-done.md
+│   ├── adr.md, _inbox.md
+│
+├── src/                           ← CLI + storage + sync code (consumers get .briefcase/src/)
+│   ├── cli/                       ← CLI commands (inbox, brief, backlog, decision, setup, sync)
+│   ├── core/                      ← storage protocol, config, factory, local backend
+│   ├── integrations/              ← Notion API client, schemas, provisioner, backend
+│   └── sync/                      ← sync logic, manifest, snapshots
+│
+├── _project/                      ← project-level constants (architect-owned)
+│   ├── tech-stack.md, definition-of-done.md, testing-strategy.md
+│   ├── decisions.md
+│   └── storage.yaml               ← backend config (local or notion)
+│
+├── docs/
+│   ├── plan/                      ← agent working space
+│   │   ├── _inbox.md              ← raw ideas; append-only
+│   │   ├── _shared/backlog.md
+│   │   ├── _releases/v{version}/release-notes.md
+│   │   ├── _reference/adr/ADR-{NNN}.md
+│   │   └── {brief-name}/          ← one folder per scoped brief (kebab-case)
+│   │       ├── brief.md
+│   │       └── tasks.md
+│   └── user/                      ← human-readable documentation
+│
+└── tests/                         ← automated tests; mirrors src/ modules
+```
+
+### Folder Naming Conventions
+
+- **All folders use `kebab-case`**: lowercase, hyphens, no spaces.
+- **Planning folders** (`docs/plan/{brief-name}/`): named after the scoped brief.
+- **Source folders** (`src/`): organized by domain/module, not by brief.
+- **Test folders** (`tests/`): mirror `src/` module structure.

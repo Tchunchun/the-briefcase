@@ -77,7 +77,7 @@ When the user's idea is early-stage:
 |---|---|---|
 | `new` | Just captured, no work done | Auto on inbox add |
 | `exploring` | Brainstorming/scoping, draft brief created | Ideation agent |
-| `promoted` | Brief reviewed by architect, graduated to Feature | Architect agent |
+| `promoted` | Brief reviewed by architect, graduated to Feature | Delivery-manager agent |
 | `rejected` | Idea discarded | Ideation agent |
 | `shipped` | Feature built and shipped | Delivery-manager agent |
 
@@ -122,8 +122,8 @@ agent inbox add --type idea --text "Short title" --notes "Longer description"
 
 **When brainstorming/exploring an idea (draft brief created):**
 ```
-agent backlog upsert --title "Short Title" --type Idea --status exploring
-agent backlog upsert --title "Short Title" --type Feature --status draft --brief-link "<notion-url>"
+agent backlog upsert --title "Short Title" --type Idea --status exploring --brief-link "<brief-url>"
+agent backlog upsert --title "Short Title" --type Feature --status draft --brief-link "<brief-url>"
 agent brief write {feature-name} --status draft --problem "..." --goal "..."
 ```
 
@@ -131,7 +131,7 @@ agent brief write {feature-name} --status draft --problem "..." --goal "..."
 ```
 agent backlog upsert --title "Short Title" --type Idea --status promoted
 ```
-(Set by architect after review — ideation agent does NOT set `promoted` directly.)
+(Set by delivery-manager after architect review — ideation agent does NOT set `promoted` directly.)
 
 **When marking an idea as rejected:**
 ```

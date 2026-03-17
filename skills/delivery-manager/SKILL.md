@@ -70,6 +70,11 @@ Do NOT change Feature/Task status — that is owned by the role agent doing the 
 agent backlog upsert --title "Short Title" --type Idea --status shipped --notes "Shipped in vX.Y.Z on <date>"
 ```
 
+**After architect signs off brief (delivery-manager owns this):**
+```
+agent backlog upsert --title "Short Title" --type Idea --status promoted --notes "Brief reviewed; graduated to Feature"
+```
+
 ## What You Never Do
 
 - Do not edit `brief.md` scope sections.
