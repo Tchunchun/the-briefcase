@@ -4,7 +4,7 @@ This is the project-level entrypoint for all agents working on this repository.
 
 **Read `.briefcase/skills/PLAYBOOK.md` before taking any action.** That file defines all workflow rules, agent routing, file ownership, and handoff sequences. This file adds project-specific scope and conventions.
 
-Note: In this upstream repository, skills live at `skills/` (source). In consumer projects after install, they live at `.briefcase/skills/`. The PLAYBOOK uses `.briefcase/skills/` paths — the canonical consumer path.
+Note: In this upstream repository, skills live at `skills/` (source). In consumer projects after install, they live at `.briefcase/skills/`. The PLAYBOOK uses `.skills/` paths — the canonical consumer path.
 
 ---
 
