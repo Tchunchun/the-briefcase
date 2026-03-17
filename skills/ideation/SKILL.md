@@ -71,6 +71,28 @@ When the user's idea is early-stage:
 - If the codebase already solves the problem → note the overlap and confirm intent before creating a new brief.
 - A brief is ready for architect review when problem, goal, acceptance criteria, and out-of-scope items are clear enough that the architect can assess the technical approach without asking basic scope questions.
 
+## How to Access Artifacts
+
+**CLI (works with any backend — local or Notion):**
+- List inbox: `agent inbox list`
+- Add idea: `agent inbox add --type idea --text "description"`
+- Read brief: `agent brief read {feature-name}`
+- Write brief: `agent brief write {feature-name} --status draft --problem "..." --goal "..."`
+- List briefs: `agent brief list`
+- List backlog: `agent backlog list`
+- Upsert backlog item: `agent backlog upsert --title "..." --type Task --status to-do --priority High`
+- List decisions: `agent decision list`
+- Add decision: `agent decision add --id D-NNN --title "..." --date YYYY-MM-DD --why "..."`
+
+**File paths (local backend only — fallback if CLI unavailable):**
+- Inbox: `docs/plan/_inbox.md`
+- Brief: `docs/plan/{feature-name}/brief.md`
+- Backlog: `docs/plan/_shared/backlog.md`
+- Decisions: `_project/decisions.md`
+- Templates: `template/{name}.md`
+
+The CLI automatically routes to the correct backend (local files or Notion) based on `_project/storage.yaml`. When backend is `notion`, use CLI commands — file paths do not reach Notion.
+
 ## Artifact Rules
 
 - `docs/plan/_inbox.md` — the only place for raw ideas and side thoughts.
