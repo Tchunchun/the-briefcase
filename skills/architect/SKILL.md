@@ -59,6 +59,28 @@ You work *with the user*, not independently. All key decisions require their inp
 
 For significant decisions (new tech, meaningful alternatives, reversals), create a full ADR at `docs/plan/_reference/adr/ADR-{NNN}.md` using `template/adr.md`. For minor decisions, a summary row is sufficient.
 
+## How to Access Artifacts
+
+**CLI (works with any backend — local or Notion):**
+- List inbox: `agent inbox list`
+- Add idea: `agent inbox add --type idea --text "description"`
+- Read brief: `agent brief read {feature-name}`
+- Write brief: `agent brief write {feature-name} --status draft --problem "..." --goal "..."`
+- List briefs: `agent brief list`
+- List backlog: `agent backlog list`
+- Upsert backlog item: `agent backlog upsert --title "..." --type Task --status to-do --priority High`
+- List decisions: `agent decision list`
+- Add decision: `agent decision add --id D-NNN --title "..." --date YYYY-MM-DD --why "..."`
+
+**File paths (local backend only — fallback if CLI unavailable):**
+- Inbox: `docs/plan/_inbox.md`
+- Brief: `docs/plan/{feature-name}/brief.md`
+- Backlog: `docs/plan/_shared/backlog.md`
+- Decisions: `_project/decisions.md`
+- Templates: `template/{name}.md`
+
+The CLI automatically routes to the correct backend (local files or Notion) based on `_project/storage.yaml`. When backend is `notion`, use CLI commands — file paths do not reach Notion.
+
 ## Artifact Rules
 
 - `_project/tech-stack.md` — owned by you. Updated only on deliberate, logged decisions.

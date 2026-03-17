@@ -1,6 +1,6 @@
 # Agent Artifact API (v3)
 
-**Status: draft** `[-> architect review]`
+**Status: implementation-ready**
 
 ---
 
@@ -10,7 +10,7 @@ When Notion is the active backend, LLM agents (ideation, architect, implementati
 
 ## Goal
 
-Expose the `ArtifactStore` protocol as a set of callable interfaces that LLM agents can invoke directly during a session — eliminating the sync step for reads and writes. The interface should work with any agent that has shell access (Claude Code, VS Code Copilot, OpenAI Codex, Gemini Code Assist) and optionally with MCP-capable clients.
+Expose the `ArtifactStore` protocol as CLI subcommands that LLM agents can invoke directly — routing transparently to whichever backend is active (local or Notion) via `_project/storage.yaml`. Agent skills get dual-mode instructions: CLI commands (primary, works with any backend) with file-path fallback (local backend only). The interface should work with any agent that has shell access (Claude Code, VS Code Copilot, OpenAI Codex, Gemini Code Assist).
 
 ## Acceptance Criteria
 
@@ -26,8 +26,10 @@ Expose the `ArtifactStore` protocol as a set of callable interfaces that LLM age
 - [ ] `agent backlog upsert --id T-NNN --type Feature --title "..." --priority High --status "To Do" --feature <name>` → creates or updates a backlog row
 - [ ] All commands respect the active backend from `_project/storage.yaml` (local or Notion) transparently
 - [ ] All commands return consistent JSON with `{"success": bool, "data": ..., "error": ...}` envelope
-- [ ] Agent skills can be updated to use CLI commands instead of file paths (optional, non-breaking — file access still works)
+- [ ] Agent skills updated with dual-mode instructions: CLI commands (primary) with file-path fallback (local backend only)
 - [ ] Error output goes to stderr; data output goes to stdout (for clean piping)
+- [ ] Consumer projects using `backend: local` work with both CLI commands and direct file access
+- [ ] Consumer projects using `backend: notion` work with CLI commands only (no local file dependency)
 
 ## Non-Functional Requirements
 
@@ -48,13 +50,134 @@ Expose the `ArtifactStore` protocol as a set of callable interfaces that LLM age
 
 ## Open Questions
 
-- **Skill file updates**: Should agent skills be updated to prefer CLI commands over file paths? This would mean changing instructions like "Read `docs/plan/_inbox.md`" to "Run `agent inbox list`". This is a behavior change across all five skills. The architect should assess whether this is a separate brief or part of this one.
-- **Write conflict handling**: If an agent reads via CLI (from Notion) and writes via CLI (to Notion), but also writes local files during the same session, which version wins? The architect should define the precedence rule.
-- **Authentication flow**: CLI commands calling Notion need the API token. Currently loaded from `.env` / environment variable. Confirm this is sufficient or whether a session-based auth cache is needed.
+All resolved — see Technical Approach and `_project/decisions.md` (D-017 through D-020).
 
 ## Technical Approach
 
-*Owned by architect agent.*
+### Architecture
+
+CLI subcommand groups wrapping the existing `ArtifactStore` protocol. Each command:
+1. Calls `load_config()` → `get_store()` to get the active backend
+2. Calls the corresponding `ArtifactStore` method
+3. Outputs JSON to stdout with `{"success": true, "data": ...}` envelope
+4. Outputs errors to stderr with `{"success": false, "error": "..."}`
+
+```
+agent inbox list       → store.read_inbox()       → JSON
+agent inbox add        → store.append_inbox()      → JSON
+agent brief list       → store.list_briefs()       → JSON
+agent brief read <n>   → store.read_brief(n)       → JSON
+agent brief write <n>  → store.write_brief(n, ...) → JSON
+agent decision list    → store.read_decisions()    → JSON
+agent decision add     → store.append_decision()   → JSON
+agent backlog list     → store.read_backlog()      → JSON
+agent backlog upsert   → store.write_backlog_row() → JSON
+```
+
+### CLI Structure
+
+New Click command groups added to `src/cli/main.py`:
+
+```python
+cli.add_command(inbox)    # src/cli/commands/inbox.py
+cli.add_command(brief)    # src/cli/commands/brief.py
+cli.add_command(decision) # src/cli/commands/decision.py
+cli.add_command(backlog)  # src/cli/commands/backlog.py
+```
+
+Each command module follows the same pattern:
+```python
+@click.group()
+def inbox():
+    pass
+
+@inbox.command(name="list")
+@click.option("--project-dir", default=".", ...)
+def inbox_list(project_dir):
+    store = _get_store(project_dir)
+    data = store.read_inbox()
+    _output({"success": True, "data": data})
+```
+
+A shared `_cli_helpers.py` provides `_get_store(project_dir)` and `_output(result)` to avoid duplication.
+
+### Skill Dual-Mode Format (Decision D-017)
+
+Each skill gets a standardized artifact access section:
+
+```markdown
+## How to Access Artifacts
+
+**CLI (works with any backend — local or Notion):**
+- List inbox: `agent inbox list`
+- Add idea: `agent inbox add --type idea --text "description"`
+- Read brief: `agent brief read {name}`
+- List backlog: `agent backlog list`
+
+**File paths (local backend only — fallback if CLI unavailable):**
+- Inbox: `docs/plan/_inbox.md`
+- Brief: `docs/plan/{name}/brief.md`
+- Backlog: `docs/plan/_shared/backlog.md`
+- Decisions: `_project/decisions.md`
+```
+
+Ownership rules and read/write permissions stay the same per role.
+
+### Write Conflict Handling (Decision D-018)
+
+- **Notion backend**: No conflict — CLI is the only write path. Agents cannot edit Notion by writing local files.
+- **Local backend**: CLI commands write directly to the same markdown files that agents can edit. Both paths converge to the same files via `LocalBackend`. No conflict — they're equivalent operations on the same data.
+- **Rule**: When backend is `notion`, agents MUST use CLI commands (file paths don't reach Notion). When backend is `local`, agents MAY use either CLI or file paths.
+
+### Authentication (Decision D-019)
+
+Existing pattern is sufficient: `NOTION_API_TOKEN` loaded from `.env` or environment variable by `NotionClient.__init__()`. No session cache needed — each CLI invocation is stateless. Token is never logged or echoed.
+
+### Backlog Schema Translation (Decision D-020)
+
+The CLI `agent backlog upsert` accepts parameters matching the Notion schema (the canonical form):
+```
+agent backlog upsert --title "Build login UI" --type Task --status to-do --priority High
+```
+
+For **local backend**: `LocalBackend.write_backlog_row()` translates to the local markdown table format (with ID, Use Case, Feature columns). Local-only fields default to empty if not provided.
+
+For **Notion backend**: `NotionBackend.write_backlog_row()` writes directly to the unified Backlog database with type-specific status.
+
+The CLI parameters match the Notion schema because Notion is the more structured/expressive format. The local backend's translator handles the downgrade to flat markdown. This keeps the CLI interface clean and forward-compatible.
+
+Optional local-specific flags (for backward compatibility):
+```
+agent backlog upsert --title "..." --type Task --status to-do --id T-027 --feature calendar-chat-ops --use-case "Cancel events"
+```
+These are accepted by the CLI and passed through. `LocalBackend` uses them; `NotionBackend` ignores them (or maps `--feature` to `Parent` lookup).
+
+### Files to Create/Modify
+
+**New files:**
+- `src/cli/commands/inbox.py` — inbox list/add subcommands
+- `src/cli/commands/brief.py` — brief list/read/write subcommands
+- `src/cli/commands/decision.py` — decision list/add subcommands
+- `src/cli/commands/backlog.py` — backlog list/upsert subcommands
+- `src/cli/helpers.py` — shared `_get_store()` and `_output()` helpers
+
+**Modified files:**
+- `src/cli/main.py` — register new command groups
+- `skills/ideation/SKILL.md` — add dual-mode artifact access section
+- `skills/architect/SKILL.md` — add dual-mode artifact access section
+- `skills/implementation/SKILL.md` — add dual-mode artifact access section
+- `skills/review/SKILL.md` — add dual-mode artifact access section
+- `skills/delivery-manager/SKILL.md` — add dual-mode artifact access section
+
+**Not modified:**
+- `src/core/storage/protocol.py` — stable
+- `src/integrations/notion/backend.py` — stable
+- `src/core/storage/local_backend.py` — stable
+- `src/core/storage/factory.py` — stable
+
+### Cost Estimate
+
+No new dependencies. All commands wrap existing `ArtifactStore` methods. Each command is ~20 lines of Click boilerplate + one method call. Total new code: ~300 lines across 5 command files + 1 helper.
 
 ---
 
