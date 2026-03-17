@@ -58,59 +58,100 @@ your-project/
 
 For projects that want both agent skills and Notion as the planning database:
 
-1. Install skills and templates into your project (same as Setup above).
-2. Install the **agent CLI** as a tool/dependency (do not copy this repo's `src/` into your project source tree).
-3. In your project root, run:
+### 1. Install skills, templates, and CLI tooling
 
 ```bash
-agent setup --backend notion --project-dir .
+# Skills + PLAYBOOK
+cp -r skills/ /path/to/your-project/.skills/
+
+# Document templates
+cp -r template/ /path/to/your-project/template/
+
+# CLI framework (hidden from git, won't pollute your project)
+mkdir -p /path/to/your-project/.briefcase
+cp -r src/ /path/to/your-project/.briefcase/src/
 ```
 
-During setup, the CLI will:
-- write `_project/storage.yaml`
-- prompt for `NOTION_API_TOKEN` and parent page ID
-- provision Notion databases/pages
-- add `docs/plan/` to `.gitignore` (Notion becomes source of truth for planning artifacts)
+### 2. Add the `agent` entry point
 
-Daily workflow:
+Create an executable `agent` script at your project root:
 
 ```bash
-# Pull Notion -> local before working
-agent sync local --project-dir .
-
-# Push local -> Notion after updating planning artifacts
-agent sync notion --project-dir .
-
-# Optional: sync template updates from backend
-agent sync templates --project-dir .
+cat > /path/to/your-project/agent << 'EOF'
+#!/usr/bin/env python3
+import os, sys
+sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".briefcase"))
+from src.cli.main import cli
+if __name__ == "__main__":
+    cli()
+EOF
+chmod +x /path/to/your-project/agent
 ```
 
-### Agent Artifact CLI (direct read/write — no sync needed)
+### 3. Add to `.gitignore`
 
-Agents can read and write artifacts directly via CLI commands that route to the active backend:
+```gitignore
+# Agent framework (not project code)
+.briefcase/
+_project/storage.yaml
+docs/plan/.sync-manifest.json
+```
+
+### 4. Provision Notion workspace
+
+```bash
+./agent setup --backend notion
+```
+
+This will prompt for your Notion API token and parent page ID, provision databases, and save config.
+
+### Project structure after install
+
+```
+your-project/
+├── agent                  ← entry point (executable, committed to git)
+├── .skills/               ← agent behavior rules (committed)
+├── .briefcase/            ← CLI framework code (gitignored)
+├── _project/
+│   ├── storage.yaml       ← backend config (gitignored)
+│   ├── tech-stack.md
+│   └── decisions.md
+├── template/              ← document templates (committed)
+├── AGENTS.md
+├── CLAUDE.md
+└── src/                   ← YOUR app code (untouched)
+```
+
+### Agent Artifact CLI
+
+Agents call `./agent` from the project root. Commands route transparently to the active backend (local files or Notion):
 
 ```bash
 # Inbox
-agent inbox list                                    # List all ideas
-agent inbox add --type idea --text "Build auth"     # Add an idea
+./agent inbox list                                    # List all ideas
+./agent inbox add --type idea --text "Build auth"     # Add an idea
 
 # Briefs
-agent brief list                                    # List all briefs
-agent brief read my-feature                         # Read a brief as JSON
-agent brief write my-feature --problem "..." --goal "..."  # Create/update inline
-agent brief write my-feature --file brief.md        # Import from markdown file
+./agent brief list                                    # List all briefs
+./agent brief read my-feature                         # Read a brief as JSON
+./agent brief write my-feature --problem "..." --goal "..."  # Create/update inline
+./agent brief write my-feature --file brief.md        # Import from markdown file
 
 # Backlog
-agent backlog list                                  # List all items
-agent backlog list --type Feature                   # Filter by type
-agent backlog upsert --title "Build login" --type Task --status to-do --priority High
+./agent backlog list                                  # List all items
+./agent backlog list --type Feature                   # Filter by type
+./agent backlog upsert --title "Build login" --type Task --status to-do --priority High
 
 # Decisions
-agent decision list                                 # List all decisions
-agent decision add --id D-001 --title "Use Next.js" --date 2026-03-16 --why "SSR"
+./agent decision list                                 # List all decisions
+./agent decision add --id D-001 --title "Use Next.js" --date 2026-03-16 --why "SSR"
+
+# Sync (optional — for git snapshots or bulk import)
+./agent sync local                                    # Pull Notion → local
+./agent sync notion                                   # Push local → Notion
 ```
 
-All commands output JSON (`{"success": true, "data": ...}`), respect the active backend from `_project/storage.yaml`, and work with both local and Notion backends transparently.
+All commands output JSON (`{"success": true, "data": ...}`) to stdout, errors to stderr.
 
 Ownership boundaries:
 - Keep your application code in your own `src/` and `tests/`.
