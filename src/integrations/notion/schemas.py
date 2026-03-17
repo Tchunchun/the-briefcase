@@ -22,7 +22,7 @@ def _select_options(values: list[str]) -> dict:
 BACKLOG_SCHEMA: dict[str, dict] = {
     "Title": {"title": {}},
     "Type": _select_options(["Idea", "Feature", "Task"]),
-    "Idea Status": _select_options(["new", "exploring", "promoted", "rejected"]),
+    "Idea Status": _select_options(["new", "exploring", "promoted", "rejected", "shipped"]),
     "Feature Status": _select_options(
         ["draft", "architect-review", "implementation-ready", "done"]
     ),

@@ -49,7 +49,7 @@ The CLI automatically routes to the correct backend (local files or Notion) base
 
 ## Status Updates You Own
 
-Delivery manager verifies statuses are correct during handoffs but does not own status transitions. Use the CLI to read and verify:
+Delivery manager verifies statuses are correct during handoffs. The only status transition delivery-manager **owns** is marking an Idea as `shipped` after a feature is released. Use the CLI to read and verify:
 
 **Verify before handoff:**
 ```
@@ -63,7 +63,12 @@ agent inbox list                     # Check Idea statuses
 agent backlog upsert --title "Feature Title" --type Feature --status <current-status> --notes "Routed to <agent> on <date>"
 ```
 
-Do NOT change Feature/Task/Idea status — that is owned by the role agent doing the work.
+Do NOT change Feature/Task status — that is owned by the role agent doing the work.
+
+**After ship (delivery-manager owns this):**
+```
+agent backlog upsert --title "Short Title" --type Idea --status shipped --notes "Shipped in vX.Y.Z on <date>"
+```
 
 ## What You Never Do
 
@@ -126,6 +131,7 @@ Dispatch rule:
 - Review verdict is `accepted`
 - No blocking findings remain
 - Release notes readiness is confirmed for implementation handoff
+- After ship is confirmed, set Idea status to `shipped`
 
 ## Handoff Packet Contract (Required)
 

@@ -71,6 +71,16 @@ When the user's idea is early-stage:
 - If the codebase already solves the problem → note the overlap and confirm intent before creating a new brief.
 - A brief is ready for architect review when problem, goal, acceptance criteria, and out-of-scope items are clear enough that the architect can assess the technical approach without asking basic scope questions.
 
+## Idea Status Lifecycle
+
+| Status | Meaning | Set by |
+|---|---|---|
+| `new` | Just captured, no work done | Auto on inbox add |
+| `exploring` | Brainstorming/scoping, draft brief created | Ideation agent |
+| `promoted` | Brief reviewed by architect, graduated to Feature | Architect agent |
+| `rejected` | Idea discarded | Ideation agent |
+| `shipped` | Feature built and shipped | Delivery-manager agent |
+
 ## Title Rule
 
 Every title — inbox, backlog, or brief — must be **3–7 words**. Put the longer description in `--notes`.
@@ -110,17 +120,18 @@ agent inbox add --type idea --text "Short title" --notes "Longer description"
 ```
 (Creates Idea with `Idea Status: new` automatically)
 
-**When brainstorming/exploring an idea:**
+**When brainstorming/exploring an idea (draft brief created):**
 ```
 agent backlog upsert --title "Short Title" --type Idea --status exploring
-```
-
-**When promoting an idea to a Feature (brief is ready):**
-```
-agent backlog upsert --title "Short Title" --type Idea --status promoted
 agent backlog upsert --title "Short Title" --type Feature --status draft --brief-link "<notion-url>"
 agent brief write {feature-name} --status draft --problem "..." --goal "..."
 ```
+
+**When brief is reviewed and idea graduates to a Feature:**
+```
+agent backlog upsert --title "Short Title" --type Idea --status promoted
+```
+(Set by architect after review — ideation agent does NOT set `promoted` directly.)
 
 **When marking an idea as rejected:**
 ```
