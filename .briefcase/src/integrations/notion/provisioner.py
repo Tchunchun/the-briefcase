@@ -319,6 +319,8 @@ class NotionProvisioner:
         """Ensure an existing database has all required properties.
 
         If properties are missing (e.g., old v1 schema), adds them via PATCH.
+        This handles the schema collision case where a DB exists by title
+        but has an incompatible schema.
         """
         expected_schema = DATABASE_REGISTRY[db_key][0]
         try:

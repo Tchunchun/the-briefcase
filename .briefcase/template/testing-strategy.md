@@ -1,0 +1,46 @@
+# Testing Strategy
+
+*Created by the architect agent at project setup. Read by the implementation agent before writing any test.*
+
+---
+
+## Test Types and Scope
+
+| Type | What it covers | Tool / location |
+|---|---|---|
+| **Unit** | Individual functions, classes, pure logic | pytest · `tests/{feature}/unit/` |
+| **Integration** | Component interactions, I/O boundaries (DB, HTTP, file) | pytest · `tests/{feature}/integration/` |
+| **End-to-End** | Full user-facing flows in the target environment | pytest / manual · `tests/{feature}/e2e/` |
+
+Not every feature requires all three. Use the table below to decide.
+
+## Coverage Priorities
+
+| Code category | Minimum required | Notes |
+|---|---|---|
+| Business-critical paths (core agent logic, data transforms) | Unit + Integration | Must run in CI |
+| I/O adapters (API clients, storage backends) | Integration | Mock external services in CI; use real endpoints in staging |
+| CLI entry points | Integration or E2E | At least one happy-path test per command |
+| Utility / helper functions | Unit | Only if non-trivial |
+| Configuration loading | Unit | |
+
+## What "Relevant Test Scope" Means
+
+When the implementation guideline says "run the relevant test scope":
+1. Run unit tests for any file you touched.
+2. Run integration tests for any boundary (storage, HTTP, CLI) you touched or changed.
+3. Run E2E tests before shipping a feature.
+
+## Test Data and Fixtures
+
+- Use `tests/conftest.py` for shared fixtures.
+- Never use production credentials or live external services in unit or integration tests. Use mocks or test doubles.
+- Fixture files (sample JSON, YAML, etc.) belong in `tests/fixtures/`.
+
+## CI Gate
+
+All unit and integration tests must pass before a task can be marked Done. E2E tests are required before a feature ships (Phase 5 in AGENTS.md).
+
+---
+
+*Update this file via the architect agent when the stack or test tooling changes. Log the change in `_project/decisions.md`.*

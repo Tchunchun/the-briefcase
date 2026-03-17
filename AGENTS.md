@@ -1,8 +1,10 @@
-# AGENTS.md (v8)
+# AGENTS.md (v9)
 
 This is the project-level entrypoint for all agents working on this repository.
 
-**Read `skills/PLAYBOOK.md` before taking any action.** That file defines all workflow rules, agent routing, file ownership, and handoff sequences. This file adds project-specific scope and conventions.
+**Read `.briefcase/skills/PLAYBOOK.md` before taking any action.** That file defines all workflow rules, agent routing, file ownership, and handoff sequences. This file adds project-specific scope and conventions.
+
+Note: In this upstream repository, skills live at `skills/` (source). In consumer projects after install, they live at `.briefcase/skills/`. The PLAYBOOK uses `.briefcase/skills/` paths — the canonical consumer path.
 
 ---
 
@@ -39,14 +41,15 @@ Each phase is owned by a specific agent role with clear handoff points, artifact
 ├── CLAUDE.md                      ← Claude Code entrypoint; points here
 ├── README.md                      ← public-facing project overview
 │
-├── skills/                        ← distributable output (imported by consumer projects)
+├── skills/                        ← distributable skills (source; consumers get .briefcase/skills/)
 │   ├── PLAYBOOK.md                ← shared workflow rules; source of truth for all agents
 │   ├── ideation/SKILL.md
 │   ├── architect/SKILL.md
 │   ├── implementation/SKILL.md
-│   └── review/SKILL.md
+│   ├── review/SKILL.md
+│   └── delivery-manager/SKILL.md
 │
-├── template/                      ← blank document templates; copy when creating artifacts
+├── template/                      ← blank document templates (source; consumers get .briefcase/template/)
 │   ├── brief.md
 │   ├── tasks.md
 │   ├── backlog.md
@@ -57,11 +60,18 @@ Each phase is owned by a specific agent role with clear handoff points, artifact
 │   ├── adr.md
 │   └── _inbox.md
 │
+├── src/                           ← CLI + storage + sync code (source; consumers get .briefcase/src/)
+│   ├── cli/                       ← CLI commands (inbox, brief, backlog, decision, setup, sync)
+│   ├── core/                      ← storage protocol, config, factory, local backend
+│   ├── integrations/              ← Notion API client, schemas, provisioner, backend
+│   └── sync/                      ← sync logic, manifest, snapshots
+│
 ├── _project/                      ← project-level constants (architect-owned)
 │   ├── tech-stack.md
 │   ├── definition-of-done.md
 │   ├── testing-strategy.md
-│   └── decisions.md
+│   ├── decisions.md
+│   └── storage.yaml               ← backend config (local or notion)
 │
 ├── docs/
 │   ├── plan/                      ← agent working space
@@ -82,12 +92,6 @@ Each phase is owned by a specific agent role with clear handoff points, artifact
 │       ├── getting-started.md
 │       ├── how-it-works.md
 │       └── {topic}.md
-│
-├── src/                           ← application code (organized by module)
-│   ├── core/                      ← shared infrastructure
-│   ├── cli/                       ← CLI commands and entry points
-│   ├── integrations/              ← external API clients (Notion, etc.)
-│   └── sync/                      ← skill distribution and artifact sync
 │
 └── tests/                         ← automated tests; mirrors src/ modules
     ├── core/
@@ -112,27 +116,42 @@ In this upstream repository, skill files live at `skills/{role}/SKILL.md` (no do
 
 ## Consumer Project Setup
 
-Consumer projects import the skills and playbook from this repository. Each consumer project creates its own `AGENTS.md` at the project root:
+Consumer projects install skills, templates, and CLI tooling into a single `.briefcase/` folder. The install patches skill paths from `.skills/` to `.briefcase/skills/`.
 
-```markdown
-# AGENTS.md
-
-Read `.skills/PLAYBOOK.md` fully before taking any action.
-Follow all routing, ownership, and handoff rules defined there.
-
-## Project Scope
-
-[Describe what this project builds — one paragraph.]
+```
+consumer-project/
+├── agent                          ← entry point script (executable, committed)
+├── AGENTS.md                      ← points to .briefcase/skills/PLAYBOOK.md
+├── CLAUDE.md                      ← points to AGENTS.md
+├── .briefcase/                    ← THE FRAMEWORK (gitignored)
+│   ├── skills/                    ← PLAYBOOK + 5 SKILL.md files
+│   ├── template/                  ← document templates
+│   └── src/                       ← CLI + storage + sync code
+├── _project/                      ← project-level constants
+│   ├── tech-stack.md              ← committed
+│   ├── decisions.md               ← committed
+│   └── storage.yaml               ← gitignored (contains Notion DB IDs)
+└── src/                           ← consumer's own app code (untouched)
 ```
 
-To install skills into a consumer project:
+Install into a consumer project:
 
 ```bash
-cp -r skills/ /path/to/your-project/.skills/
-cp -r template/ /path/to/your-project/template/
+# 1. Copy framework into .briefcase/
+mkdir -p /path/to/your-project/.briefcase
+cp -r skills/   /path/to/your-project/.briefcase/skills/
+cp -r template/  /path/to/your-project/.briefcase/template/
+cp -r src/       /path/to/your-project/.briefcase/src/
+
+# 2. Patch skill paths for consumer layout
+find /path/to/your-project/.briefcase/skills/ -name '*.md' \
+  -exec sed -i '' 's|\.skills/|.briefcase/skills/|g' {} +
+
+# 3. Create entry point, add to .gitignore, set up AGENTS.md
+# See README.md for full instructions.
 ```
 
-The consumer's `AGENTS.md` is the place for project-specific overrides, scope, and conventions. The playbook handles everything else.
+The consumer's `AGENTS.md` points to `.briefcase/skills/PLAYBOOK.md` and adds project-specific scope.
 
 ---
 
@@ -140,5 +159,6 @@ The consumer's `AGENTS.md` is the place for project-specific overrides, scope, a
 
 | Version | Date | Summary |
 |---|---|---|
+| v9 | 2026-03-16 | Updated for `.briefcase/` consumer convention. Consumer project structure documented. Skill paths note clarified (upstream `skills/` → consumer `.briefcase/skills/`). Added delivery-manager to skill list. Added `storage.yaml` to `_project/`. Added `src/` module descriptions. |
 | v8 | 2026-03-16 | Restructured: AGENTS.md is now project-scoped; `skills/PLAYBOOK.md` is the shared workflow source of truth. Fixed template path (`template/`), skill paths, inbox tags. Added domain/module-based code organization, consumer setup guidance, folder naming conventions, changelog. |
 | v7 | — | Monolithic version containing all workflow rules inline. |
