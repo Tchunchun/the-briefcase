@@ -35,6 +35,9 @@ def backlog_list(item_type: str | None, project_dir: str) -> None:
 @click.option("--priority", default="Medium", type=click.Choice(["High", "Medium", "Low"], case_sensitive=False), help="Priority.")
 @click.option("--notes", default="", help="Notes or context.")
 @click.option("--brief-link", default="", help="URL to brief page (Features only).")
+@click.option("--release-note-link", default="", help="URL to release note page (done Features after ship wrap-up).")
+@click.option("--review-verdict", default="", type=click.Choice(["", "pending", "accepted", "changes-requested"], case_sensitive=False), help="Review verdict (Features only).")
+@click.option("--route-state", default="", type=click.Choice(["", "routed", "returned", "blocked"], case_sensitive=False), help="Route state set by delivery-manager.")
 @click.option("--parent-id", default=None, help="Notion page ID of parent item (for Task→Feature or Feature→Idea linking).")
 @click.option("--id", "item_id", default="", help="Local ID (e.g., T-027). Used by local backend.")
 @click.option("--feature", default="", help="Feature name. Used by local backend for the Feature column.")
@@ -47,6 +50,9 @@ def backlog_upsert(
     priority: str,
     notes: str,
     brief_link: str,
+    release_note_link: str,
+    review_verdict: str,
+    route_state: str,
     parent_id: str | None,
     item_id: str,
     feature: str,
@@ -65,6 +71,12 @@ def backlog_upsert(
         }
         if brief_link:
             row["brief_link"] = brief_link
+        if release_note_link:
+            row["release_note_link"] = release_note_link
+        if review_verdict:
+            row["review_verdict"] = review_verdict
+        if route_state:
+            row["route_state"] = route_state
         if parent_id:
             row["parent_ids"] = [parent_id]
         # Local backend fields

@@ -12,6 +12,7 @@ from src.core.storage.config import (
     save_config,
     VALID_BACKENDS,
 )
+from src.core.gitignore import ensure_gitignore, entries_for_backend
 
 
 @click.command()
@@ -104,9 +105,6 @@ def setup(backend: str | None, project_dir: str) -> None:
         click.echo(f"  Templates seeded: {summary['templates_seeded']}")
         click.echo(f"\nNotion token saved to {root / '.env'}")
 
-        # Add docs/plan/ to .gitignore (Notion is source of truth)
-        _ensure_gitignore_entry(root, "docs/plan/")
-
         # Initialize sync snapshot orphan branch
         try:
             from src.sync.snapshots import init_orphan_branch
@@ -120,6 +118,9 @@ def setup(backend: str | None, project_dir: str) -> None:
 
     # Save config
     config_path = save_config(config, project_config_dir)
+
+    # Update .gitignore with canonical entries for the selected backend
+    ensure_gitignore(root, entries_for_backend(backend))
 
     click.echo(f"\n✓ Storage config saved to {config_path}")
     click.echo(f"  Backend: {backend}")
@@ -141,6 +142,7 @@ def _save_env_token(project_root: Path, token: str) -> None:
     """Append NOTION_API_KEY to .env file (create if needed).
 
     Also checks for legacy NOTION_API_TOKEN and migrates it.
+    Gitignore handling is delegated to ensure_gitignore().
     """
     env_path = project_root / ".env"
     env_content = ""
@@ -165,25 +167,3 @@ def _save_env_token(project_root: Path, token: str) -> None:
     else:
         with open(env_path, "a") as f:
             f.write(f"NOTION_API_KEY={token}\n")
-
-    # Ensure .env is in .gitignore
-    gitignore_path = project_root / ".gitignore"
-    if gitignore_path.exists():
-        gitignore = gitignore_path.read_text()
-        if ".env" not in gitignore:
-            with open(gitignore_path, "a") as f:
-                f.write("\n.env\n")
-    else:
-        gitignore_path.write_text(".env\n")
-
-
-def _ensure_gitignore_entry(project_root: Path, entry: str) -> None:
-    """Add an entry to .gitignore if it's not already present."""
-    gitignore_path = project_root / ".gitignore"
-    if gitignore_path.exists():
-        content = gitignore_path.read_text()
-        if entry not in content:
-            with open(gitignore_path, "a") as f:
-                f.write(f"\n{entry}\n")
-    else:
-        gitignore_path.write_text(f"{entry}\n")

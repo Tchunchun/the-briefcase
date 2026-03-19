@@ -1,8 +1,12 @@
-"""Load and save _project/storage.yaml configuration."""
+"""Load and save storage configuration.
+
+Supports dual-mode resolution (D-036):
+- Consumer projects: .briefcase/storage.yaml (primary)
+- Framework repo: _project/storage.yaml (fallback)
+"""
 
 from __future__ import annotations
 
-import os
 from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
@@ -55,14 +59,43 @@ def _find_project_dir(start: str | Path | None = None) -> Path:
     )
 
 
-def load_config(project_dir: str | Path | None = None) -> StorageConfig:
-    """Load storage configuration from _project/storage.yaml.
+def _find_config_dir(start: str | Path | None = None) -> Path:
+    """Locate the directory containing storage.yaml.
 
-    If the file does not exist, returns a default local config.
+    Resolution order (D-036):
+    1. .briefcase/storage.yaml — consumer install sentinel
+    2. _project/storage.yaml — framework repo fallback
+
+    Walks up from start (or cwd) checking each ancestor.
+    """
+    current = Path(start) if start else Path.cwd()
+    while True:
+        briefcase = current / ".briefcase"
+        if briefcase.is_dir() and (briefcase / STORAGE_CONFIG_FILENAME).exists():
+            return briefcase
+        project = current / "_project"
+        if project.is_dir() and (project / STORAGE_CONFIG_FILENAME).exists():
+            return project
+        parent = current.parent
+        if parent == current:
+            break
+        current = parent
+    raise FileNotFoundError(
+        "storage.yaml not found. Checked .briefcase/ and _project/ walking up "
+        "from current directory. Run install.sh or `agent setup` to initialize."
+    )
+
+
+def load_config(project_dir: str | Path | None = None) -> StorageConfig:
+    """Load storage configuration.
+
+    If project_dir is given, reads storage.yaml from that directory.
+    Otherwise, walks up from cwd checking .briefcase/ then _project/.
+    Returns default local config if file does not exist.
     Raises ValueError if the backend value is not recognized.
     """
     if project_dir is None:
-        project_dir = _find_project_dir()
+        project_dir = _find_config_dir()
     else:
         project_dir = Path(project_dir)
 

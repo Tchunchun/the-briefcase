@@ -17,6 +17,8 @@ Coordinate phase transitions so work moves safely and predictably between role o
 
 You are responsible for **flow and readiness**, not content ownership. Verify that each handoff has complete context, route to the next owner, and escalate blockers quickly.
 
+> **Backend & artifact rules:** see PLAYBOOK.md — Backend Protocol and Artifact Access Rules.
+
 ## What You Do
 
 1. Validate handoff readiness checklists.
@@ -24,22 +26,6 @@ You are responsible for **flow and readiness**, not content ownership. Verify th
 3. Route to the next role owner.
 4. Escalate blocked transitions with explicit unblock requests.
 5. Track route decisions in allowed notes/status fields.
-
-## How to Access Artifacts
-
-All planning artifacts are accessed through CLI commands. The CLI routes to the correct backend (local files or Notion) based on `_project/storage.yaml`.
-
-- List inbox: `agent inbox list`
-- Add idea: `agent inbox add --type idea --text "Short title" --notes "Description"`
-- Read brief: `agent brief read {feature-name}`
-- Write brief: `agent brief write {feature-name} --status draft --problem "..." --goal "..."`
-- List briefs: `agent brief list`
-- List backlog: `agent backlog list`
-- Upsert backlog item: `agent backlog upsert --title "..." --type Task --status to-do --priority High`
-- List decisions: `agent decision list`
-- Add decision: `agent decision add --id D-NNN --title "..." --date YYYY-MM-DD --why "..."`
-
-Direct file access is only for project constants (`_project/tech-stack.md`, `_project/testing-strategy.md`, `_project/definition-of-done.md`), source code (`src/`, `tests/`), and ADR templates.
 
 ## Status Updates You Own
 
@@ -52,17 +38,27 @@ agent backlog list --type Task       # Check Task statuses
 agent inbox list                     # Check Idea statuses
 ```
 
-**Add routing notes:**
+**Record routing decisions:**
 ```
-agent backlog upsert --title "Feature Title" --type Feature --status <current-status> --notes "Routed to <agent> on <date>"
+agent backlog upsert --title "Feature Title" --type Feature --status <current-status> --route-state routed --notes "Routed to <agent> on <date>"
+```
+
+```
+agent backlog upsert --title "Feature Title" --type Feature --status <current-status> --route-state returned --notes "Returned from review: <reason>"
+```
+
+```
+agent backlog upsert --title "Feature Title" --type Feature --status <current-status> --route-state blocked --notes "Blocked: <reason>"
 ```
 
 Do NOT change Feature/Task status — that is owned by the role agent doing the work.
 
 **After ship (delivery-manager owns this):**
 ```
-agent backlog upsert --title "Short Title" --type Idea --status shipped --notes "Shipped in vX.Y.Z on <date>"
+agent backlog upsert --title "Short Title" --type Idea --status shipped --notes "Shipped in vX.Y.Z on YYYY-MM-DD HH:MM PST/PDT"
 ```
+
+Always include the shipped timestamp in Pacific Time, with the timezone abbreviation explicitly written as `PST` or `PDT`.
 
 ## What You Never Do
 
@@ -85,8 +81,8 @@ agent backlog upsert --title "Short Title" --type Idea --status shipped --notes 
 
 When operating in orchestrated mode, delivery-manager is the user-facing coordinator and dispatches work to existing role skills:
 
-- Implementation dispatch target: `.skills/implementation/SKILL.md`
-- Review dispatch target: `.skills/review/SKILL.md`
+- Implementation dispatch target: `skills/implementation/SKILL.md`
+- Review dispatch target: `skills/review/SKILL.md`
 
 Dispatch rule:
 - Do not perform implementation or review work directly.
@@ -123,6 +119,7 @@ Dispatch rule:
 ### Review -> Ship
 
 - Review verdict is `accepted`
+- Feature Status is `review-accepted`
 - No blocking findings remain
 - Release notes readiness is confirmed for implementation handoff
 - After ship is confirmed, set Idea status to `shipped`
@@ -150,7 +147,7 @@ Next-Owner Actions:
 
 ## Review Verdict Routing
 
-- `accepted` -> route to implementation for ship and release notes.
+- `accepted` -> route to implementation for ship and release notes from `review-accepted`.
 - `changes-requested` -> route to implementation for fix cycle.
 
 Do not reinterpret verdicts. Route strictly based on review output.
@@ -174,16 +171,16 @@ Never silently continue after repeated delegation failure.
 
 For cross-agent ownership and handoff rules, read `AGENTS.md`.
 
-## Escalation Template
+## Escalation Handling
 
-```
-**Blocked Transition:** [source -> destination]
-**Blocker:** [one sentence]
-**Impact:** [what cannot proceed]
-**Missing Artifact/Signal:** [what is required]
-**Escalation Target:** [role/user]
-**Recommendation:** [smallest next step to unblock]
-```
+> **Full protocol:** see PLAYBOOK.md — Reverse-Flow Escalation Protocol.
+
+When an escalation packet is detected in Feature notes:
+1. Set `Route State: blocked` and record which upstream role must act.
+2. Do not reroute downstream until the upstream owner resolves the blocker and updates the artifact.
+3. Append resolution details to the Feature notes when the blocker is cleared.
+
+For retry/failure handling of subagent delegation: retry transient failures once, then mark `blocked` and escalate to architect (technical) or user (scope/priority).
 
 ## Exit Criteria
 

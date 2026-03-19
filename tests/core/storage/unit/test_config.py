@@ -9,6 +9,7 @@ from src.core.storage.config import (
     NotionConfig,
     load_config,
     save_config,
+    _find_config_dir,
     DEFAULT_BACKEND,
     STORAGE_CONFIG_FILENAME,
 )
@@ -152,3 +153,77 @@ def test_save_then_load_roundtrip(project_dir):
         loaded.notion.seeded_template_versions
         == original.notion.seeded_template_versions
     )
+
+
+# --- _find_config_dir dual-mode tests (D-036) ---
+
+
+def test_find_config_dir_prefers_briefcase(tmp_path):
+    """When both .briefcase/ and _project/ have storage.yaml, .briefcase/ wins."""
+    briefcase = tmp_path / ".briefcase"
+    briefcase.mkdir()
+    (briefcase / STORAGE_CONFIG_FILENAME).write_text("backend: notion\n")
+
+    project = tmp_path / "_project"
+    project.mkdir()
+    (project / STORAGE_CONFIG_FILENAME).write_text("backend: local\n")
+
+    result = _find_config_dir(tmp_path)
+    assert result == briefcase
+
+
+def test_find_config_dir_falls_back_to_project(tmp_path):
+    """When only _project/ has storage.yaml, use that."""
+    project = tmp_path / "_project"
+    project.mkdir()
+    (project / STORAGE_CONFIG_FILENAME).write_text("backend: local\n")
+
+    result = _find_config_dir(tmp_path)
+    assert result == project
+
+
+def test_find_config_dir_from_subdirectory(tmp_path):
+    """Walking up from a subdirectory finds .briefcase/ at root."""
+    briefcase = tmp_path / ".briefcase"
+    briefcase.mkdir()
+    (briefcase / STORAGE_CONFIG_FILENAME).write_text("backend: local\n")
+
+    sub = tmp_path / "src" / "deep"
+    sub.mkdir(parents=True)
+
+    result = _find_config_dir(sub)
+    assert result == briefcase
+
+
+def test_find_config_dir_raises_when_neither_found(tmp_path):
+    """Raises FileNotFoundError when no config directory is found."""
+    empty = tmp_path / "empty"
+    empty.mkdir()
+    with pytest.raises(FileNotFoundError, match="storage.yaml not found"):
+        _find_config_dir(empty)
+
+
+def test_find_config_dir_ignores_briefcase_without_yaml(tmp_path):
+    """A .briefcase/ dir without storage.yaml is skipped."""
+    briefcase = tmp_path / ".briefcase"
+    briefcase.mkdir()
+    # No storage.yaml inside
+
+    project = tmp_path / "_project"
+    project.mkdir()
+    (project / STORAGE_CONFIG_FILENAME).write_text("backend: local\n")
+
+    result = _find_config_dir(tmp_path)
+    assert result == project
+
+
+def test_load_config_auto_resolves_briefcase(tmp_path, monkeypatch):
+    """load_config() without explicit dir uses _find_config_dir."""
+    briefcase = tmp_path / ".briefcase"
+    briefcase.mkdir()
+    (briefcase / STORAGE_CONFIG_FILENAME).write_text("backend: notion\nnotion:\n  parent_page_id: abc\n")
+
+    monkeypatch.chdir(tmp_path)
+    config = load_config()
+    assert config.is_notion()
+    assert config.notion.parent_page_id == "abc"

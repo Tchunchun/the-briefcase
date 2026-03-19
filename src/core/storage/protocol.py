@@ -43,8 +43,9 @@ class ArtifactStore(Protocol):
         """Return structured brief data for a given brief.
 
         Returns a dict with keys matching brief.md sections:
-        {name, status, problem, goal, acceptance_criteria, nfrs,
-         out_of_scope, open_questions, technical_approach}.
+        {name, status, problem, goal, acceptance_criteria,
+         non_functional_requirements, out_of_scope, open_questions,
+         technical_approach}.
         Raises KeyError if brief_name does not exist.
         """
         ...
@@ -53,6 +54,11 @@ class ArtifactStore(Protocol):
         """Create or update a brief.
 
         data must include at least: {status, problem, goal, acceptance_criteria}.
+
+        Optional revision-tracking keys (consumed by backends, not stored
+        in the brief body):
+          _actor: str — who made the change (defaults to $USER).
+          _change_summary: str — human description of the change.
         """
         ...
 
@@ -61,6 +67,25 @@ class ArtifactStore(Protocol):
 
         Each summary is a dict with: {name, status, title}.
         """
+        ...
+
+    def list_brief_revisions(self, brief_name: str) -> list[dict]:
+        """Return revision metadata for a brief, newest first."""
+        ...
+
+    def read_brief_revision(self, brief_name: str, revision_id: str) -> dict:
+        """Return a stored brief revision plus its snapshot content."""
+        ...
+
+    def restore_brief_revision(
+        self,
+        brief_name: str,
+        revision_id: str,
+        *,
+        actor: str = "",
+        change_summary: str = "",
+    ) -> dict:
+        """Restore a revision into the brief head without mutating history."""
         ...
 
     # -- Decisions --
@@ -91,10 +116,14 @@ class ArtifactStore(Protocol):
         ...
 
     def write_backlog_row(self, row: dict) -> None:
-        """Create or update a backlog row by ID.
+        """Create or update a backlog row.
 
-        row must include at least: {id, type, feature, title, priority, status}.
-        If a row with the same ID exists, it is updated. Otherwise, appended.
+        row must include at least: {title, type, status}.
+        Optional: {id, feature, use_case, priority, notes, brief_link,
+        release_note_link, review_verdict, route_state, parent_ids}.
+
+        Lookup precedence: by id if present, then by title + type.
+        If no match is found, a new row is appended.
         """
         ...
 

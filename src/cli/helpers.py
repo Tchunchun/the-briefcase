@@ -18,10 +18,24 @@ from src.core.storage.protocol import ArtifactStore
 
 
 def get_store_from_dir(project_dir: str = ".") -> ArtifactStore:
-    """Load config and return the active ArtifactStore backend."""
+    """Load config and return the active ArtifactStore backend.
+
+    Resolves config from the given directory. Checks .briefcase/storage.yaml
+    first, then _project/storage.yaml (D-036 dual-mode).
+    """
     root = Path(project_dir).resolve()
+
+    # Try .briefcase/ first (consumer install), then _project/ (framework repo)
+    briefcase_dir = root / ".briefcase"
     project_config_dir = root / "_project"
-    config = load_config(project_config_dir)
+
+    if (briefcase_dir / "storage.yaml").exists():
+        config = load_config(briefcase_dir)
+    elif project_config_dir.exists():
+        config = load_config(project_config_dir)
+    else:
+        config = load_config(project_config_dir)  # Will use defaults
+
     return get_store(config, str(root))
 
 

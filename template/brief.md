@@ -1,6 +1,6 @@
 # {Feature Name} (v3)
 
-**Status: draft** ← ideation agent sets to `draft`; architect agent sets to `implementation-ready`
+**Status: draft** ← ideation agent sets this to `draft`; architect agent sets this to `implementation-ready`
 
 ---
 
@@ -44,6 +44,7 @@ Describe the chosen architecture, patterns, libraries, and any constraints from 
 ## Notes
 
 - Ideation agent fills everything above Technical Approach, then flags open questions.
+- During ideation handoff, the brief stays `draft` while the Feature backlog row moves to `architect-review`; these are not the same field.
 - Architect agent fills Technical Approach, resolves open questions, and sets Status to `implementation-ready`.
 - Implementation agent treats this entire file as read-only.
 - A brief is implementation-ready only when the architect has signed off and the implementation agent can create `tasks.md` without guessing.

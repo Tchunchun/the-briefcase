@@ -1,206 +1,241 @@
 # 0-to-1 Agent Skills
 
-Five agent skills for the full lifecycle of building a feature — from idea to shipped code.
+A multi-agent workflow framework that takes a software idea from raw thought to shipped feature — with structured documentation, automated handoffs, and traceable dispatch.
 
-| Skill | What it does |
+## What This Does
+
+Five specialized AI agent roles, a strict handoff protocol between them, and a CLI toolchain (`agent`) that manages every planning artifact against a pluggable storage backend (local files or Notion).
+
+| Skill | Responsibility |
 |---|---|
-| **ideation** | Turns rough ideas into scoped briefs |
-| **architect** | Resolves technical questions, signs off briefs as implementation-ready |
-| **implementation** | Breaks briefs into tasks, writes code and tests, ships with release notes |
-| **review** | Validates implementation against the brief and acceptance criteria |
-| **delivery-manager** | Coordinates handoffs between roles with readiness checks and escalation |
+| **Ideation** | Turns rough ideas into scoped briefs (`Status: draft`) |
+| **Architect** | Resolves technical questions, signs off briefs (`Status: implementation-ready`) |
+| **Implementation** | Breaks briefs into task backlog rows, writes code and tests, ships with release notes |
+| **Review** | Validates implementation against the brief and acceptance criteria |
+| **Delivery Manager** | Orchestrates handoffs between roles with readiness checks, dispatch, and escalation |
 
-## Setup
+### The Workflow
 
-Copy into your project:
+```
+Idea captured → Ideation → Architect → Implementation → Review → Ship
+                    ↓           ↓            ↓             ↓
+                brief.md    tech sign-off  src/ + tests/  verdict
+```
+
+Each transition is mediated by the Delivery Manager, which validates readiness and produces an auditable handoff packet. Two execution modes:
+
+- **Orchestrated mode** — user interacts only with the Delivery Manager; all delegation is automatic.
+- **Manual mode** — user invokes any role agent directly, following the same handoff checks.
+
+---
+
+## Quick Start
+
+### Install into your project
 
 ```bash
-# Skills + PLAYBOOK (workflow rules)
-cp -r skills/ /path/to/your-project/.skills/
-
-# Document templates
-cp -r template/ /path/to/your-project/template/
+# From the framework repo root:
+./install.sh
 ```
 
-Create two files at your project root:
-
-**AGENTS.md:**
-```markdown
-Read `.skills/PLAYBOOK.md` fully before taking any action.
-Follow all routing, ownership, and handoff rules defined there.
-```
-
-**CLAUDE.md:**
-```
-Read AGENTS.md before taking any action.
-```
-
-Your project ends up looking like:
-```
-your-project/
-├── AGENTS.md
-├── CLAUDE.md
-├── .skills/
-│   ├── PLAYBOOK.md
-│   └── skills/
-│       ├── ideation/SKILL.md
-│       ├── architect/SKILL.md
-│       ├── implementation/SKILL.md
-│       └── review/SKILL.md
-└── template/
-    ├── brief.md
-    ├── tasks.md
-    ├── backlog.md
-    └── ...
-```
-
-## Use Skills + CLI with Notion (Consumer Projects)
-
-For projects that want both agent skills and Notion as the planning database:
-
-### 1. Install the briefcase
-
-One folder, everything the framework needs:
+Or, to install into a specific directory:
 
 ```bash
-mkdir -p /path/to/your-project/.briefcase
-cp -r skills/   /path/to/your-project/.briefcase/skills/
-cp -r template/  /path/to/your-project/.briefcase/template/
-cp -r src/       /path/to/your-project/.briefcase/src/
-
-# Patch skill paths for consumer project layout
-find /path/to/your-project/.briefcase/skills/ -name '*.md' \
-  -exec sed -i '' 's|\.skills/|.briefcase/skills/|g' {} +
+TARGET_DIR=/path/to/your-project ./install.sh
 ```
 
-### 2. Add the `agent` entry point
+The install script:
 
-Create an executable `agent` script at your project root:
+1. Copies `src/`, `skills/`, `template/` into `.briefcase/`
+2. Generates an executable `./agent` entry point
+3. Creates `.briefcase/storage.yaml` (default: `backend: local`)
+4. Updates `.gitignore` (idempotent)
+5. Creates a `.skills` symlink for native AI tool discovery
 
-```bash
-cat > /path/to/your-project/agent << 'EOF'
-#!/usr/bin/env python3
-import os, sys
-sys.path.insert(0, os.path.join(os.path.dirname(os.path.abspath(__file__)), ".briefcase"))
-from src.cli.main import cli
-if __name__ == "__main__":
-    cli()
-EOF
-chmod +x /path/to/your-project/agent
-```
-
-### 3. Add to `.gitignore`
-
-```gitignore
-# Agent framework (not project code)
-.briefcase/
-_project/storage.yaml
-docs/plan/.sync-manifest.json
-```
-
-### 4. Update AGENTS.md
-
-Point to the briefcase:
-
-```markdown
-Read `.briefcase/skills/PLAYBOOK.md` fully before taking any action.
-```
-
-### 4. Provision Notion workspace
-
-```bash
-./agent setup --backend notion
-```
-
-This will prompt for your Notion API token and parent page ID, provision databases, and save config.
-
-### Project structure after install
+### Post-install structure
 
 ```
 your-project/
-├── agent                  ← entry point (executable, committed to git)
+├── agent                  ← CLI entry point (executable, committed to git)
 ├── .briefcase/            ← THE FRAMEWORK (gitignored)
-│   ├── skills/            ← agent behavior rules (PLAYBOOK + 5 SKILL.md)
-│   ├── template/          ← document templates (brief, tasks, backlog, etc.)
-│   └── src/               ← CLI + storage + sync code
+│   ├── skills/            ← PLAYBOOK.md + 5 SKILL.md agent definitions
+│   ├── template/          ← document templates (brief, backlog, etc.)
+│   ├── src/               ← CLI + storage + sync code
+│   └── storage.yaml       ← backend config
+├── .skills                ← symlink → .briefcase/skills/ (AI tool discovery)
 ├── _project/
-│   ├── storage.yaml       ← backend config (gitignored)
 │   ├── tech-stack.md
+│   ├── definition-of-done.md
 │   └── decisions.md
 ├── AGENTS.md              ← points to .briefcase/skills/PLAYBOOK.md
 ├── CLAUDE.md              ← points to AGENTS.md
 └── src/                   ← YOUR app code (untouched)
 ```
 
-### Agent Artifact CLI
-
-Agents call `./agent` from the project root. Commands route transparently to the active backend (local files or Notion):
+### Enable Notion backend (optional)
 
 ```bash
-# Inbox
+# Set your API key
+export NOTION_API_KEY="ntn_..."
+
+# Provision Notion workspace
+./agent setup --backend notion
+```
+
+This prompts for a parent page ID, provisions the Briefs and Backlog databases, and saves config. All `./agent` commands then route transparently to Notion.
+
+---
+
+## Agent Artifact CLI
+
+All commands output JSON (`{"success": true, "data": ...}`) to stdout, errors to stderr. Commands route transparently to whichever backend is active.
+
+### Inbox
+
+```bash
 ./agent inbox list                                    # List all ideas
 ./agent inbox add --type idea --text "Build auth"     # Add an idea
+```
 
-# Briefs
+### Briefs
+
+```bash
 ./agent brief list                                    # List all briefs
 ./agent brief read my-feature                         # Read a brief as JSON
-./agent brief write my-feature --problem "..." --goal "..."  # Create/update inline
+./agent brief write my-feature --problem "..." --goal "..." --change-summary "..."
 ./agent brief write my-feature --file brief.md        # Import from markdown file
+./agent brief history my-feature                      # List stored brief revisions
+./agent brief revision my-feature <revision-id>       # Read one stored revision
+./agent brief restore my-feature <revision-id> --change-summary "..."
+```
 
-# Backlog
+### Backlog
+
+```bash
 ./agent backlog list                                  # List all items
 ./agent backlog list --type Feature                   # Filter by type
 ./agent backlog upsert --title "Build login" --type Task --status to-do --priority High
+```
 
-# Decisions
+### Decisions
+
+```bash
 ./agent decision list                                 # List all decisions
 ./agent decision add --id D-001 --title "Use Next.js" --date 2026-03-16 --why "SSR"
+```
 
-# Sync (optional — for git snapshots or bulk import)
-./agent sync local                                    # Pull Notion → local
+### Releases
+
+```bash
+./agent release list                                  # List all releases
+./agent release read v0.4.0                           # Read a release note
+./agent release write --version v0.5.0 --notes "..."  # Write a release note
+```
+
+### Sync (optional — for git snapshots or bulk import)
+
+```bash
+./agent sync local                                    # Pull Notion → local markdown
 ./agent sync notion                                   # Push local → Notion
 ```
 
-All commands output JSON (`{"success": true, "data": ...}`) to stdout, errors to stderr.
+### Automation (Delivery Manager dispatch)
 
-Ownership boundaries:
-- Keep your application code in your own `src/` and `tests/`.
-- Keep your project-specific skills in your own `.skills/`.
-- The CLI manages planning/storage artifacts (`_project/`, `docs/plan/`, `template/`) and Notion sync.
+```bash
+./agent automate architect-review       # Dispatch features needing architect review
+./agent automate implementation-ready   # Dispatch features ready for implementation
+./agent automate review-ready           # Dispatch features ready for review
+./agent automate fix-cycle-dispatch     # Dispatch features back for fix cycle
+./agent automate ship-routing           # Route accepted features to ship path
+./agent automate ship-dispatch          # Execute ship dispatch for accepted features
+```
+
+### Upgrade
+
+```bash
+./agent upgrade                         # Upgrade .briefcase/ from upstream
+./agent upgrade --check                 # Dry-run: show what would change
+```
+
+---
+
+## Namespace Isolation
+
+`.briefcase/` is the single namespace for all framework code — analogous to `node_modules/`.
+
+| Framework repo folder | Consumer `.briefcase/` folder | What it contains |
+|---|---|---|
+| `skills/` | `.briefcase/skills/` | PLAYBOOK.md + 5 SKILL.md agent definitions |
+| `template/` | `.briefcase/template/` | Blank document templates (brief, backlog, etc.) |
+| `src/` | `.briefcase/src/` | CLI commands, storage backends, sync logic |
+
+Key rules:
+
+- **Gitignored.** The install script reproduces it; `.briefcase/` is not consumer code.
+- **No files outside `.briefcase/`.** Consumer-owned folders (`src/`, `tests/`, `docs/`) are never touched.
+- **Path patching.** During install, skill path references are rewritten from `skills/` to `.briefcase/skills/` automatically.
+- **`sys.path` isolation.** The `./agent` entry point inserts `.briefcase/` into Python's module path, so `from src.cli.main import cli` resolves to `.briefcase/src/cli/main.py` — not the consumer's own `src/`.
+
+---
 
 ## Usage
 
 ### Claude Code
 
-Skills activate based on what you say. Examples:
+Skills activate based on what you say:
 
-- *"I want to build a notification system"* → **ideation** activates
-- *"How should we architect this?"* → **architect** activates
-- *"Build this"* / *"Let's ship this"* → **implementation** activates
-- *"Review this"* / *"Is this done?"* → **review** activates
+- *"I want to build a notification system"* → **Ideation** activates
+- *"How should we architect this?"* → **Architect** activates
+- *"Build this"* / *"Let's ship this"* → **Implementation** activates
+- *"Review this"* / *"Is this done?"* → **Review** activates
+- *"Route this to the next owner"* → **Delivery Manager** activates
 
 You can also be explicit: `Use the ideation skill to scope this feature.`
 
 ### Codex
 
-Codex reads `AGENTS.md` but does not auto-activate skills. Tell it which skill to follow at the start of each session:
+Codex reads `AGENTS.md` but does not auto-activate skills. Tell it which skill to follow:
 
 ```
-Read .skills/skills/ideation/SKILL.md and follow it for this task.
+Read .briefcase/skills/ideation/SKILL.md and follow it for this task.
 ```
 
 | Task | Tell Codex to read |
 |---|---|
-| Brainstorming / scoping | `.skills/skills/ideation/SKILL.md` |
-| Technical decisions | `.skills/skills/architect/SKILL.md` |
-| Coding / shipping | `.skills/skills/implementation/SKILL.md` |
-| QA / acceptance | `.skills/skills/review/SKILL.md` |
+| Brainstorming / scoping | `.briefcase/skills/ideation/SKILL.md` |
+| Technical decisions | `.briefcase/skills/architect/SKILL.md` |
+| Coding / shipping | `.briefcase/skills/implementation/SKILL.md` |
+| QA / acceptance | `.briefcase/skills/review/SKILL.md` |
+| Handoffs / dispatch | `.briefcase/skills/delivery-manager/SKILL.md` |
 
-## How it works
+---
 
-- **Skills** define how each agent behaves — what it produces, what it must not touch.
+## How It Works
+
+- **Skills** (`SKILL.md`) define how each agent behaves — what it produces, what it must not touch, and what CLI commands it uses.
 - **PLAYBOOK.md** defines who owns what, when to hand off, and where files live.
-- **AGENTS.md** is the project entrypoint that points to `PLAYBOOK.md`. Add project-specific overrides here.
+- **AGENTS.md** is the project entrypoint that points to `PLAYBOOK.md`.
+
+All planning artifact operations go through the `agent` CLI, which routes to the active backend. Agents never read or write storage directly.
+
+---
+
+## Storage Backends
+
+The active backend is declared in `_project/storage.yaml`:
+
+```yaml
+backend: notion   # or: local
+```
+
+| Backend | Agent reads/writes via | Source of truth |
+|---|---|---|
+| `local` | CLI commands or file paths (both work) | Markdown files in `docs/plan/` |
+| `notion` | CLI commands only | Notion API |
+
+Future backends (Linear, GitHub Projects, etc.) can be added by implementing the same CLI contract.
+
+---
 
 ## Repository Structure (Upstream)
 
@@ -208,7 +243,8 @@ Read .skills/skills/ideation/SKILL.md and follow it for this task.
 {project-root}/
 ├── AGENTS.md                      ← project entrypoint; agent-facing conventions
 ├── CLAUDE.md                      ← Claude Code entrypoint; points to AGENTS.md
-├── README.md                      ← public-facing project overview
+├── install.sh                     ← installs framework into consumer projects
+├── README.md
 │
 ├── skills/                        ← distributable skills (consumers get .briefcase/skills/)
 │   ├── PLAYBOOK.md                ← shared workflow rules; source of truth for all agents
@@ -221,11 +257,11 @@ Read .skills/skills/ideation/SKILL.md and follow it for this task.
 ├── template/                      ← blank document templates (consumers get .briefcase/template/)
 │   ├── brief.md, tasks.md, backlog.md, release-notes.md
 │   ├── tech-stack.md, testing-strategy.md, definition-of-done.md
-│   ├── adr.md, _inbox.md
+│   └── adr.md, _inbox.md
 │
 ├── src/                           ← CLI + storage + sync code (consumers get .briefcase/src/)
-│   ├── cli/                       ← CLI commands (inbox, brief, backlog, decision, setup, sync)
-│   ├── core/                      ← storage protocol, config, factory, local backend
+│   ├── cli/                       ← CLI commands (inbox, brief, backlog, decision, release, automate, upgrade, setup, sync)
+│   ├── core/                      ← storage protocol, config, factory, local backend, automation
 │   ├── integrations/              ← Notion API client, schemas, provisioner, backend
 │   └── sync/                      ← sync logic, manifest, snapshots
 │
@@ -234,23 +270,71 @@ Read .skills/skills/ideation/SKILL.md and follow it for this task.
 │   ├── decisions.md
 │   └── storage.yaml               ← backend config (local or notion)
 │
-├── docs/
-│   ├── plan/                      ← agent working space
-│   │   ├── _inbox.md              ← raw ideas; append-only
-│   │   ├── _shared/backlog.md
-│   │   ├── _releases/v{version}/release-notes.md
-│   │   ├── _reference/adr/ADR-{NNN}.md
-│   │   └── {brief-name}/          ← one folder per scoped brief (kebab-case)
-│   │       ├── brief.md
-│   │       └── tasks.md
-│   └── user/                      ← human-readable documentation
+├── docs/plan/                     ← agent working space
+│   ├── _inbox.md                  ← raw ideas; append-only
+│   ├── _shared/backlog.md
+│   ├── _releases/v{version}/release-notes.md
+│   ├── _reference/
+│   └── {brief-name}/brief.md     ← one folder per scoped brief (kebab-case)
 │
 └── tests/                         ← automated tests; mirrors src/ modules
+```
+
+---
+
+## Technical Stack
+
+- **Language:** Python 3.11+
+- **CLI:** Click
+- **Storage:** Local filesystem (default), Notion API (`notion-client` SDK)
+- **Testing:** pytest, pytest-mock, HTTP mocking for Notion API tests
+- **Code style:** PEP 8 via `ruff`; config in YAML; secrets in `.env`
+
+---
+
+## Development (Framework Contributors)
+
+```bash
+# Run all tests
+python3 -m pytest tests/
+
+# Run one test file
+python3 -m pytest tests/path/to/test_file.py
+
+# Lint
+ruff check src/ tests/
+
+# Format
+ruff format src/ tests/
+
+# Run CLI from the framework repo
+python3 -m src.cli.main <command>
+```
+
+Load `.env` before commands that hit Notion:
+
+```bash
+export $(grep -v '^#' .env | xargs)
 ```
 
 ### Folder Naming Conventions
 
 - **All folders use `kebab-case`**: lowercase, hyphens, no spaces.
-- **Planning folders** (`docs/plan/{brief-name}/`): named after the scoped brief.
-- **Source folders** (`src/`): organized by domain/module, not by brief.
-- **Test folders** (`tests/`): mirror `src/` module structure.
+- **Titles** (inbox, backlog, brief): **3–7 words**. Longer context goes in `--notes`.
+
+---
+
+## Releases
+
+| Version | Date | Highlights |
+|---|---|---|
+| v0.4.0 | 2026-03-16 | CLI-first skill instructions — all 5 skills rewritten for CLI-only artifact access |
+| v0.3.0 | 2026-03-16 | Agent Artifact API — `inbox`, `brief`, `decision`, `backlog` CLI commands |
+| v0.2.0 | — | Notion backend + sync |
+| v0.1.0 | — | Local filesystem backend + skill definitions |
+
+---
+
+## License
+
+See repository for license details.

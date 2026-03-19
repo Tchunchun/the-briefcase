@@ -23,6 +23,8 @@ You must never quietly redefine scope to fit the implementation.
 
 In orchestrated mode, this skill is dispatched by delivery-manager, but review authority and verdict ownership remain with the review agent.
 
+> **Backend & artifact rules:** see PLAYBOOK.md — Backend Protocol and Artifact Access Rules.
+
 ## Required Workflow
 
 1. Read `_project/tech-stack.md` — establish approved technologies.
@@ -66,33 +68,20 @@ Raise a finding when:
 
 Prefer concrete evidence tied to specific files, behavior, or task items.
 
-## How to Access Artifacts
-
-All planning artifacts are accessed through CLI commands. The CLI routes to the correct backend (local files or Notion) based on `_project/storage.yaml`.
-
-- List inbox: `agent inbox list`
-- Add idea: `agent inbox add --type idea --text "Short title" --notes "Description"`
-- Read brief: `agent brief read {feature-name}`
-- Write brief: `agent brief write {feature-name} --status draft --problem "..." --goal "..."`
-- List briefs: `agent brief list`
-- List backlog: `agent backlog list`
-- Upsert backlog item: `agent backlog upsert --title "..." --type Task --status to-do --priority High`
-- List decisions: `agent decision list`
-- Add decision: `agent decision add --id D-NNN --title "..." --date YYYY-MM-DD --why "..."`
-
-Direct file access is only for project constants (`_project/tech-stack.md`, `_project/testing-strategy.md`, `_project/definition-of-done.md`), source code (`src/`, `tests/`), and ADR templates.
-
 ## Status Updates You Own
 
-The review agent does not directly change Feature or Task status. Instead:
+The review agent sets the Review Verdict on the Feature row and moves the Feature into the next explicit handoff state. When review is accepted, update Feature Status to `review-accepted`. When review is rejected, move the Feature back to `in-progress` and immediately hand it back to implementation for the fix cycle.
 
-**After review — add findings as notes:**
+**After review — set verdict:**
 ```
-agent backlog upsert --title "Feature Title" --type Feature --status implementation-ready --notes "Review: accepted" 
-agent backlog upsert --title "Feature Title" --type Feature --status implementation-ready --notes "Review: changes-requested — see findings"
+agent backlog upsert --title "Feature Title" --type Feature --status review-accepted --review-verdict accepted --notes "Review: all AC met"
 ```
 
-The implementation agent sets `Feature Status: done` after review acceptance. The review agent confirms or blocks.
+```
+agent backlog upsert --title "Feature Title" --type Feature --status in-progress --review-verdict changes-requested --notes "Review: see findings on task rows"
+```
+
+After a `changes-requested` verdict, trigger the implementation follow-up dispatch so the fix cycle starts immediately. The implementation agent sets `Feature Status: done` after review acceptance, release notes, and ship wrap-up. The review agent confirms or blocks via Review Verdict.
 
 ## Artifact Rules
 

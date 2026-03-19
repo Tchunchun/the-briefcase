@@ -21,12 +21,7 @@ You are responsible for **delivery**, not exploration. Execute the implementatio
 
 In orchestrated mode, this skill is dispatched by delivery-manager, but ownership and execution rules stay unchanged.
 
-## Pre-Flight Check
-
-> **IMPORTANT — artifacts live in the configured backend (see `_project/storage.yaml`).**
-> When the backend is `notion`, briefs, backlog, decisions, and inbox exist **only in Notion**.
-> You MUST use `agent` CLI commands to read and write them.
-> Do NOT open `docs/plan/` files directly — they may not exist or may be stale.
+> **Backend & artifact rules:** see PLAYBOOK.md — Backend Protocol and Artifact Access Rules.
 
 Before writing any code, verify:
 
@@ -40,45 +35,34 @@ Before writing any code, verify:
 2. Run `agent brief read {feature-name}` to read the brief.
 3. Run `agent backlog list --type Task` to check for existing tasks for this feature.
 4. If no tasks exist, create them from the brief's acceptance criteria: `agent backlog upsert --title "Task title" --type Task --status to-do --priority High --parent-id "<feature-notion-id>" --notes "Covers AC ..."`
-5. Pick the highest-priority available task.
-6. Mark it in-progress: `agent backlog upsert --title "Task title" --type Task --status in-progress`
-7. Write code under `src/{feature-name}/`, tests under `tests/{feature-name}/` following `_project/testing-strategy.md`.
-8. Run the relevant test scope, then mark task done: `agent backlog upsert --title "Task title" --type Task --status done --notes "Tests: X/X pass"`
-
-## How to Access Artifacts
-
-All planning artifacts are accessed through CLI commands. The CLI routes to the correct backend (local files or Notion) based on `_project/storage.yaml`.
-
-**Run the CLI** — never read `docs/plan/` files directly:
-
-- List inbox: `agent inbox list`
-- Add idea: `agent inbox add --type idea --text "Short title" --notes "Description"`
-- Read brief: `agent brief read {feature-name}`
-- Write brief: `agent brief write {feature-name} --status draft --problem "..." --goal "..."`
-- List briefs: `agent brief list`
-- List backlog: `agent backlog list`
-- Upsert backlog item: `agent backlog upsert --title "..." --type Task --status to-do --priority High`
-- List decisions: `agent decision list`
-- Add decision: `agent decision add --id D-NNN --title "..." --date YYYY-MM-DD --why "..."`
-- Write release note: `agent release write --version v0.x.0 --notes "..."`
-- Read release note: `agent release read --version v0.x.0`
-- List release notes: `agent release list`
-
-**Direct file access** is allowed only for:
-- Project constants: `_project/tech-stack.md`, `_project/testing-strategy.md`, `_project/definition-of-done.md`
-- Source code and tests: `src/`, `tests/`
-- ADR templates
-
-### Anti-Pattern — Do NOT Do This
-
-- ❌ `cat docs/plan/{feature-name}/brief.md` — the file may not exist when backend is Notion.
-- ❌ `cat docs/plan/_shared/backlog.md` — stale or missing when backend is Notion.
-- ❌ Reading any file under `docs/plan/` to get brief, backlog, inbox, or decision data.
-- ✅ Always use `agent brief read`, `agent backlog list`, etc.
+5. When implementation work begins, move the Feature row from `implementation-ready` to `in-progress`: `agent backlog upsert --title "Feature Title" --type Feature --status in-progress --notes "Implementation started on <date>"`
+6. Pick the highest-priority available task.
+7. Mark it in-progress: `agent backlog upsert --title "Task title" --type Task --status in-progress`
+8. Write code under `src/{feature-name}/`, tests under `tests/{feature-name}/` following `_project/testing-strategy.md`.
+9. Run the relevant test scope, then mark task done: `agent backlog upsert --title "Task title" --type Task --status done --notes "Tests: X/X pass"`
+10. When all scoped implementation is complete, all feature tasks are `done`, and the work is ready for review, move the Feature row from `in-progress` to `review-ready`: `agent backlog upsert --title "Feature Title" --type Feature --status review-ready --notes "Implementation complete; ready for review on <date>"`
+11. Record the handoff: run `agent automate review-ready --notes-only` to write trace to the Automation Trace field and get dispatch payloads.
+12. **DO NOT STOP. Continue immediately as the review agent.** Tell the user: *"Implementation complete. Switching to review."* Then for **each** dispatched brief, execute these steps in order — **use the exact `feature_title` from the dispatch payload for all backlog upserts to avoid creating duplicate rows**:
+    1. Run the `command_hint` from the dispatch payload (e.g., `agent brief read {brief_name}`) to load the brief.
+    2. Open `_project/tech-stack.md`.
+    3. Run `agent backlog list --type Task` to review task rows for this feature.
+    4. Inspect the implementation under `src/` and tests under `tests/`.
+    5. Compare actual behavior to the brief's acceptance criteria.
+    6. Run the full test suite to check for regressions.
+    7. If accepted: `agent backlog upsert --title "<feature_title from payload>" --type Feature --status review-accepted --review-verdict accepted --notes "Review: all AC met"`
+    8. If changes needed: `agent backlog upsert --title "<feature_title from payload>" --type Feature --status in-progress --review-verdict changes-requested --notes "Review: see findings"` and list the findings, then immediately re-enter the implementation fix cycle.
+13. After review accepts the work, complete release notes and ship wrap-up, then move the Feature row from `review-accepted` to `done`: `agent backlog upsert --title "Feature Title" --type Feature --status done --release-note-link "<release-note-url>" --notes "Shipped in vX.Y.Z on YYYY-MM-DD HH:MM PST/PDT"`
 
 ## Status Updates You Own
 
 You are responsible for updating these statuses in the backlog:
+
+**When implementation starts on a Feature:**
+```
+agent backlog upsert --title "Feature Title" --type Feature --status in-progress --notes "Implementation started on <date>"
+```
+
+Move the Feature row to `in-progress` as soon as active build work begins. Do not leave a Feature at `implementation-ready` once implementation has started.
 
 **When creating Tasks from a brief:**
 ```
@@ -100,14 +84,24 @@ agent backlog upsert --title "Task Title" --type Task --status blocked --notes "
 agent backlog upsert --title "Task Title" --type Task --status done --notes "Tests: X/X pass"
 ```
 
-**When all Tasks are done and Feature is shipped:**
+**When implementation is complete and the Feature is ready for review:**
 ```
-agent backlog upsert --title "Feature Title" --type Feature --status done --notes "Shipped in vX.Y.Z"
+agent backlog upsert --title "Feature Title" --type Feature --status review-ready --notes "Implementation complete; ready for review on <date>"
+agent automate review-ready --notes-only
 ```
+
+Use `review-ready` only when all scoped implementation work is finished, the relevant tests have been run, and the Feature is ready for review handoff.
+
+**When review is accepted and ship wrap-up is complete:**
+```
+agent backlog upsert --title "Feature Title" --type Feature --status done --release-note-link "<release-note-url>" --notes "Shipped in vX.Y.Z on YYYY-MM-DD HH:MM PST/PDT"
+```
+
+Always include the ship timestamp in Pacific Time, with the timezone abbreviation explicitly written as `PST` or `PDT`.
 
 ## Artifact Rules
 
-- Brief — read-only during implementation. Read via `agent brief read`. This defines scope.
+- Brief — the head brief is read-only during implementation and remains the source of truth. Inspect history with `agent brief history` / `agent brief revision` if needed, but do not change scope or restore revisions without the appropriate upstream handoff.
 - Backlog — owned by you. Manage via `agent backlog upsert`. Source of truth for task and feature status.
 - `src/{feature-name}/` — your code. `src/core/` for shared infrastructure.
 - `tests/{feature-name}/` — your tests. Must mirror `src/` structure.
@@ -124,23 +118,17 @@ For cross-agent ownership and handoff rules, read `AGENTS.md`.
 - Run tests after each completed task or meaningful step.
 - Do not mark a task done until tested in the target environment.
 - Update backlog rows via `agent backlog upsert` whenever task state changes.
-- When all scoped work ships, write release notes via `agent release write --version v0.x.0 --notes "..."` (what shipped, deploy steps, rollback steps, known limitations).
+- When a feature reaches `review-accepted`, finish the release notes and final ship wrap-up before moving it to `done`.
 
-### Escalation Template
+### Escalation
 
-When hitting a blocker that requires architect or user input, use this format:
+> **Full protocol:** see PLAYBOOK.md — Reverse-Flow Escalation Protocol.
 
-```
-**Blocker:** [one-sentence description of what is blocked]
-**Impact:** [which task(s) are blocked; how much work is at risk]
-**Options considered:**
-  A. [option A — brief summary and trade-off]
-  B. [option B — brief summary and trade-off]
-**Recommendation:** [which option you lean toward and why]
-**Awaiting:** [what decision or information is needed to unblock]
-```
-
-Do not guess or proceed without a decision if the blocker is architectural. Do not invent scope to work around it.
+When hitting a blocker that requires scope revision (ideation) or architecture change (architect):
+1. STOP implementation on the affected task.
+2. Append an escalation packet to the Feature's `--notes` field using the format in the PLAYBOOK.
+3. Log the blocker via `agent inbox add` or in the task's `--notes`.
+4. Do not guess or proceed without a decision if the blocker is architectural. Do not invent scope to work around it.
 
 ## Done Standard
 
@@ -159,4 +147,4 @@ Implementation is complete when:
 - All Task backlog rows are `done`.
 - All backlog items are marked correctly.
 - The feature meets the brief's acceptance criteria.
-- Release notes are created when the feature ships.
+- Release notes are created when the feature moves from `review-accepted` to `done`, and the ship note includes an explicit Pacific timestamp (`PST` or `PDT`).

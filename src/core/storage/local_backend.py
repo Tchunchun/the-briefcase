@@ -10,8 +10,18 @@ Reads and writes markdown files at canonical paths:
 
 from __future__ import annotations
 
+import os
 import re
 from pathlib import Path
+
+from src.core.storage.briefs import (
+    build_revision_id,
+    extract_brief_status,
+    parse_brief_sections,
+    parse_revision_markdown,
+    render_brief_markdown,
+    render_revision_markdown,
+)
 
 
 class LocalBackend:
@@ -77,6 +87,14 @@ class LocalBackend:
         brief_dir = self.plan_dir / brief_name
         brief_dir.mkdir(parents=True, exist_ok=True)
         path = brief_dir / "brief.md"
+        if path.exists():
+            current = self.read_brief(brief_name)
+            self._store_brief_revision(
+                brief_name,
+                current,
+                actor=data.get("_actor", ""),
+                change_summary=data.get("_change_summary", ""),
+            )
         content = self._render_brief(brief_name, data)
         path.write_text(content)
 
@@ -88,18 +106,65 @@ class LocalBackend:
             brief_file = child / "brief.md"
             if child.is_dir() and not child.name.startswith("_") and brief_file.exists():
                 content = brief_file.read_text()
-                status = "draft"
-                status_match = re.search(
-                    r"\*\*Status:\s*(\S+)\*\*", content
-                )
-                if status_match:
-                    status = status_match.group(1)
+                status = extract_brief_status(content)
                 title_match = re.match(r"^#\s+(.+)", content)
                 title = title_match.group(1) if title_match else child.name
                 briefs.append(
                     {"name": child.name, "status": status, "title": title}
                 )
         return briefs
+
+    def list_brief_revisions(self, brief_name: str) -> list[dict]:
+        history_dir = self._brief_history_dir(brief_name)
+        if not history_dir.exists():
+            return []
+
+        revisions = []
+        for path in sorted(history_dir.glob("*.md"), reverse=True):
+            parsed = parse_revision_markdown(path.read_text())
+            revisions.append(
+                {
+                    "revision_id": parsed.get("revision_id", path.stem),
+                    "captured_at": parsed.get("captured_at", ""),
+                    "actor": parsed.get("actor", ""),
+                    "change_summary": parsed.get("change_summary", ""),
+                    "title": parsed.get("snapshot", {}).get("title", ""),
+                    "status": parsed.get("snapshot", {}).get("status", ""),
+                }
+            )
+        return revisions
+
+    def read_brief_revision(self, brief_name: str, revision_id: str) -> dict:
+        path = self._brief_history_dir(brief_name) / f"{revision_id}.md"
+        if not path.exists():
+            raise KeyError(f"Brief revision not found: {brief_name}@{revision_id}")
+        parsed = parse_revision_markdown(path.read_text())
+        return {
+            "brief_name": brief_name,
+            "revision_id": parsed.get("revision_id", revision_id),
+            "captured_at": parsed.get("captured_at", ""),
+            "actor": parsed.get("actor", ""),
+            "change_summary": parsed.get("change_summary", ""),
+            "snapshot": parsed["snapshot"],
+            "raw": parsed["raw"],
+        }
+
+    def restore_brief_revision(
+        self,
+        brief_name: str,
+        revision_id: str,
+        *,
+        actor: str = "",
+        change_summary: str = "",
+    ) -> dict:
+        revision = self.read_brief_revision(brief_name, revision_id)
+        snapshot = dict(revision["snapshot"])
+        snapshot["_actor"] = actor
+        snapshot["_change_summary"] = (
+            change_summary or f"Restored from revision {revision_id}"
+        )
+        self.write_brief(brief_name, snapshot)
+        return self.read_brief(brief_name)
 
     # -- Decisions --
 
@@ -160,7 +225,7 @@ class LocalBackend:
                 continue
             if in_table and line.startswith("|"):
                 cols = [c.strip() for c in line.split("|")[1:-1]]
-                if len(cols) >= 8:
+                if len(cols) >= 12:
                     rows.append(
                         {
                             "id": cols[0],
@@ -170,7 +235,28 @@ class LocalBackend:
                             "title": cols[4],
                             "priority": cols[5],
                             "status": cols[6],
+                            "review_verdict": cols[7],
+                            "route_state": cols[8],
+                            "release_note_link": cols[9],
+                            "notes": cols[10],
+                            "automation_trace": cols[11],
+                        }
+                    )
+                elif len(cols) >= 8:
+                    rows.append(
+                        {
+                            "id": cols[0],
+                            "type": cols[1],
+                            "use_case": cols[2],
+                            "feature": cols[3],
+                            "title": cols[4],
+                            "priority": cols[5],
+                            "status": cols[6],
+                            "review_verdict": "",
+                            "route_state": "",
+                            "release_note_link": "",
                             "notes": cols[7],
+                            "automation_trace": cols[8] if len(cols) >= 9 else "",
                         }
                     )
             elif in_table and not line.startswith("|"):
@@ -180,19 +266,42 @@ class LocalBackend:
     def write_backlog_row(self, row: dict) -> None:
         path = self.plan_dir / "_shared" / "backlog.md"
         content = path.read_text()
-        row_id = row["id"]
+
+        row_id = row.get("id", "")
+        if row_id == "—":
+            row_id = ""
+        row_type = row.get("type", "Task")
+        row_title = row.get("title", "")
+
         new_line = (
-            f"| {row['id']} | {row['type']} | {row.get('use_case', '—')} "
-            f"| {row['feature']} | {row['title']} | {row['priority']} "
-            f"| {row['status']} | {row.get('notes', '—')} |"
+            f"| {row_id or '—'} | {row_type} | {row.get('use_case', '—')} "
+            f"| {row.get('feature', '—')} | {row_title} | {row.get('priority', 'Medium')} "
+            f"| {row.get('status', 'to-do')} | {row.get('review_verdict', '—') or '—'} "
+            f"| {row.get('route_state', '—') or '—'} | {row.get('release_note_link', '—') or '—'} "
+            f"| {row.get('notes', '—')} | {row.get('automation_trace', '')} |"
         )
         lines = content.splitlines()
         updated = False
-        for i, line in enumerate(lines):
-            if line.startswith("|") and f"| {row_id} |" in line:
-                lines[i] = new_line
-                updated = True
-                break
+
+        # Primary lookup: by ID if provided
+        if row_id:
+            for i, line in enumerate(lines):
+                if line.startswith("|") and f"| {row_id} |" in line:
+                    lines[i] = new_line
+                    updated = True
+                    break
+
+        # Fallback lookup: by title + type (matches Notion backend behavior)
+        if not updated and row_title:
+            for i, line in enumerate(lines):
+                if not line.startswith("|") or line.startswith("| ID") or line.startswith("|---"):
+                    continue
+                cols = [c.strip() for c in line.split("|")[1:-1]]
+                if len(cols) >= 7 and cols[1] == row_type and cols[4] == row_title:
+                    lines[i] = new_line
+                    updated = True
+                    break
+
         if not updated:
             # Find end of table and append
             insert_idx = len(lines)
@@ -272,51 +381,43 @@ class LocalBackend:
         """Extract structured data from brief markdown."""
         data: dict = {"name": brief_name, "raw": content}
 
-        status_match = re.search(r"\*\*Status:\s*(\S+)\*\*", content)
-        data["status"] = status_match.group(1) if status_match else "draft"
+        title_match = re.match(r"^#\s+(.+)", content)
+        data["title"] = title_match.group(1).strip() if title_match else brief_name
 
-        sections = {
-            "problem": r"## Problem\s*\n(.*?)(?=\n## |\Z)",
-            "goal": r"## Goal\s*\n(.*?)(?=\n## |\Z)",
-            "acceptance_criteria": r"## Acceptance Criteria\s*\n(.*?)(?=\n## |\Z)",
-            "out_of_scope": r"## Out of Scope\s*\n(.*?)(?=\n## |\Z)",
-            "open_questions": r"## Open Questions[^\n]*\n(.*?)(?=\n## |\Z)",
-            "technical_approach": r"## Technical Approach\s*\n(.*?)(?=\n## |\Z)",
-        }
-        for key, pattern in sections.items():
-            match = re.search(pattern, content, re.DOTALL)
-            data[key] = match.group(1).strip() if match else ""
+        data["status"] = extract_brief_status(content)
+        data.update(parse_brief_sections(content))
 
         return data
 
     @staticmethod
     def _render_brief(brief_name: str, data: dict) -> str:
         """Render structured brief data to markdown."""
-        status = data.get("status", "draft")
-        lines = [
-            f"# {data.get('title', brief_name)}",
-            "",
-            f"**Status: {status}**",
-            "",
-            "---",
-            "",
-            "## Problem",
-            data.get("problem", ""),
-            "",
-            "## Goal",
-            data.get("goal", ""),
-            "",
-            "## Acceptance Criteria",
-            data.get("acceptance_criteria", ""),
-            "",
-            "## Out of Scope",
-            data.get("out_of_scope", ""),
-            "",
-            "## Open Questions",
-            data.get("open_questions", ""),
-            "",
-            "## Technical Approach",
-            data.get("technical_approach", "*Owned by architect agent.*"),
-            "",
-        ]
-        return "\n".join(lines) + "\n"
+        return render_brief_markdown(brief_name, data)
+
+    def _brief_history_dir(self, brief_name: str) -> Path:
+        return self.plan_dir / brief_name / "_history"
+
+    def _store_brief_revision(
+        self,
+        brief_name: str,
+        snapshot: dict,
+        *,
+        actor: str = "",
+        change_summary: str = "",
+    ) -> dict:
+        history_dir = self._brief_history_dir(brief_name)
+        history_dir.mkdir(parents=True, exist_ok=True)
+
+        revision_id = build_revision_id()
+        while (history_dir / f"{revision_id}.md").exists():
+            revision_id = build_revision_id()
+
+        metadata = {
+            "revision_id": revision_id,
+            "captured_at": revision_id,
+            "actor": actor or os.environ.get("USER", ""),
+            "change_summary": change_summary,
+        }
+        content = render_revision_markdown(brief_name, snapshot, metadata)
+        (history_dir / f"{revision_id}.md").write_text(content)
+        return metadata

@@ -168,8 +168,24 @@ class NotionClient:
         return results
 
     def get_database(self, database_id: str) -> dict:
-        """Retrieve database metadata."""
-        return self._client.databases.retrieve(database_id=database_id)
+        """Retrieve database metadata including properties.
+
+        Uses httpx directly because notion-client v3.0.0 SDK strips
+        the properties field from the databases.retrieve() response.
+        """
+        import httpx
+
+        headers = {
+            "Authorization": f"Bearer {self._token}",
+            "Notion-Version": "2022-06-28",
+        }
+        resp = httpx.get(
+            f"https://api.notion.com/v1/databases/{database_id}",
+            headers=headers,
+            timeout=30,
+        )
+        resp.raise_for_status()
+        return resp.json()
 
     def update_database(
         self,

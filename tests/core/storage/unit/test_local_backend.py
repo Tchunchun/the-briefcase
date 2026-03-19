@@ -50,6 +50,7 @@ def project(tmp_path):
         "## Problem\nUsers miss updates.\n\n"
         "## Goal\nSend email alerts.\n\n"
         "## Acceptance Criteria\n- [ ] Email sent on event\n\n"
+        "## Non-Functional Requirements\n- **Latency / response time:** best-effort\n\n"
         "## Out of Scope\n- SMS\n\n"
         "## Open Questions\n- Which email provider?\n\n"
         "## Technical Approach\n*Owned by architect agent.*\n"
@@ -109,6 +110,7 @@ def test_read_brief(backend):
     assert brief["status"] == "draft"
     assert "Users miss updates" in brief["problem"]
     assert "Email sent on event" in brief["acceptance_criteria"]
+    assert "Latency / response time" in brief["non_functional_requirements"]
 
 
 def test_read_brief_not_found(backend):
@@ -125,6 +127,7 @@ def test_write_brief(backend, project):
             "problem": "Something is missing.",
             "goal": "Fix it.",
             "acceptance_criteria": "- [ ] It works",
+            "non_functional_requirements": "- **Other constraints:** Preserve body updates",
             "out_of_scope": "- Nothing else",
             "open_questions": "- TBD",
         },
@@ -132,6 +135,7 @@ def test_write_brief(backend, project):
     brief = backend.read_brief("new-feature")
     assert brief["status"] == "draft"
     assert "Something is missing" in brief["problem"]
+    assert "Preserve body updates" in brief["non_functional_requirements"]
 
 
 def test_list_briefs(backend):
@@ -139,6 +143,58 @@ def test_list_briefs(backend):
     assert len(briefs) == 1
     assert briefs[0]["name"] == "notifications"
     assert briefs[0]["status"] == "draft"
+
+
+def test_write_brief_creates_revision_history_for_existing_head(backend):
+    backend.write_brief(
+        "notifications",
+        {
+            "title": "Notifications",
+            "status": "implementation-ready",
+            "problem": "Users still miss updates.",
+            "goal": "Send email alerts faster.",
+            "acceptance_criteria": "- [ ] Email sent on event",
+            "_actor": "tester",
+            "_change_summary": "Clarified implementation scope.",
+        },
+    )
+
+    revisions = backend.list_brief_revisions("notifications")
+    assert len(revisions) == 1
+    assert revisions[0]["actor"] == "tester"
+    assert revisions[0]["change_summary"] == "Clarified implementation scope."
+
+    revision = backend.read_brief_revision("notifications", revisions[0]["revision_id"])
+    assert revision["snapshot"]["status"] == "draft"
+    assert "Users miss updates." in revision["snapshot"]["problem"]
+
+
+def test_restore_brief_revision_replaces_head_and_preserves_history(backend):
+    backend.write_brief(
+        "notifications",
+        {
+            "title": "Notifications",
+            "status": "implementation-ready",
+            "problem": "Updated problem.",
+            "goal": "Updated goal.",
+            "acceptance_criteria": "- [ ] Updated AC",
+        },
+    )
+    first_revision = backend.list_brief_revisions("notifications")[0]["revision_id"]
+
+    restored = backend.restore_brief_revision(
+        "notifications",
+        first_revision,
+        actor="tester",
+        change_summary="Undo scope drift.",
+    )
+
+    assert restored["status"] == "draft"
+    assert restored["problem"] == "Users miss updates."
+
+    revisions = backend.list_brief_revisions("notifications")
+    assert len(revisions) == 2
+    assert revisions[0]["change_summary"] == "Undo scope drift."
 
 
 # --- Decisions ---
@@ -209,6 +265,112 @@ def test_write_backlog_row_append(backend):
     rows = backend.read_backlog()
     assert len(rows) == 2
     assert rows[1]["id"] == "T-002"
+
+
+def test_write_backlog_row_without_id_appends(backend):
+    """When no id is provided, the row should still be appended."""
+    backend.write_backlog_row(
+        {
+            "title": "New task without ID",
+            "type": "Task",
+            "status": "to-do",
+            "priority": "High",
+            "notes": "Created via CLI without --id",
+        }
+    )
+    rows = backend.read_backlog()
+    assert len(rows) == 2
+    assert rows[1]["title"] == "New task without ID"
+
+
+def test_write_backlog_row_without_id_updates_by_title_type(backend):
+    """When no id is provided, lookup falls back to title + type."""
+    # First write without id
+    backend.write_backlog_row(
+        {
+            "title": "Some feature",
+            "type": "Feature",
+            "status": "draft",
+            "priority": "Medium",
+        }
+    )
+    rows = backend.read_backlog()
+    assert len(rows) == 2
+
+    # Update by title + type
+    backend.write_backlog_row(
+        {
+            "title": "Some feature",
+            "type": "Feature",
+            "status": "implementation-ready",
+            "priority": "High",
+            "notes": "Updated",
+        }
+    )
+    rows = backend.read_backlog()
+    assert len(rows) == 2  # No duplication
+    feature_row = [r for r in rows if r["title"] == "Some feature"][0]
+    assert feature_row["status"] == "implementation-ready"
+    assert feature_row["notes"] == "Updated"
+
+
+def test_write_backlog_row_placeholder_id_updates_by_title_type(backend):
+    backend.write_backlog_row(
+        {
+            "title": "Add email alerts",
+            "type": "Feature",
+            "status": "In Progress",
+            "priority": "High",
+            "notes": "Placeholder ID should still update by title.",
+            "id": "—",
+        }
+    )
+
+    rows = backend.read_backlog()
+    assert len(rows) == 1
+    assert rows[0]["title"] == "Add email alerts"
+    assert rows[0]["status"] == "In Progress"
+
+
+def test_write_backlog_row_without_feature_field(backend):
+    """Missing feature field should not crash."""
+    backend.write_backlog_row(
+        {
+            "id": "T-003",
+            "title": "Standalone task",
+            "type": "Task",
+            "status": "to-do",
+            "priority": "Low",
+        }
+    )
+    rows = backend.read_backlog()
+    assert len(rows) == 2
+    assert rows[1]["feature"] == "\u2014"
+
+
+def test_write_backlog_row_persists_workflow_fields(backend):
+    backend.write_backlog_row(
+        {
+            "id": "T-001",
+            "type": "Feature",
+            "use_case": "User needs alerts",
+            "feature": "notifications",
+            "title": "Add email alerts",
+            "priority": "High",
+            "status": "review-accepted",
+            "review_verdict": "accepted",
+            "route_state": "routed",
+            "release_note_link": "https://example.com/releases/v1.0.0",
+            "notes": "Ready to ship",
+            "automation_trace": "dispatch trace",
+        }
+    )
+
+    rows = backend.read_backlog()
+    assert rows[0]["review_verdict"] == "accepted"
+    assert rows[0]["route_state"] == "routed"
+    assert rows[0]["release_note_link"] == "https://example.com/releases/v1.0.0"
+    assert rows[0]["automation_trace"] == "dispatch trace"
 
 
 # --- Templates ---

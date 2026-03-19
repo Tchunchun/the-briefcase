@@ -3,8 +3,21 @@
 Creates the page tree and databases for a project. Idempotent — re-running
 against the same parent page does not duplicate pages or databases.
 
-v2: Unified Backlog (Idea/Feature/Task) + Decisions database +
-README page + Templates page (with child sub-pages).
+v3: Unified Backlog (Idea/Feature/Task) + Decisions database +
+Briefs page + Release Notes page + Templates page + README page.
+Section-label paragraphs organize the visual layout.
+
+Provisioned layout:
+  📁 Project Root
+  ├── PARA "Backlog"
+  ├── 📊 Backlog (database)
+  ├── PARA ""
+  ├── PARA "Documentations"
+  ├── 📋 Briefs (page)
+  ├── ⚖️ Decisions (database)
+  ├── 🚀 Release Notes (page)
+  ├── 📄 Templates (page)
+  └── 📄 README (page)
 """
 
 from __future__ import annotations
@@ -56,6 +69,9 @@ class NotionProvisioner:
     ) -> tuple[dict[str, str], ProvisionResult]:
         """Provision the full workspace under the given parent page.
 
+        Creates databases and pages in visual order with section labels.
+        Idempotent — skips items that already exist.
+
         Returns:
             (resource_ids, result) where resource_ids maps
             name → Notion ID (databases and pages), and result has details.
@@ -67,26 +83,18 @@ class NotionProvisioner:
         existing_dbs = self._find_existing_databases(parent_page_id)
         existing_pages = self._find_existing_pages(parent_page_id)
 
-        # -- Databases --
-        for db_key, (schema, icon, display_title) in DATABASE_REGISTRY.items():
-            if db_key in existing_dbs:
-                resource_ids[db_key] = existing_dbs[db_key]
-                result.databases_found.append(db_key)
-                # Verify and upgrade schema if properties are missing
-                self._ensure_schema(db_key, existing_dbs[db_key], result)
-            else:
-                try:
-                    db = self._client.create_database(
-                        parent_page_id, display_title, schema, icon=icon
-                    )
-                    resource_ids[db_key] = db["id"]
-                    result.databases_created.append(db_key)
-                except Exception as e:
-                    result.errors.append(
-                        f"Failed to create database '{db_key}': {e}"
-                    )
+        is_fresh = not existing_dbs and not existing_pages
 
-        # -- Self-relation on Backlog (two-step) --
+        # -- "Backlog" section label (only on fresh provision) --
+        if is_fresh:
+            self._append_paragraph(parent_page_id, "Backlog")
+
+        # -- Backlog database --
+        self._provision_database(
+            "backlog", parent_page_id, existing_dbs, resource_ids, result
+        )
+
+        # -- Self-relation on Backlog (two-step, only when freshly created) --
         if "backlog" in resource_ids and "backlog" in result.databases_created:
             try:
                 self._add_self_relation(resource_ids["backlog"])
@@ -94,6 +102,34 @@ class NotionProvisioner:
                 result.errors.append(
                     f"Failed to add Parent self-relation to Backlog: {e}"
                 )
+
+        # -- Spacer + "Documentations" section label --
+        if is_fresh:
+            self._append_paragraph(parent_page_id, "")
+            self._append_paragraph(parent_page_id, "Documentations")
+
+        # -- Briefs page --
+        self._provision_page(
+            "briefs", "Briefs", "📋",
+            parent_page_id, existing_pages, resource_ids, result,
+        )
+
+        # -- Decisions database --
+        self._provision_database(
+            "decisions", parent_page_id, existing_dbs, resource_ids, result
+        )
+
+        # -- Release Notes page --
+        self._provision_page(
+            "release_notes", "Release Notes", "🚀",
+            parent_page_id, existing_pages, resource_ids, result,
+        )
+
+        # -- Templates page --
+        self._provision_page(
+            "templates", "Templates", "📄",
+            parent_page_id, existing_pages, resource_ids, result,
+        )
 
         # -- README page --
         if "readme" in existing_pages:
@@ -106,19 +142,6 @@ class NotionProvisioner:
             except Exception as e:
                 result.errors.append(f"Failed to create README page: {e}")
 
-        # -- Templates page --
-        if "templates" in existing_pages:
-            resource_ids["templates"] = existing_pages["templates"]
-        else:
-            try:
-                tmpl_page = self._client.create_page(
-                    parent_page_id, "Templates", icon="📄"
-                )
-                resource_ids["templates"] = tmpl_page["id"]
-                result.pages_created.append("templates")
-            except Exception as e:
-                result.errors.append(f"Failed to create Templates page: {e}")
-
         # Seed templates if template_dir provided and Templates page exists
         if template_dir and "templates" in resource_ids:
             self._seed_templates(
@@ -126,6 +149,71 @@ class NotionProvisioner:
             )
 
         return resource_ids, result
+
+    # -- Provision helpers --
+
+    def _provision_database(
+        self,
+        db_key: str,
+        parent_page_id: str,
+        existing_dbs: dict[str, str],
+        resource_ids: dict[str, str],
+        result: ProvisionResult,
+    ) -> None:
+        """Provision a single database, skipping if it already exists."""
+        schema, icon, display_title = DATABASE_REGISTRY[db_key]
+        if db_key in existing_dbs:
+            resource_ids[db_key] = existing_dbs[db_key]
+            result.databases_found.append(db_key)
+            self._ensure_schema(db_key, existing_dbs[db_key], result)
+        else:
+            try:
+                db = self._client.create_database(
+                    parent_page_id, display_title, schema, icon=icon
+                )
+                resource_ids[db_key] = db["id"]
+                result.databases_created.append(db_key)
+            except Exception as e:
+                result.errors.append(
+                    f"Failed to create database '{db_key}': {e}"
+                )
+
+    def _provision_page(
+        self,
+        key: str,
+        title: str,
+        icon: str,
+        parent_page_id: str,
+        existing_pages: dict[str, str],
+        resource_ids: dict[str, str],
+        result: ProvisionResult,
+    ) -> None:
+        """Provision a single container page, skipping if it already exists."""
+        if key in existing_pages:
+            resource_ids[key] = existing_pages[key]
+        else:
+            try:
+                page = self._client.create_page(
+                    parent_page_id, title, icon=icon
+                )
+                resource_ids[key] = page["id"]
+                result.pages_created.append(key)
+            except Exception as e:
+                result.errors.append(f"Failed to create {title} page: {e}")
+
+    def _append_paragraph(self, parent_page_id: str, text: str) -> None:
+        """Append a paragraph block to the parent page."""
+        block = {
+            "type": "paragraph",
+            "paragraph": {
+                "rich_text": (
+                    [{"type": "text", "text": {"content": text}}]
+                    if text
+                    else []
+                )
+            },
+        }
+        self._client.append_block_children(parent_page_id, [block])
 
     def _add_self_relation(self, backlog_db_id: str) -> None:
         """Add the Parent self-relation property to the Backlog database."""
@@ -215,8 +303,23 @@ class NotionProvisioner:
                         {
                             "text": {
                                 "content": (
-                                    "📄 {brief-name} — standalone brief pages "
-                                    "(one per feature, created during ideation)"
+                                    "� Briefs — feature briefs "
+                                    "(one sub-page per feature)"
+                                )
+                            }
+                        }
+                    ]
+                },
+            },
+            {
+                "type": "bulleted_list_item",
+                "bulleted_list_item": {
+                    "rich_text": [
+                        {
+                            "text": {
+                                "content": (
+                                    "🚀 Release Notes — release history "
+                                    "(one sub-page per version)"
                                 )
                             }
                         }
@@ -318,20 +421,30 @@ class NotionProvisioner:
     ) -> None:
         """Ensure an existing database has all required properties.
 
-        If properties are missing (e.g., old v1 schema), adds them via PATCH.
+        Delegates to the shared schema-health helper so setup and upgrade
+        use the same validation logic (decision D-028).
         """
+        from src.integrations.notion.schema_health import (
+            apply_missing_properties,
+            apply_missing_select_options,
+            check_database_schema,
+        )
+
         expected_schema = DATABASE_REGISTRY[db_key][0]
         try:
             db_meta = self._client.get_database(db_id)
-            existing_props = set(db_meta.get("properties", {}).keys())
-            missing = {}
-            for prop_name, prop_schema in expected_schema.items():
-                if prop_name not in existing_props:
-                    missing[prop_name] = prop_schema
+            existing_props = db_meta.get("properties", {})
+            missing, select_gaps = check_database_schema(
+                db_key, db_key, expected_schema, existing_props,
+            )
+            total_fixes = len(missing) + len(select_gaps)
             if missing:
-                self._client.update_database(db_id, properties=missing)
+                apply_missing_properties(self._client, db_id, missing)
+            if select_gaps:
+                apply_missing_select_options(self._client, db_id, select_gaps)
+            if total_fixes:
                 result.pages_created.append(
-                    f"schema-upgrade:{db_key}({len(missing)} props added)"
+                    f"schema-upgrade:{db_key}({total_fixes} fixes applied)"
                 )
         except Exception as e:
             result.errors.append(
@@ -340,7 +453,12 @@ class NotionProvisioner:
 
     def _find_existing_pages(self, parent_page_id: str) -> dict[str, str]:
         """Find named pages already created under the parent page."""
-        page_titles = {"README": "readme", "Templates": "templates"}
+        page_titles = {
+            "README": "readme",
+            "Templates": "templates",
+            "Briefs": "briefs",
+            "Release Notes": "release_notes",
+        }
         existing: dict[str, str] = {}
         try:
             children = self._client.get_block_children(parent_page_id)

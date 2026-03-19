@@ -9,6 +9,7 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
+from src.core.storage.briefs import extract_brief_status, parse_brief_sections
 from src.core.storage.config import load_config
 from src.core.storage.factory import get_store
 from src.core.storage.protocol import ArtifactStore
@@ -138,22 +139,11 @@ def _push_briefs(
         title = title_match.group(1).strip() if title_match else brief_name
 
         # Extract status
-        status_match = re.search(r"\*\*Status:\s*(\S+)\*\*", content)
-        status = status_match.group(1) if status_match else "draft"
+        status = extract_brief_status(content)
 
         # Parse sections
         data = {"title": title, "status": status}
-        sections = {
-            "problem": r"## Problem\s*\n(.*?)(?=\n## |\Z)",
-            "goal": r"## Goal\s*\n(.*?)(?=\n## |\Z)",
-            "acceptance_criteria": r"## Acceptance Criteria\s*\n(.*?)(?=\n## |\Z)",
-            "out_of_scope": r"## Out of Scope\s*\n(.*?)(?=\n## |\Z)",
-            "open_questions": r"## Open Questions[^\n]*\n(.*?)(?=\n## |\Z)",
-            "technical_approach": r"## Technical Approach\s*\n(.*?)(?=\n## |\Z)",
-        }
-        for key, pattern in sections.items():
-            match = re.search(pattern, content, re.DOTALL)
-            data[key] = match.group(1).strip() if match else ""
+        data.update(parse_brief_sections(content))
 
         if dry_run:
             summary["pushed"] += 1

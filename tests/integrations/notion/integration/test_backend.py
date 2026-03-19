@@ -17,6 +17,7 @@ def notion_config():
             "backlog": "db-backlog",
             "decisions": "db-decisions",
             "readme": "page-readme",
+            "release_notes": "page-release-notes",
             "templates": "page-templates",
         },
     )
@@ -111,6 +112,415 @@ def test_read_brief_not_found(backend):
         backend.read_brief("nonexistent")
 
 
+def test_write_brief_creates_new_page_with_body(backend):
+    backend._mock_client.get_block_children.return_value = []
+    backend._mock_client.create_page.return_value = {"id": "brief-1"}
+
+    backend.write_brief(
+        "agent-entry-point",
+        {
+            "title": "Agent Entry Point",
+            "status": "draft",
+            "problem": "Old invocation is clunky.",
+            "goal": "Use ./agent.",
+            "acceptance_criteria": "- [ ] Works",
+            "non_functional_requirements": "- **Other constraints:** No regressions",
+            "out_of_scope": "New commands",
+            "open_questions": "None",
+            "technical_approach": "Use a generated wrapper.",
+        },
+    )
+
+    backend._mock_client.create_page.assert_called_once()
+    call_args = backend._mock_client.create_page.call_args
+    assert call_args[0][0] == "parent-1"
+    assert call_args[0][1] == "Agent Entry Point"
+    assert call_args[1]["children"]
+    first_block = call_args[1]["children"][0]
+    assert first_block["type"] == "paragraph"
+    assert first_block["paragraph"]["rich_text"][0]["text"]["content"] == "**Status: draft**"
+
+
+def test_render_brief_body_includes_status_line(backend):
+    body = backend._render_brief_body(
+        "agent-entry-point",
+        {"status": "implementation-ready", "problem": "P", "goal": "G"},
+    )
+
+    assert body.startswith("**Status: implementation-ready**")
+
+
+def test_write_brief_updates_existing_body(backend):
+    old_blocks = [
+        {"type": "paragraph", "id": "blk-1", "paragraph": {"rich_text": [{"plain_text": "Old."}]}},
+        {"type": "paragraph", "id": "blk-2", "paragraph": {"rich_text": [{"plain_text": "Body."}]}},
+    ]
+    backend._mock_client.get_block_children.side_effect = [
+        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
+        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
+        old_blocks,
+        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
+        old_blocks,
+    ]
+    backend._mock_client.get_page.return_value = {
+        "properties": {"title": {"title": [{"plain_text": "Agent Entry Point"}]}},
+        "url": "https://notion.so/brief-1",
+    }
+    backend._mock_client.update_page.return_value = {"id": "brief-1"}
+    backend._mock_client.delete_block.return_value = {}
+    backend._mock_client.append_block_children.return_value = {}
+    backend._mock_client.create_page.side_effect = [
+        {"id": "history-1"},
+        {"id": "revision-1"},
+    ]
+
+    backend.write_brief(
+        "agent-entry-point",
+        {
+            "title": "Agent Entry Point",
+            "status": "implementation-ready",
+            "problem": "Old invocation is clunky.",
+            "goal": "Use ./agent.",
+            "acceptance_criteria": "- [ ] Works",
+            "non_functional_requirements": "- **Other constraints:** No regressions",
+            "out_of_scope": "New commands",
+            "open_questions": "None",
+            "technical_approach": "Use a generated wrapper.",
+        },
+    )
+
+    backend._mock_client.update_page.assert_called_once()
+    backend._mock_client.delete_block.assert_any_call("blk-1")
+    backend._mock_client.delete_block.assert_any_call("blk-2")
+    backend._mock_client.append_block_children.assert_called_once()
+    assert backend._mock_client.create_page.call_count == 2
+
+
+def test_write_brief_skips_archived_existing_blocks(backend):
+    old_blocks = [
+        {
+            "type": "paragraph",
+            "id": "blk-archived",
+            "archived": True,
+            "paragraph": {"rich_text": [{"plain_text": "Old archived."}]},
+        },
+        {
+            "type": "paragraph",
+            "id": "blk-active",
+            "paragraph": {"rich_text": [{"plain_text": "Old active."}]},
+        },
+    ]
+    backend._mock_client.get_block_children.side_effect = [
+        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
+        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
+        old_blocks,
+        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
+        old_blocks,
+    ]
+    backend._mock_client.get_page.return_value = {
+        "properties": {"title": {"title": [{"plain_text": "Agent Entry Point"}]}},
+        "url": "https://notion.so/brief-1",
+    }
+    backend._mock_client.update_page.return_value = {"id": "brief-1"}
+    backend._mock_client.delete_block.return_value = {}
+    backend._mock_client.append_block_children.return_value = {}
+    backend._mock_client.create_page.side_effect = [
+        {"id": "history-1"},
+        {"id": "revision-1"},
+    ]
+
+    backend.write_brief(
+        "agent-entry-point",
+        {
+            "title": "Agent Entry Point",
+            "status": "implementation-ready",
+            "problem": "Old invocation is clunky.",
+            "goal": "Use ./agent.",
+            "acceptance_criteria": "- [ ] Works",
+            "non_functional_requirements": "- **Other constraints:** No regressions",
+            "out_of_scope": "New commands",
+            "open_questions": "None",
+            "technical_approach": "Use a generated wrapper.",
+        },
+    )
+
+    backend._mock_client.delete_block.assert_called_once_with("blk-active")
+    backend._mock_client.append_block_children.assert_called_once()
+
+
+def test_read_brief_returns_updated_sections(backend):
+    backend._mock_client.get_block_children.side_effect = [
+        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
+        [
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Status: implementation-ready**"}]}},
+            {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Problem"}]}},
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "Old invocation is clunky."}]}},
+            {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Goal"}]}},
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "Use ./agent."}]}},
+            {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Acceptance Criteria"}]}},
+            {"type": "bulleted_list_item", "bulleted_list_item": {"rich_text": [{"plain_text": "[ ] Works"}]}},
+            {
+                "type": "heading_2",
+                "heading_2": {"rich_text": [{"plain_text": "Non-Functional Requirements"}]},
+            },
+            {
+                "type": "bulleted_list_item",
+                "bulleted_list_item": {"rich_text": [{"plain_text": "**Other constraints:** No regressions"}]},
+            },
+            {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Out of Scope"}]}},
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "New commands"}]}},
+            {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Open Questions"}]}},
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "None"}]}},
+            {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Technical Approach"}]}},
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "Use a generated wrapper."}]}},
+        ],
+    ]
+    backend._mock_client.get_page.return_value = {
+        "properties": {"title": {"title": [{"plain_text": "Agent Entry Point"}]}}
+    }
+
+    brief = backend.read_brief("agent-entry-point")
+
+    assert brief["status"] == "implementation-ready"
+    assert "No regressions" in brief["non_functional_requirements"]
+    assert brief["technical_approach"] == "Use a generated wrapper."
+    assert "Use ./agent." in brief["goal"]
+
+
+def test_read_brief_parses_plain_status_after_body_replacement(backend):
+    backend._mock_client.get_block_children.side_effect = [
+        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
+        [
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "Status: implementation-ready"}]}},
+            {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Problem"}]}},
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "Old invocation is clunky."}]}},
+        ],
+    ]
+    backend._mock_client.get_page.return_value = {
+        "properties": {"title": {"title": [{"plain_text": "Agent Entry Point"}]}}
+    }
+
+    brief = backend.read_brief("agent-entry-point")
+
+    assert brief["status"] == "implementation-ready"
+
+
+def test_brief_write_read_roundtrip_preserves_all_fields(backend):
+    """Regression: write a brief, re-read it, verify all fields survive."""
+    write_data = {
+        "title": "Test Feature Brief",
+        "status": "implementation-ready",
+        "problem": "Something is broken.",
+        "goal": "Fix it properly.",
+        "acceptance_criteria": "- [ ] AC1\n- [ ] AC2",
+        "non_functional_requirements": "- **Other constraints:** Preserve body updates",
+        "out_of_scope": "OOS items",
+        "open_questions": "All resolved.",
+        "technical_approach": "### Step 1\nDo this.\n### Step 2\nDo that.",
+    }
+
+    # Write: create new page
+    backend._mock_client.get_block_children.return_value = []
+    backend._mock_client.create_page.return_value = {"id": "brief-roundtrip"}
+    backend.write_brief("test-feature-brief", write_data)
+    backend._mock_client.create_page.assert_called_once()
+
+    # Simulate Notion API returning the content (blocks with plain_text)
+    read_blocks = [
+        {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Status: implementation-ready**"}]}},
+        {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Problem"}]}},
+        {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "Something is broken."}]}},
+        {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Goal"}]}},
+        {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "Fix it properly."}]}},
+        {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Acceptance Criteria"}]}},
+        {"type": "to_do", "to_do": {"rich_text": [{"plain_text": "AC1"}], "checked": False}},
+        {"type": "to_do", "to_do": {"rich_text": [{"plain_text": "AC2"}], "checked": False}},
+        {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Non-Functional Requirements"}]}},
+        {
+            "type": "bulleted_list_item",
+            "bulleted_list_item": {"rich_text": [{"plain_text": "**Other constraints:** Preserve body updates"}]},
+        },
+        {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Out of Scope"}]}},
+        {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "OOS items"}]}},
+        {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Open Questions"}]}},
+        {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "All resolved."}]}},
+        {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Technical Approach"}]}},
+        {"type": "heading_3", "heading_3": {"rich_text": [{"plain_text": "Step 1"}]}},
+        {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "Do this."}]}},
+        {"type": "heading_3", "heading_3": {"rich_text": [{"plain_text": "Step 2"}]}},
+        {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "Do that."}]}},
+    ]
+
+    backend._mock_client.get_block_children.side_effect = [
+        [{"type": "child_page", "id": "brief-roundtrip", "child_page": {"title": "Test Feature Brief"}}],
+        read_blocks,
+    ]
+    backend._mock_client.get_page.return_value = {
+        "properties": {"title": {"title": [{"plain_text": "Test Feature Brief"}]}},
+        "url": "https://notion.so/brief-roundtrip",
+    }
+
+    read_data = backend.read_brief("test-feature-brief")
+
+    assert read_data["status"] == "implementation-ready"
+    assert "Something is broken" in read_data["problem"]
+    assert "Fix it properly" in read_data["goal"]
+    assert "AC1" in read_data["acceptance_criteria"]
+    assert "Preserve body updates" in read_data["non_functional_requirements"]
+    assert "OOS items" in read_data["out_of_scope"]
+    assert "All resolved" in read_data["open_questions"]
+    assert "Step 1" in read_data["technical_approach"]
+    assert read_data["notion_id"] == "brief-roundtrip"
+    assert read_data["notion_url"] == "https://notion.so/brief-roundtrip"
+
+
+def test_write_brief_snapshots_existing_head_to_history_page(backend):
+    old_blocks = [
+        {"type": "paragraph", "id": "blk-1", "paragraph": {"rich_text": [{"plain_text": "Old."}]}}
+    ]
+    backend._mock_client.get_block_children.side_effect = [
+        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
+        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
+        old_blocks,
+        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
+        old_blocks,
+    ]
+    backend._mock_client.get_page.return_value = {
+        "properties": {"title": {"title": [{"plain_text": "Agent Entry Point"}]}},
+        "url": "https://notion.so/brief-1",
+    }
+    backend._mock_client.create_page.side_effect = [
+        {"id": "history-1"},
+        {"id": "revision-1"},
+    ]
+
+    backend.write_brief(
+        "agent-entry-point",
+        {
+            "title": "Agent Entry Point",
+            "status": "implementation-ready",
+            "problem": "Old invocation is clunky.",
+            "goal": "Use ./agent.",
+            "acceptance_criteria": "- [ ] Works",
+            "_actor": "tester",
+            "_change_summary": "Clarified rollout path.",
+        },
+    )
+
+    first_call = backend._mock_client.create_page.call_args_list[0]
+    assert first_call[0][1] == "Agent Entry Point History"
+    second_call = backend._mock_client.create_page.call_args_list[1]
+    assert second_call[0][1].startswith("Revision ")
+
+
+def test_list_and_read_brief_revisions(backend):
+    backend._mock_client.get_block_children.side_effect = [
+        [{"type": "child_page", "id": "history-1", "child_page": {"title": "Agent Entry Point History"}}],
+        [{"type": "child_page", "id": "rev-1", "child_page": {"title": "Revision 20260317T120000000000Z"}}],
+        [
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Revision ID: 20260317T120000000000Z**"}]}},
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Captured At: 20260317T120000000000Z**"}]}},
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Actor: tester**"}]}},
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Change Summary: Clarified rollout path.**"}]}},
+            {"type": "heading_1", "heading_1": {"rich_text": [{"plain_text": "Agent Entry Point"}]}},
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Status: draft**"}]}},
+            {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Problem"}]}},
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "Old invocation is clunky."}]}},
+        ],
+        [{"type": "child_page", "id": "history-1", "child_page": {"title": "Agent Entry Point History"}}],
+        [{"type": "child_page", "id": "rev-1", "child_page": {"title": "Revision 20260317T120000000000Z"}}],
+        [
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Revision ID: 20260317T120000000000Z**"}]}},
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Captured At: 20260317T120000000000Z**"}]}},
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Actor: tester**"}]}},
+            {"type": "heading_1", "heading_1": {"rich_text": [{"plain_text": "Agent Entry Point"}]}},
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Status: draft**"}]}},
+            {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Problem"}]}},
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "Old invocation is clunky."}]}},
+        ],
+    ]
+    backend._mock_client.get_page.return_value = {"url": "https://notion.so/rev-1"}
+
+    revisions = backend.list_brief_revisions("agent-entry-point")
+    assert len(revisions) == 1
+    assert revisions[0]["revision_id"] == "20260317T120000000000Z"
+    assert revisions[0]["actor"] == "tester"
+
+    revision = backend.read_brief_revision(
+        "agent-entry-point", "20260317T120000000000Z"
+    )
+    assert revision["snapshot"]["status"] == "draft"
+    assert revision["notion_url"] == "https://notion.so/rev-1"
+
+
+def test_find_brief_history_page_matches_existing_title_variant(backend):
+    backend._mock_client.get_block_children.return_value = [
+        {
+            "type": "child_page",
+            "id": "history-1",
+            "child_page": {"title": "Architect-review Automation History"},
+        }
+    ]
+
+    page_id = backend._find_brief_history_page(
+        "architect-review-automation",
+        "Architect-review Automation",
+    )
+
+    assert page_id == "history-1"
+
+
+def test_backlog_row_with_review_verdict_and_route_state(backend):
+    """Verify new workflow fields are written and read correctly."""
+    backend._mock_client.query_database.side_effect = [
+        [],  # No existing row (for write)
+        [  # Read after write
+            {
+                "id": "row-1",
+                "url": "https://notion.so/row-1",
+                "properties": {
+                    "Title": {"title": [{"plain_text": "Test Feature"}]},
+                    "Type": {"select": {"name": "Feature"}},
+                    "Feature Status": {"select": {"name": "review-ready"}},
+                    "Priority": {"select": {"name": "High"}},
+                    "Review Verdict": {"select": {"name": "accepted"}},
+                    "Route State": {"select": {"name": "routed"}},
+                    "Brief Link": {"url": None},
+                    "Release Note Link": {"url": "https://notion.so/release-v1"},
+                    "Notes": {"rich_text": [{"plain_text": "Test notes"}]},
+                    "Parent": {"relation": []},
+                },
+            }
+        ],
+    ]
+    backend._mock_client.create_database_page.return_value = {"id": "row-1"}
+
+    # Write row with new fields
+    backend.write_backlog_row({
+        "title": "Test Feature",
+        "type": "Feature",
+        "status": "review-ready",
+        "priority": "High",
+        "review_verdict": "accepted",
+        "route_state": "routed",
+        "release_note_link": "https://notion.so/release-v1",
+        "notes": "Test notes",
+    })
+
+    write_call = backend._mock_client.create_database_page.call_args
+    props = write_call[0][1]
+    assert "Review Verdict" in props
+    assert "Route State" in props
+    assert "Release Note Link" in props
+
+    # Read and verify
+    rows = backend.read_backlog()
+    assert rows[0]["review_verdict"] == "accepted"
+    assert rows[0]["route_state"] == "routed"
+    assert rows[0]["release_note_link"] == "https://notion.so/release-v1"
+    assert rows[0]["notion_url"] == "https://notion.so/row-1"
+
+
 # --- Decisions ---
 
 
@@ -203,6 +613,19 @@ def test_write_backlog_row_updates_existing(backend):
     backend._mock_client.update_database_page.assert_called_once()
 
 
+def test_write_backlog_row_updates_existing_by_notion_id_without_query(backend):
+    backend._mock_client.update_database_page.return_value = {"id": "existing-bl"}
+    backend.write_backlog_row({
+        "title": "Add email alerts",
+        "type": "Task",
+        "status": "in-progress",
+        "priority": "High",
+        "notion_id": "existing-bl",
+    })
+    backend._mock_client.query_database.assert_not_called()
+    backend._mock_client.update_database_page.assert_called_once()
+
+
 def test_write_backlog_row_with_parent(backend):
     backend._mock_client.query_database.return_value = []
     backend._mock_client.create_database_page.return_value = {"id": "new-bl"}
@@ -260,6 +683,7 @@ def test_list_release_notes(backend):
     assert notes[0]["version"] == "v0.1.0"
     assert notes[1]["version"] == "v0.2.0"
     assert notes[0]["notion_id"] == "rn-1"
+    backend._mock_client.get_block_children.assert_called_once_with("page-release-notes")
 
 
 def test_read_release_note(backend):
@@ -273,6 +697,7 @@ def test_read_release_note(backend):
     assert note["version"] == "v0.1.0"
     assert "Initial release" in note["content"]
     assert note["notion_id"] == "rn-1"
+    assert backend._mock_client.get_block_children.call_args_list[0][0][0] == "page-release-notes"
 
 
 def test_read_release_note_not_found(backend):
@@ -297,7 +722,7 @@ def test_write_release_note_creates_new(backend):
 
     backend._mock_client.create_page.assert_called_once()
     call_args = backend._mock_client.create_page.call_args
-    assert call_args[0][0] == "parent-1"
+    assert call_args[0][0] == "page-release-notes"
     assert "v0.5.0 Release Notes" in call_args[0][1]
 
 
@@ -318,6 +743,35 @@ def test_write_release_note_updates_existing(backend):
 
     backend._mock_client.delete_block.assert_called_once_with("blk-1")
     # create_page should NOT be called for updates
+    backend._mock_client.create_page.assert_not_called()
+
+
+def test_write_release_note_skips_archived_existing_blocks(backend):
+    old_blocks = [
+        {
+            "type": "paragraph",
+            "id": "blk-archived",
+            "archived": True,
+            "paragraph": {"rich_text": [{"plain_text": "Old archived."}]},
+        },
+        {
+            "type": "paragraph",
+            "id": "blk-active",
+            "paragraph": {"rich_text": [{"plain_text": "Old active."}]},
+        },
+    ]
+    backend._mock_client.get_block_children.side_effect = [
+        [{"type": "child_page", "id": "rn-1", "child_page": {"title": "v0.5.0 Release Notes"}}],
+        old_blocks,
+        [],
+        [{"type": "heading_2", "id": "h2-1", "heading_2": {"rich_text": [{"plain_text": "Release Notes"}]}}],
+    ]
+    backend._mock_client.delete_block.return_value = {}
+    backend._mock_client.append_block_children.return_value = {}
+
+    backend.write_release_note("v0.5.0", "Updated content.\n")
+
+    backend._mock_client.delete_block.assert_called_once_with("blk-active")
     backend._mock_client.create_page.assert_not_called()
 
 
@@ -345,5 +799,3 @@ def test_ensure_readme_release_link_deduplicates(backend):
             children = args[1]
             for child in children:
                 assert child.get("type") != "bulleted_list_item"
-
-

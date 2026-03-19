@@ -1,8 +1,30 @@
+# OS
 .DS_Store
 **/.DS_Store
+
+# Editor / IDE
 *.plugin
-docs/plan/
-.env
+.vscode/
+
+# Python
 __pycache__/
 **/__pycache__/
 *.pyc
+.venv/
+.pytest_cache/
+.ruff_cache/
+
+# Secrets
+.env
+
+# Agent runtime state
+.agent/
+.codex-tmp/
+.claude/settings.local.json
+.claude/worktrees/
+
+# Consumer-project install target (prevent accidental self-install)
+.briefcase/
+
+# Plan artifacts (synced from Notion, not source-controlled)
+docs/plan/

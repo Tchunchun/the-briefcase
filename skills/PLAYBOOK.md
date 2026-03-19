@@ -7,24 +7,25 @@ Read this file fully before taking any action.
 
 ## Folder Structure
 
+```
 {project-root}/
-├── AGENTS.md                              ← project entrypoint; references this file
-├── CLAUDE.md                              ← Claude Code entrypoint; points to AGENTS.md
-├── _project/                              ← project-level constants; set during setup
-│   ├── tech-stack.md                      ← architectural boundaries and technology choices
-│   ├── definition-of-done.md             ← shared DoD reference
-│   ├── testing-strategy.md               ← test types, coverage priorities, CI gate
-│   └── decisions.md                      ← architectural decisions index
-├── template/                              ← blank templates; copy when creating new artifacts
+├── AGENTS.md                          ← project entrypoint; references this file
+├── CLAUDE.md                          ← Claude Code entrypoint; points to AGENTS.md
+├── _project/                          ← project-level constants; set during setup
+│   ├── tech-stack.md                  ← architectural boundaries and technology choices
+│   ├── definition-of-done.md         ← shared DoD reference
+│   ├── testing-strategy.md           ← test types, coverage priorities, CI gate
+│   └── decisions.md                  ← architectural decisions index
+├── template/                          ← blank templates; copy when creating new artifacts
 ├── docs/
 │   ├── plan/
-│   │   ├── _inbox.md                      ← raw ideas (local backend); managed via `agent inbox` CLI
+│   │   ├── _inbox.md                  ← raw ideas (local backend); managed via `agent inbox` CLI
 │   │   ├── _shared/
-│   │   │   └── backlog.md                 ← local backend only; managed via `agent backlog` CLI
+│   │   │   └── backlog.md             ← local backend only; managed via `agent backlog` CLI
 │   │   ├── _reference/
 │   │   │   └── adr/
 │   │   └── {feature-name}/
-│   │       └── brief.md                   ← local backend only; managed via `agent brief` CLI
+│   │       └── brief.md              ← local backend only; managed via `agent brief` CLI
 │   └── user/
 ├── src/
 │   ├── core/
@@ -32,8 +33,11 @@ Read this file fully before taking any action.
 └── tests/
     ├── core/
     └── {feature-name}/
+```
 
 Feature folder names must be identical across docs/plan/, src/, tests/, and docs/user/.
+
+> **Path convention:** In this repo, skill paths are relative to the project root (e.g. `skills/ideation/SKILL.md`). When installed into a consumer project, `install.sh` rewrites all skill paths to use the `.briefcase/` prefix automatically.
 
 ---
 
@@ -42,35 +46,35 @@ Feature folder names must be identical across docs/plan/, src/, tests/, and docs
 ### 1. Ideation Agent
 
 Use when the request is exploratory, ambiguous, or still shaping scope.
-Guideline: .skills/ideation/SKILL.md
+Guideline: skills/ideation/SKILL.md
 
 Do not use for: coding, task breakdown, or setting Status: implementation-ready.
 
 ### 2. Architect Agent
 
 Use when a brief has open technical questions, or a new project needs setup.
-Guideline: .skills/architect/SKILL.md
+Guideline: skills/architect/SKILL.md
 
 Do not use for: writing acceptance criteria, coding, or task breakdown.
 
 ### 3. Implementation Agent
 
 Use when a brief has Status: implementation-ready and work is ready to build.
-Guideline: .skills/implementation/SKILL.md
+Guideline: skills/implementation/SKILL.md
 
 Do not use for: exploration without scope, or final acceptance review of its own work.
 
 ### 4. Review Agent
 
 Use when implementation is complete and needs validation against the brief.
-Guideline: .skills/review/SKILL.md
+Guideline: skills/review/SKILL.md
 
 Do not use for: writing the brief, doing implementation, or expanding scope.
 
 ### 5. Delivery Manager Agent
 
 Use when work must transition between role owners and needs readiness checks, packeted context, or escalation.
-Guideline: .skills/delivery-manager/SKILL.md
+Guideline: skills/delivery-manager/SKILL.md
 
 Do not use for: writing scope, architecture decisions, coding, or acceptance decisions.
 
@@ -78,15 +82,54 @@ Do not use for: writing scope, architecture decisions, coding, or acceptance dec
 
 ## Handoff Sequence
 
-1. Ideation → produces brief.md (Status: draft)
-2. Delivery Manager → validates ideation handoff packet and routes to architect
-3. Architect → resolves open questions, sets Status: implementation-ready
-4. Delivery Manager → validates architect handoff packet and routes to implementation
-5. Implementation → produces Task backlog rows, src/, tests/
-6. Delivery Manager → validates implementation handoff packet and routes to review
-7. Review → validates against brief.md and returns verdict (`accepted` or `changes-requested`)
-8. Delivery Manager → routes to implementation (fix cycle) or ship path based on review verdict
-9. Implementation → ships accepted work, writes release notes
+1. Ideation → produces brief (Status: draft)
+2. Delivery Manager → validates ideation handoff packet, sets Route State: routed, routes to architect
+3. Architect → resolves open questions, sets Feature Status: implementation-ready
+4. Delivery Manager → validates architect handoff packet, sets Route State: routed, routes to implementation
+5. Implementation → produces Task backlog rows, src/, tests/, sets Feature Status: in-progress
+6. Delivery Manager → validates implementation handoff packet, sets Route State: routed, routes to review
+7. Review → validates against brief, sets Review Verdict, and moves accepted Features to review-accepted
+8. Delivery Manager → reads Review Verdict, routes to implementation (fix cycle) or ship path
+9. Implementation → ships accepted work, writes release notes, sets Feature Status: done
+
+---
+
+## Reverse-Flow Escalation Protocol
+
+Normal fix cycles (`changes-requested` → implementation) stay inside the forward model.
+**Escalation** is reserved for cases where an upstream owner must revise scope, acceptance criteria, or architecture before forward progress is valid.
+
+### Escalation vs. Fix Cycle
+
+| Situation | Mechanism |
+|---|---|
+| Review finding that implementation can fix inside the accepted brief | Normal `changes-requested` loop — no escalation |
+| Missing scope, contradictory acceptance criteria, or ambiguous requirements | Escalation: Implementation → Ideation (via delivery-manager) |
+| Architectural blocker discovered during implementation or review | Escalation: Implementation/Review → Architect (via delivery-manager) |
+| Review reveals the brief itself needs revision | Escalation: Review → Ideation (via delivery-manager) |
+
+### Escalation Packet
+
+Record escalation in the Feature's `--notes` field so it is visible in both local and Notion backends:
+
+```
+[escalation] <DATE>
+Source Role: <role that detected the blocker>
+Target Role: <upstream owner who must act>
+Trigger: <one sentence — why forward progress is invalid>
+Affected Artifact: <brief / tech-stack / acceptance criteria>
+Blocking Question: <what the upstream owner must answer or revise>
+Required Action: <specific update the upstream owner must make>
+Reroute Condition: <what must be true before the feature moves forward again>
+```
+
+### Escalation Rules
+
+1. **Any role may detect** an escalation condition. The active role appends the packet to the Feature notes.
+2. **Delivery-manager owns routing.** Only delivery-manager sets `Route State: blocked` or `returned` and records the routing note.
+3. **No reroute until resolved.** Delivery-manager must not reroute the feature back to the downstream role until the named upstream owner has updated the artifact they own and the escalation note records that resolution.
+4. **No infinite loops.** A feature may not be escalated back to the same upstream role for the same question twice. If the upstream owner's update does not resolve the blocker, delivery-manager escalates to the user.
+5. **Escalation is append-only.** Escalation notes are never deleted or overwritten — only appended with resolution details.
 
 ---
 
@@ -105,8 +148,8 @@ When `orchestrated-mode: true`, delivery-manager must:
 1. Run readiness checklist for current transition.
 2. Append handoff packet and route decision.
 3. Dispatch to existing role skills only:
-   - Implementation work -> `.skills/implementation/SKILL.md`
-   - Review validation -> `.skills/review/SKILL.md`
+   - Implementation work -> `skills/implementation/SKILL.md`
+   - Review validation -> `skills/review/SKILL.md`
 4. Record return state (`returned`, `blocked`) and next route.
 
 Delivery-manager must not replace, duplicate, or reinterpret implementation/review responsibilities.
@@ -118,27 +161,84 @@ Delivery-manager must not replace, duplicate, or reinterpret implementation/revi
 | Phase | Trigger | Action |
 |---|---|---|
 | 0 Capture | New idea | Ideation captures via `agent inbox add` |
-| 1 Plan | Idea promoted | Ideation creates brief via `agent brief write`, sets Feature to architect-review |
+| 1 Plan | Idea promoted | Ideation creates brief via `agent brief write` (`Status: draft`), sets Feature to architect-review |
 | 1.25 Orchestrate | Brief drafted | Delivery manager validates packet + routes to architect |
 | 1.5 Architect | Brief drafted | Architect resolves open questions, sets Status: implementation-ready |
 | 1.75 Orchestrate | Brief implementation-ready | Delivery manager validates packet + routes to implementation |
 | 2 Break Down | Brief ready | Implementation creates Task backlog rows via `agent backlog upsert` |
 | 3 Build | Tasks ready | Implementation builds src/, tests/, updates status |
 | 3.5 Orchestrate | Build complete | Delivery manager validates packet + routes to review |
-| 4 Review | Work done | Review validates against brief.md, records verdict |
+| 4 Review | Work done | Review validates against brief.md, records verdict, and moves accepted Features to `review-accepted` |
 | 4.5 Orchestrate | Review verdict recorded | Delivery manager routes fix cycle or ship path |
-| 5 Ship | Work accepted | Implementation writes release notes, closes backlog rows |
+| 5 Ship | Work accepted | Implementation writes release notes, closes backlog rows, and moves Feature to `done` |
 
 ---
 
 ## Backlog Schema
 
-Backlog database fields: ID · Type · Use Case · Feature · Title · Priority · Status · Notes
+Backlog database fields: Title · Type · Status (per-type) · Priority · Review Verdict · Route State · Brief Link · Release Note Link · Notes · Parent
 
-- Type: Feature / Tech Debt / Bug / Idea / Task
+- Type: Idea / Feature / Task
 - Priority: High / Medium / Low
-- Status: per-type (Idea Status, Feature Status, Task Status)
+- Idea Status: new / exploring / promoted / rejected / shipped
+- Feature Status: draft / architect-review / implementation-ready / in-progress / review-ready / review-accepted / done
+- Task Status: to-do / in-progress / blocked / done
+- Review Verdict (Features only): pending / accepted / changes-requested
+- Route State (delivery-manager only): routed / returned / blocked
+- Brief Link: URL to the brief page (set on Feature rows)
+- Release Note Link: URL to the release note page (set when Feature ships)
+- Parent: self-relation for Idea→Feature and Feature→Task hierarchy
 - Tech debt items must be logged via `agent inbox add --type idea --text "[tech-debt] ..."` before backlog.
+- Ship notes on Feature `done` rows and Idea `shipped` rows must include an explicit Pacific timestamp in the form `YYYY-MM-DD HH:MM PST/PDT`.
+
+### Lifecycle Axes
+
+Feature lifecycle is tracked on separate axes — do not collapse into one field:
+
+| Axis | Field | Purpose |
+|---|---|---|
+| Execution | Feature Status | Tracks work progression from draft to done |
+| Acceptance | Review Verdict | Tracks review outcome (pending/accepted/changes-requested) |
+| Routing | Route State | Tracks delivery-manager handoff outcome (routed/returned/blocked) |
+| Shipment | Release Note Link + Feature Status: done | Marks shipped feature work in the current workflow |
+
+### Artifact Ownership Boundary
+
+- **Notion** owns: briefs, backlog tracking, review/routing state, release notes, and operational docs.
+- **Local Git** owns: source code, tests, `_project/` engineering-governance docs (tech-stack, testing-strategy, definition-of-done), and code-adjacent ADRs.
+
+---
+
+## Backend Protocol
+
+> **Read `_project/storage.yaml` before touching any artifact.**
+> When the backend is `notion`, ALL planning artifacts (briefs, backlog, inbox, decisions) exist only in Notion — use `agent` CLI commands exclusively.
+> Do NOT read from or write to `docs/plan/` files directly when backend is `notion` — they may be stale or absent.
+> When the backend is `local`, `docs/plan/` files are the source of truth and direct file access is safe.
+
+## Artifact Access Rules
+
+All planning artifacts are accessed through CLI commands. The CLI routes to the correct backend (local files or Notion) based on `_project/storage.yaml`.
+
+| Action | Command |
+|---|---|
+| List inbox | `agent inbox list` |
+| Add idea | `agent inbox add --type idea --text "Short title" --notes "Description"` |
+| Read brief | `agent brief read {feature-name}` |
+| Write brief head | `agent brief write {feature-name} --status draft --problem "..." --goal "..." --change-summary "..."` |
+| List brief revisions | `agent brief history {feature-name}` |
+| Read one revision | `agent brief revision {feature-name} <revision-id>` |
+| Restore a revision | `agent brief restore {feature-name} <revision-id> --change-summary "..."` |
+| List briefs | `agent brief list` |
+| List backlog | `agent backlog list` |
+| Upsert backlog item | `agent backlog upsert --title "..." --type Task --status to-do --priority High` |
+| List decisions | `agent decision list` |
+| Add decision | `agent decision add --id D-NNN --title "..." --date YYYY-MM-DD --why "..."` |
+| Write release note | `agent release write --version v0.x.0 --notes "..."` |
+| Read release note | `agent release read --version v0.x.0` |
+| List release notes | `agent release list` |
+
+**Direct file access** is allowed only for project constants (`_project/tech-stack.md`, `_project/testing-strategy.md`, `_project/definition-of-done.md`), source code (`src/`, `tests/`), and ADR templates.
 
 ---
 
@@ -147,12 +247,13 @@ Backlog database fields: ID · Type · Use Case · Feature · Title · Priority 
 ### On Session Start
 1. Read this file fully.
 2. Determine the correct agent role for the current request.
-3. Read .skills/{role}/SKILL.md for that role.
+3. Read skills/{role}/SKILL.md for that role.
 4. If `_project/` does not exist, route to the architect agent for project setup before any implementation work.
-5. Read _project/tech-stack.md before touching any code.
-6. Read _project/testing-strategy.md before writing any test.
-7. Run `agent brief read {feature-name}` and `agent backlog list --type Task` before making changes.
-8. Do not start new work until you understand current state and artifact ownership.
+5. **Read `_project/storage.yaml` and identify the active backend (`local` or `notion`).** This determines where ALL planning artifacts live — do not read or write `docs/plan/` files directly if the backend is `notion`. When backend is `notion`, every artifact read and write MUST go through `agent` CLI commands.
+6. Read _project/tech-stack.md before touching any code.
+7. Read _project/testing-strategy.md before writing any test.
+8. Run `agent brief read {feature-name}` and `agent backlog list --type Task` before making changes.
+9. Do not start new work until you understand current state and artifact ownership.
 
 ### On Session End
 1. Update all artifacts owned by your active agent role via CLI commands.
@@ -179,6 +280,8 @@ Backlog database fields: ID · Type · Use Case · Feature · Title · Priority 
 Rules:
 - Before writing any artifact, read its current state first (via CLI or direct file read for project constants).
 - The brief is the source of truth for scope. Do not modify during implementation.
+- Brief status and Feature backlog status are related but not interchangeable. During ideation, the valid handoff pair is: brief `draft` + Feature `architect-review`.
+- Agents must not force brief status and Feature status to match unless the workflow explicitly defines that mapping for the active phase.
 - Decisions are append-only. Log via `agent decision add`, never delete.
 - Delivery manager may only append coordination notes and route decisions; it must not edit scope, code, tests, or review findings.
 

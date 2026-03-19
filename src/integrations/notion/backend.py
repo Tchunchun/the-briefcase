@@ -3,16 +3,28 @@
 Reads/writes planning artifacts directly to Notion databases via the API.
 When Notion is the active backend, this is the source of truth.
 
-v2: Unified Backlog (Idea/Feature/Task) + Decisions database +
-standalone brief pages + Templates as child pages.
+v3: Unified Backlog (Idea/Feature/Task) + Decisions database +
+brief pages stored in the dedicated Briefs container + Templates as child
+pages.
 """
 
 from __future__ import annotations
 
+import fcntl
+import os
 import re
+from contextlib import contextmanager
 from pathlib import Path
 from typing import Any
 
+from src.core.storage.briefs import (
+    build_revision_id,
+    extract_brief_status,
+    parse_brief_sections,
+    parse_revision_markdown,
+    render_brief_markdown,
+    render_revision_markdown,
+)
 from src.core.storage.config import NotionConfig
 from src.integrations.notion.client import NotionClient
 
@@ -33,8 +45,31 @@ class NotionBackend:
             raise ValueError(
                 f"Notion resource '{name}' not configured. "
                 "Run `agent setup --backend notion` to provision."
-            )
+        )
         return db_id
+
+    def _backlog_lock_path(self) -> Path:
+        lock_dir = self._root / ".agent"
+        lock_dir.mkdir(parents=True, exist_ok=True)
+        return lock_dir / "notion-backlog.lock"
+
+    @contextmanager
+    def _backlog_write_lock(self):
+        lock_path = self._backlog_lock_path()
+        with open(lock_path, "w", encoding="utf-8") as lock_file:
+            fcntl.flock(lock_file.fileno(), fcntl.LOCK_EX)
+            try:
+                yield
+            finally:
+                fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+    def _briefs_page_id(self) -> str:
+        """Return the Briefs container page ID, falling back to parent page."""
+        return self._dbs.get("briefs") or self._parent_page_id
+
+    def _release_notes_page_id(self) -> str:
+        """Return the Release Notes container page ID, falling back to parent page."""
+        return self._dbs.get("release_notes") or self._parent_page_id
 
     # -- Helpers for Notion property extraction --
 
@@ -161,24 +196,14 @@ class NotionBackend:
             "title": title,
             "raw": body_text,
             "notion_id": page_id,
+            "notion_url": page.get("url", ""),
         }
 
         # Parse status from body text
-        status_match = re.search(r"\*\*Status:\s*(\S+)\*\*", body_text)
-        data["status"] = status_match.group(1) if status_match else "draft"
+        data["status"] = extract_brief_status(body_text)
 
         # Parse sections from body
-        sections = {
-            "problem": r"## Problem\s*\n(.*?)(?=\n## |\Z)",
-            "goal": r"## Goal\s*\n(.*?)(?=\n## |\Z)",
-            "acceptance_criteria": r"## Acceptance Criteria\s*\n(.*?)(?=\n## |\Z)",
-            "out_of_scope": r"## Out of Scope\s*\n(.*?)(?=\n## |\Z)",
-            "open_questions": r"## Open Questions[^\n]*\n(.*?)(?=\n## |\Z)",
-            "technical_approach": r"## Technical Approach\s*\n(.*?)(?=\n## |\Z)",
-        }
-        for key, pattern in sections.items():
-            match = re.search(pattern, body_text, re.DOTALL)
-            data[key] = match.group(1).strip() if match else ""
+        data.update(parse_brief_sections(body_text))
 
         return data
 
@@ -190,27 +215,37 @@ class NotionBackend:
 
         existing_id = self._find_brief_page(brief_name)
         if existing_id:
-            # Can't replace blocks easily — update title only
+            current = self.read_brief(brief_name)
+            self._store_brief_revision(
+                brief_name,
+                current,
+                actor=data.get("_actor", ""),
+                change_summary=data.get("_change_summary", ""),
+            )
+            # Keep the page identity stable while replacing the brief body.
             self._client.update_page(
                 existing_id,
                 {"title": self._title_prop(data.get("title", brief_name))["title"]},
             )
+            self._replace_page_body(existing_id, blocks)
         else:
             self._client.create_page(
-                self._parent_page_id,
+                self._briefs_page_id(),
                 data.get("title", brief_name),
                 icon="📄",
                 children=blocks[:100],
             )
 
     def list_briefs(self) -> list[dict]:
-        """List brief pages under the project root.
+        """List brief pages under the Briefs container page.
 
-        Brief pages are child pages that are NOT README or Templates.
+        Only briefs created in the dedicated Briefs container are supported.
+        Legacy root-level brief pages are intentionally out of scope.
         """
         briefs = []
-        children = self._client.get_block_children(self._parent_page_id)
-        skip_titles = {"README", "Templates"}
+        briefs_page = self._briefs_page_id()
+        children = self._client.get_block_children(briefs_page)
+        skip_titles = {"README", "Templates", "Briefs", "Release Notes"}
 
         for child in children:
             if child.get("type") != "child_page":
@@ -218,14 +253,15 @@ class NotionBackend:
             title = child.get("child_page", {}).get("title", "")
             if title in skip_titles:
                 continue
+            if title.endswith(" History"):
+                continue
             if title.endswith(self._RELEASE_NOTE_TITLE_SUFFIX):
                 continue
             # Read status from page content
             try:
                 blocks = self._client.get_block_children(child["id"])
                 body = self._blocks_to_markdown(blocks)
-                status_match = re.search(r"\*\*Status:\s*(\S+)\*\*", body)
-                status = status_match.group(1) if status_match else "draft"
+                status = extract_brief_status(body)
             except Exception:
                 status = "draft"
             briefs.append({
@@ -236,9 +272,77 @@ class NotionBackend:
             })
         return briefs
 
+    def list_brief_revisions(self, brief_name: str) -> list[dict]:
+        history_page_id = self._find_brief_history_page(brief_name)
+        if not history_page_id:
+            return []
+
+        revisions = []
+        for child in self._client.get_block_children(history_page_id):
+            if child.get("type") != "child_page":
+                continue
+            page_id = child["id"]
+            title = child.get("child_page", {}).get("title", "")
+            if not title.startswith("Revision "):
+                continue
+            blocks = self._client.get_block_children(page_id)
+            parsed = parse_revision_markdown(self._blocks_to_markdown(blocks))
+            snapshot = parsed.get("snapshot", {})
+            revisions.append(
+                {
+                    "revision_id": parsed.get("revision_id", title.removeprefix("Revision ")),
+                    "captured_at": parsed.get("captured_at", ""),
+                    "actor": parsed.get("actor", ""),
+                    "change_summary": parsed.get("change_summary", ""),
+                    "title": snapshot.get("title", ""),
+                    "status": snapshot.get("status", ""),
+                    "notion_id": page_id,
+                }
+            )
+        revisions.sort(key=lambda item: item["revision_id"], reverse=True)
+        return revisions
+
+    def read_brief_revision(self, brief_name: str, revision_id: str) -> dict:
+        page_id = self._find_revision_page(brief_name, revision_id)
+        if not page_id:
+            raise KeyError(f"Brief revision not found: {brief_name}@{revision_id}")
+
+        blocks = self._client.get_block_children(page_id)
+        parsed = parse_revision_markdown(self._blocks_to_markdown(blocks))
+        page = self._client.get_page(page_id)
+        return {
+            "brief_name": brief_name,
+            "revision_id": parsed.get("revision_id", revision_id),
+            "captured_at": parsed.get("captured_at", ""),
+            "actor": parsed.get("actor", ""),
+            "change_summary": parsed.get("change_summary", ""),
+            "snapshot": parsed["snapshot"],
+            "raw": parsed["raw"],
+            "notion_id": page_id,
+            "notion_url": page.get("url", ""),
+        }
+
+    def restore_brief_revision(
+        self,
+        brief_name: str,
+        revision_id: str,
+        *,
+        actor: str = "",
+        change_summary: str = "",
+    ) -> dict:
+        revision = self.read_brief_revision(brief_name, revision_id)
+        snapshot = dict(revision["snapshot"])
+        snapshot["_actor"] = actor
+        snapshot["_change_summary"] = (
+            change_summary or f"Restored from revision {revision_id}"
+        )
+        self.write_brief(brief_name, snapshot)
+        return self.read_brief(brief_name)
+
     def _find_brief_page(self, brief_name: str) -> str | None:
-        """Find a brief page by name under the project root."""
-        children = self._client.get_block_children(self._parent_page_id)
+        """Find a supported brief page by name under the Briefs container."""
+        briefs_page = self._briefs_page_id()
+        children = self._client.get_block_children(briefs_page)
         for child in children:
             if child.get("type") != "child_page":
                 continue
@@ -256,6 +360,78 @@ class NotionBackend:
         name = name.lower().strip()
         name = re.sub(r"[^a-z0-9]+", "-", name)
         return name.strip("-")
+
+    def _brief_history_page_title(self, brief_name: str, title: str = "") -> str:
+        brief_title = title or brief_name.replace("-", " ").title()
+        return f"{brief_title} History"
+
+    def _find_brief_history_page(self, brief_name: str, title: str = "") -> str | None:
+        preferred_title = self._brief_history_page_title(brief_name, title) if title else ""
+        children = self._client.get_block_children(self._briefs_page_id())
+        for child in children:
+            if child.get("type") != "child_page":
+                continue
+            child_title = child.get("child_page", {}).get("title", "")
+            if preferred_title and child_title == preferred_title:
+                return child["id"]
+            if not child_title.endswith(" History"):
+                continue
+            brief_title = child_title[: -len(" History")]
+            if self._title_to_brief_name(brief_title) == brief_name:
+                return child["id"]
+        return None
+
+    def _ensure_brief_history_page(self, brief_name: str, title: str = "") -> str:
+        page_id = self._find_brief_history_page(brief_name, title)
+        if page_id:
+            return page_id
+        result = self._client.create_page(
+            self._briefs_page_id(),
+            self._brief_history_page_title(brief_name, title),
+            icon="🕘",
+        )
+        return result["id"]
+
+    def _find_revision_page(self, brief_name: str, revision_id: str) -> str | None:
+        history_page_id = self._find_brief_history_page(brief_name)
+        if not history_page_id:
+            return None
+        for child in self._client.get_block_children(history_page_id):
+            if child.get("type") != "child_page":
+                continue
+            if child.get("child_page", {}).get("title", "") == f"Revision {revision_id}":
+                return child["id"]
+        return None
+
+    def _store_brief_revision(
+        self,
+        brief_name: str,
+        snapshot: dict,
+        *,
+        actor: str = "",
+        change_summary: str = "",
+    ) -> dict:
+        from src.integrations.notion.provisioner import NotionProvisioner
+
+        revision_id = build_revision_id()
+        metadata = {
+            "revision_id": revision_id,
+            "captured_at": revision_id,
+            "actor": actor or os.environ.get("USER", ""),
+            "change_summary": change_summary,
+        }
+        history_page_id = self._ensure_brief_history_page(
+            brief_name, snapshot.get("title", "")
+        )
+        body = render_revision_markdown(brief_name, snapshot, metadata)
+        blocks = NotionProvisioner._markdown_to_blocks(body)
+        self._client.create_page(
+            history_page_id,
+            f"Revision {revision_id}",
+            icon="📝",
+            children=blocks[:100],
+        )
+        return metadata
 
     # -- Decisions --
 
@@ -305,10 +481,15 @@ class NotionBackend:
                 "type": self._get_select(r["properties"], "Type"),
                 "status": self._get_status_for_row(r["properties"]),
                 "priority": self._get_select(r["properties"], "Priority"),
+                "review_verdict": self._get_select(r["properties"], "Review Verdict"),
+                "route_state": self._get_select(r["properties"], "Route State"),
                 "brief_link": self._get_url(r["properties"], "Brief Link"),
+                "release_note_link": self._get_url(r["properties"], "Release Note Link"),
                 "notes": self._get_rich_text(r["properties"], "Notes"),
+                "automation_trace": self._get_rich_text(r["properties"], "Automation Trace"),
                 "parent_ids": self._get_relation_ids(r["properties"], "Parent"),
                 "notion_id": r["id"],
+                "notion_url": r.get("url", ""),
             }
             for r in rows
         ]
@@ -317,33 +498,45 @@ class NotionBackend:
         item_type = row.get("type", "Task")
         status_key = self._status_key_for_type(item_type)
 
-        # Check if row exists by title + type
-        existing = self._client.query_database(
-            self._db("backlog"),
-            filter={
-                "and": [
-                    {"property": "Title", "title": {"equals": row["title"]}},
-                    {"property": "Type", "select": {"equals": item_type}},
-                ]
-            },
-        )
-
         props: dict[str, Any] = {
             "Title": self._title_prop(row["title"]),
             "Type": self._select_prop(item_type),
             status_key: self._select_prop(row.get("status", "to-do")),
             "Priority": self._select_prop(row.get("priority", "Medium")),
             "Notes": self._rich_text_prop(row.get("notes", "")),
+            "Automation Trace": self._rich_text_prop(row.get("automation_trace", "")),
         }
         if row.get("brief_link"):
             props["Brief Link"] = self._url_prop(row["brief_link"])
+        if row.get("release_note_link"):
+            props["Release Note Link"] = self._url_prop(row["release_note_link"])
+        if row.get("review_verdict"):
+            props["Review Verdict"] = self._select_prop(row["review_verdict"])
+        if row.get("route_state"):
+            props["Route State"] = self._select_prop(row["route_state"])
         if row.get("parent_ids"):
             props["Parent"] = self._relation_prop(row["parent_ids"])
 
-        if existing:
-            self._client.update_database_page(existing[0]["id"], props)
-        else:
-            self._client.create_database_page(self._db("backlog"), props)
+        with self._backlog_write_lock():
+            page_id = row.get("notion_id") or row.get("id") or ""
+            if page_id:
+                self._client.update_database_page(page_id, props)
+                return
+
+            existing = self._client.query_database(
+                self._db("backlog"),
+                filter={
+                    "and": [
+                        {"property": "Title", "title": {"equals": row["title"]}},
+                        {"property": "Type", "select": {"equals": item_type}},
+                    ]
+                },
+            )
+
+            if existing:
+                self._client.update_database_page(existing[0]["id"], props)
+            else:
+                self._client.create_database_page(self._db("backlog"), props)
 
     # -- Templates (child pages of Templates page) --
 
@@ -415,23 +608,29 @@ class NotionBackend:
 
     _RELEASE_NOTE_TITLE_SUFFIX = " Release Notes"
 
+    def _replace_page_body(self, page_id: str, blocks: list[dict]) -> None:
+        """Replace all top-level page blocks with the provided blocks."""
+        old_blocks = self._client.get_block_children(page_id)
+        for block in old_blocks:
+            if block.get("archived") or block.get("in_trash"):
+                continue
+            self._client.delete_block(block["id"])
+        if blocks:
+            self._client.append_block_children(page_id, blocks[:100])
+
     def write_release_note(self, version: str, content: str) -> None:
         from src.integrations.notion.provisioner import NotionProvisioner
 
         page_title = f"{version}{self._RELEASE_NOTE_TITLE_SUFFIX}"
         blocks = NotionProvisioner._markdown_to_blocks(content)
+        release_notes_page_id = self._release_notes_page_id()
 
         existing_id = self._find_release_note_page(version)
         if existing_id:
-            # Replace content: delete old blocks then append new ones
-            old_blocks = self._client.get_block_children(existing_id)
-            for block in old_blocks:
-                self._client.delete_block(block["id"])
-            if blocks:
-                self._client.append_block_children(existing_id, blocks[:100])
+            self._replace_page_body(existing_id, blocks)
         else:
             result = self._client.create_page(
-                self._parent_page_id,
+                release_notes_page_id,
                 page_title,
                 icon="📦",
                 children=blocks[:100],
@@ -455,7 +654,7 @@ class NotionBackend:
         }
 
     def list_release_notes(self) -> list[dict]:
-        children = self._client.get_block_children(self._parent_page_id)
+        children = self._client.get_block_children(self._release_notes_page_id())
         notes = []
         for child in children:
             if child.get("type") != "child_page":
@@ -472,7 +671,7 @@ class NotionBackend:
 
     def _find_release_note_page(self, version: str) -> str | None:
         page_title = f"{version}{self._RELEASE_NOTE_TITLE_SUFFIX}"
-        children = self._client.get_block_children(self._parent_page_id)
+        children = self._client.get_block_children(self._release_notes_page_id())
         for child in children:
             if child.get("type") != "child_page":
                 continue
@@ -731,24 +930,4 @@ class NotionBackend:
     @staticmethod
     def _render_brief_body(brief_name: str, data: dict) -> str:
         """Render brief sections to markdown for Notion block content."""
-        return "\n".join(
-            [
-                "## Problem",
-                data.get("problem", ""),
-                "",
-                "## Goal",
-                data.get("goal", ""),
-                "",
-                "## Acceptance Criteria",
-                data.get("acceptance_criteria", ""),
-                "",
-                "## Out of Scope",
-                data.get("out_of_scope", ""),
-                "",
-                "## Open Questions",
-                data.get("open_questions", ""),
-                "",
-                "## Technical Approach",
-                data.get("technical_approach", "*Owned by architect agent.*"),
-            ]
-        )
+        return render_brief_markdown(brief_name, data, include_title=False).rstrip()

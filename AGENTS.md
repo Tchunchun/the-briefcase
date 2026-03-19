@@ -4,7 +4,7 @@ Read `skills/PLAYBOOK.md` fully before taking any action.
 
 Upstream source for the 0-to-1 Agent Skills framework (five roles, workflow playbook, CLI tooling, Notion integration).
 
-Note: In this repo, skills live at `skills/`. The PLAYBOOK references `.skills/` — the consumer path after install.
+Note: In this repo, skills live at `skills/` and paths in the PLAYBOOK are correct as-is. The `install.sh` script rewrites them to `.briefcase/skills/` for consumer projects.
 
 ## Commands
 
@@ -14,7 +14,8 @@ Note: In this repo, skills live at `skills/`. The PLAYBOOK references `.skills/`
 | Test one file | `python3 -m pytest tests/path/to/test_file.py` |
 | Lint all | `ruff check src/ tests/` |
 | Lint one file | `ruff check path/to/file.py` |
-| Run CLI | `python3 -m src.cli.main <command>` |
+| Run CLI (framework repo) | `python3 -m src.cli.main <command>` |
+| Run CLI (consumer project) | `./agent <command>` |
 | Format | `ruff format src/ tests/` |
 
 Load `.env` before CLI commands that hit Notion:

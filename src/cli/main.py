@@ -11,6 +11,8 @@ from src.cli.commands.brief import brief
 from src.cli.commands.decision import decision
 from src.cli.commands.backlog import backlog
 from src.cli.commands.release import release
+from src.cli.commands.automate import automate
+from src.cli.commands.upgrade import upgrade
 
 
 @click.group()
@@ -26,6 +28,8 @@ cli.add_command(brief)
 cli.add_command(decision)
 cli.add_command(backlog)
 cli.add_command(release)
+cli.add_command(automate)
+cli.add_command(upgrade)
 
 
 if __name__ == "__main__":

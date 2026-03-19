@@ -2,9 +2,9 @@
 
 Cross-feature source of truth for task priority and execution status.
 
-| ID | Type | Use Case | Feature | Title | Priority | Status | Notes |
-|---|---|---|---|---|---|---|---|
-| T-001 | Feature | Example user scenario | example-feature | Example task title | High | To Do | — |
+| ID | Type | Use Case | Feature | Title | Priority | Status | Review Verdict | Route State | Release Note Link | Notes | Automation Trace |
+|---|---|---|---|---|---|---|---|---|---|---|---|
+| T-001 | Feature | Example user scenario | example-feature | Example task title | High | To Do | — | — | — | — | |
 
 ## Rules
 

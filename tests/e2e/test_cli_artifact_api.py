@@ -12,6 +12,30 @@ os.environ['NOTION_API_TOKEN'] = os.environ.get('NOTION_API_TOKEN', '')
 # Use the consumer project which has Notion storage.yaml configured
 PROJECT_DIR = CONSUMER_ROOT
 
+
+def ensure_workspace_ready():
+    """Repair the consumer Notion workspace before exercising live CLI calls."""
+    cmd = [
+        sys.executable,
+        "-m",
+        "src.cli.main",
+        "upgrade",
+        "--yes",
+        "--project-dir",
+        PROJECT_DIR,
+    ]
+    result = subprocess.run(
+        cmd,
+        capture_output=True,
+        text=True,
+        cwd=UPSTREAM_ROOT,
+        env={**os.environ, "PYTHONPATH": UPSTREAM_ROOT},
+    )
+    if result.returncode != 0:
+        print(f"=== Upgrade ===\n{result.stdout.strip()}\n{result.stderr.strip()}")
+        sys.exit(1)
+
+
 def run_cli(args):
     """Run a CLI command and return parsed JSON."""
     cmd = [sys.executable, "-m", "src.cli.main"] + args + ["--project-dir", PROJECT_DIR]
@@ -26,6 +50,8 @@ def run_cli(args):
         return None
 
 errors = []
+
+ensure_workspace_ready()
 
 # --- Inbox ---
 print("=== Inbox ===")

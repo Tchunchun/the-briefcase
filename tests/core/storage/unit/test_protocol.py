@@ -21,6 +21,22 @@ class _MockLocalBackend:
     def list_briefs(self) -> list[dict]:
         return []
 
+    def list_brief_revisions(self, brief_name: str) -> list[dict]:
+        return []
+
+    def read_brief_revision(self, brief_name: str, revision_id: str) -> dict:
+        return {}
+
+    def restore_brief_revision(
+        self,
+        brief_name: str,
+        revision_id: str,
+        *,
+        actor: str = "",
+        change_summary: str = "",
+    ) -> dict:
+        return {}
+
     def read_decisions(self) -> list[dict]:
         return []
 
@@ -106,6 +122,9 @@ def test_artifact_store_has_all_required_methods():
         "read_brief",
         "write_brief",
         "list_briefs",
+        "list_brief_revisions",
+        "read_brief_revision",
+        "restore_brief_revision",
         "read_decisions",
         "append_decision",
         "read_backlog",

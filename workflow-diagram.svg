@@ -1,0 +1,169 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 1120" font-family="Trebuchet MS, Arial, sans-serif">
+
+  <!-- Background -->
+  <rect width="900" height="1120" fill="#0F1624"/>
+
+  <!-- Title -->
+  <text x="450" y="46" text-anchor="middle" font-size="22" font-weight="bold" fill="#FFFFFF" letter-spacing="1">0-to-1 Agent Workflow</text>
+  <text x="450" y="68" text-anchor="middle" font-size="13" fill="#7A8FAD">Ideation → Architect → Implementation → Review → Ship</text>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <!-- PHASE 0: CAPTURE -->
+  <!-- ─────────────────────────────────────────────── -->
+  <rect x="60" y="90" width="780" height="88" rx="10" fill="#1A2438" stroke="#2E4070" stroke-width="1.5"/>
+  <rect x="60" y="90" width="6" height="88" rx="3" fill="#4A9EFF"/>
+  <text x="88" y="116" font-size="11" font-weight="bold" fill="#4A9EFF" letter-spacing="1.5">PHASE 0 · CAPTURE</text>
+  <text x="88" y="138" font-size="15" font-weight="bold" fill="#FFFFFF">Raw Idea Arrives</text>
+  <text x="88" y="158" font-size="12" fill="#7A8FAD">User shares a rough thought, problem, or "what if" · Ideation agent captures via</text>
+  <text x="88" y="173" font-size="12" fill="#4A9EFF" font-family="Consolas, monospace">agent inbox add</text>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="178" x2="450" y2="202" stroke="#2E4070" stroke-width="2" stroke-dasharray="4,3"/>
+  <polygon points="450,208 444,198 456,198" fill="#2E4070"/>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <!-- PHASE 1: IDEATION -->
+  <!-- ─────────────────────────────────────────────── -->
+  <rect x="60" y="210" width="780" height="110" rx="10" fill="#1A2438" stroke="#7B4FBF" stroke-width="1.5"/>
+  <rect x="60" y="210" width="6" height="110" rx="3" fill="#9B6FDF"/>
+
+  <!-- Agent badge -->
+  <rect x="700" y="224" width="122" height="24" rx="12" fill="#7B4FBF" opacity="0.4"/>
+  <text x="761" y="240" text-anchor="middle" font-size="11" font-weight="bold" fill="#C4A0FF">IDEATION AGENT</text>
+
+  <text x="88" y="236" font-size="11" font-weight="bold" fill="#9B6FDF" letter-spacing="1.5">PHASE 1 · PLAN</text>
+  <text x="88" y="258" font-size="15" font-weight="bold" fill="#FFFFFF">Shape the Brief</text>
+  <text x="88" y="278" font-size="12" fill="#7A8FAD">Clarifies problem, goal, acceptance criteria, NFRs, and out-of-scope items</text>
+  <text x="88" y="298" font-size="12" fill="#7A8FAD">Produces <tspan fill="#C4A0FF" font-family="Consolas, monospace">brief.md (Status: draft)</tspan> + Feature row <tspan fill="#C4A0FF" font-family="Consolas, monospace">→ architect-review</tspan></text>
+  <text x="88" y="313" font-size="12" fill="#7A8FAD">Runs <tspan fill="#C4A0FF" font-family="Consolas, monospace">agent automate architect-review --notes-only</tspan> to produce dispatch payload</text>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="320" x2="450" y2="344" stroke="#2E4070" stroke-width="2" stroke-dasharray="4,3"/>
+  <polygon points="450,350 444,340 456,340" fill="#2E4070"/>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <!-- PHASE 1.25: DELIVERY MANAGER (DM1) -->
+  <!-- ─────────────────────────────────────────────── -->
+  <rect x="180" y="352" width="540" height="62" rx="10" fill="#12202E" stroke="#1E5F5F" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <rect x="180" y="352" width="6" height="62" rx="3" fill="#2ECFCF"/>
+  <text x="208" y="374" font-size="10" font-weight="bold" fill="#2ECFCF" letter-spacing="1.5">DELIVERY MANAGER · HANDOFF CHECK</text>
+  <text x="208" y="394" font-size="12" fill="#7A8FAD">Validates brief exists, problem/goal/AC/OOS are present · Sets</text>
+  <text x="550" y="394" font-size="12" fill="#2ECFCF" font-family="Consolas, monospace">Route State: routed</text>
+  <text x="208" y="408" font-size="12" fill="#7A8FAD">→ Routes to Architect</text>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="414" x2="450" y2="438" stroke="#2E4070" stroke-width="2" stroke-dasharray="4,3"/>
+  <polygon points="450,444 444,434 456,434" fill="#2E4070"/>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <!-- PHASE 1.5: ARCHITECT -->
+  <!-- ─────────────────────────────────────────────── -->
+  <rect x="60" y="446" width="780" height="100" rx="10" fill="#1A2438" stroke="#C4762A" stroke-width="1.5"/>
+  <rect x="60" y="446" width="6" height="100" rx="3" fill="#E8933A"/>
+
+  <!-- Agent badge -->
+  <rect x="700" y="460" width="122" height="24" rx="12" fill="#C4762A" opacity="0.4"/>
+  <text x="761" y="476" text-anchor="middle" font-size="11" font-weight="bold" fill="#FFB870">ARCHITECT AGENT</text>
+
+  <text x="88" y="472" font-size="11" font-weight="bold" fill="#E8933A" letter-spacing="1.5">PHASE 1.5 · ARCHITECT REVIEW</text>
+  <text x="88" y="494" font-size="15" font-weight="bold" fill="#FFFFFF">Technical Foundation</text>
+  <text x="88" y="514" font-size="12" fill="#7A8FAD">Reviews tech-stack, resolves Open Questions, writes Technical Approach, logs decisions</text>
+  <text x="88" y="532" font-size="12" fill="#7A8FAD">Sets <tspan fill="#FFB870" font-family="Consolas, monospace">Status: implementation-ready</tspan> · Promotes Idea to <tspan fill="#FFB870" font-family="Consolas, monospace">promoted</tspan></text>
+  <text x="88" y="540" font-size="12" fill="#7A8FAD">Runs <tspan fill="#FFB870" font-family="Consolas, monospace">agent automate implementation-ready --notes-only</tspan></text>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="546" x2="450" y2="570" stroke="#2E4070" stroke-width="2" stroke-dasharray="4,3"/>
+  <polygon points="450,576 444,566 456,566" fill="#2E4070"/>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <!-- PHASE 1.75: DELIVERY MANAGER (DM2) -->
+  <!-- ─────────────────────────────────────────────── -->
+  <rect x="180" y="578" width="540" height="52" rx="10" fill="#12202E" stroke="#1E5F5F" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <rect x="180" y="578" width="6" height="52" rx="3" fill="#2ECFCF"/>
+  <text x="208" y="600" font-size="10" font-weight="bold" fill="#2ECFCF" letter-spacing="1.5">DELIVERY MANAGER · HANDOFF CHECK</text>
+  <text x="208" y="620" font-size="12" fill="#7A8FAD">Verifies <tspan fill="#2ECFCF" font-family="Consolas, monospace">implementation-ready</tspan> + Technical Approach present + no blockers → Routes to Implementation</text>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="630" x2="450" y2="654" stroke="#2E4070" stroke-width="2" stroke-dasharray="4,3"/>
+  <polygon points="450,660 444,650 456,650" fill="#2E4070"/>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <!-- PHASE 2–3: IMPLEMENTATION -->
+  <!-- ─────────────────────────────────────────────── -->
+  <rect x="60" y="662" width="780" height="110" rx="10" fill="#1A2438" stroke="#2A7A3B" stroke-width="1.5"/>
+  <rect x="60" y="662" width="6" height="110" rx="3" fill="#3AB54A"/>
+
+  <!-- Agent badge -->
+  <rect x="680" y="676" width="142" height="24" rx="12" fill="#2A7A3B" opacity="0.4"/>
+  <text x="751" y="692" text-anchor="middle" font-size="11" font-weight="bold" fill="#7ED88A">IMPLEMENTATION AGENT</text>
+
+  <text x="88" y="688" font-size="11" font-weight="bold" fill="#3AB54A" letter-spacing="1.5">PHASES 2–3 · BUILD</text>
+  <text x="88" y="710" font-size="15" font-weight="bold" fill="#FFFFFF">Break Down &amp; Build</text>
+  <text x="88" y="730" font-size="12" fill="#7A8FAD">Creates Task rows from acceptance criteria · Writes <tspan fill="#7ED88A" font-family="Consolas, monospace">src/</tspan> + <tspan fill="#7ED88A" font-family="Consolas, monospace">tests/</tspan> · Marks tasks done as it goes</text>
+  <text x="88" y="750" font-size="12" fill="#7A8FAD">Feature moves: <tspan fill="#7ED88A" font-family="Consolas, monospace">in-progress → review-ready</tspan></text>
+  <text x="88" y="765" font-size="12" fill="#7A8FAD">Runs <tspan fill="#7ED88A" font-family="Consolas, monospace">agent automate review-ready --notes-only</tspan></text>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="772" x2="450" y2="796" stroke="#2E4070" stroke-width="2" stroke-dasharray="4,3"/>
+  <polygon points="450,802 444,792 456,792" fill="#2E4070"/>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <!-- PHASE 3.5: DELIVERY MANAGER (DM3) -->
+  <!-- ─────────────────────────────────────────────── -->
+  <rect x="180" y="804" width="540" height="52" rx="10" fill="#12202E" stroke="#1E5F5F" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <rect x="180" y="804" width="6" height="52" rx="3" fill="#2ECFCF"/>
+  <text x="208" y="826" font-size="10" font-weight="bold" fill="#2ECFCF" letter-spacing="1.5">DELIVERY MANAGER · HANDOFF CHECK</text>
+  <text x="208" y="846" font-size="12" fill="#7A8FAD">Verifies Task rows done, tests noted, Feature at <tspan fill="#2ECFCF" font-family="Consolas, monospace">review-ready</tspan> → Routes to Review</text>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="856" x2="450" y2="880" stroke="#2E4070" stroke-width="2" stroke-dasharray="4,3"/>
+  <polygon points="450,886 444,876 456,876" fill="#2E4070"/>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <!-- PHASE 4: REVIEW -->
+  <!-- ─────────────────────────────────────────────── -->
+  <rect x="60" y="888" width="780" height="88" rx="10" fill="#1A2438" stroke="#A83232" stroke-width="1.5"/>
+  <rect x="60" y="888" width="6" height="88" rx="3" fill="#E05050"/>
+
+  <!-- Agent badge -->
+  <rect x="710" y="902" width="112" height="24" rx="12" fill="#A83232" opacity="0.4"/>
+  <text x="766" y="918" text-anchor="middle" font-size="11" font-weight="bold" fill="#FF9090">REVIEW AGENT</text>
+
+  <text x="88" y="912" font-size="11" font-weight="bold" fill="#E05050" letter-spacing="1.5">PHASE 4 · REVIEW</text>
+  <text x="88" y="934" font-size="15" font-weight="bold" fill="#FFFFFF">Validate Against Brief</text>
+  <text x="88" y="954" font-size="12" fill="#7A8FAD">Checks all AC met, no scope creep, tests present, no regressions · Logs findings with severity</text>
+  <text x="88" y="970" font-size="12" fill="#7A8FAD">Sets verdict: <tspan fill="#7ED88A" font-family="Consolas, monospace">accepted</tspan> → <tspan fill="#7ED88A" font-family="Consolas, monospace">review-accepted</tspan> · or <tspan fill="#FF9090" font-family="Consolas, monospace">changes-requested</tspan> → back to Implementation</text>
+
+  <!-- Fix cycle loop arrow -->
+  <path d="M 60 940 Q 20 940 20 820 Q 20 700 60 700" fill="none" stroke="#A83232" stroke-width="1.5" stroke-dasharray="5,3"/>
+  <polygon points="60,700 52,710 68,710" fill="#A83232"/>
+  <text x="14" y="824" font-size="10" fill="#E05050" transform="rotate(-90,14,824)" text-anchor="middle">FIX CYCLE</text>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="976" x2="450" y2="1000" stroke="#2E4070" stroke-width="2" stroke-dasharray="4,3"/>
+  <polygon points="450,1006 444,996 456,996" fill="#2E4070"/>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <!-- PHASE 4.5: DELIVERY MANAGER (DM4) -->
+  <!-- ─────────────────────────────────────────────── -->
+  <rect x="180" y="1008" width="540" height="42" rx="10" fill="#12202E" stroke="#1E5F5F" stroke-width="1.5" stroke-dasharray="6,3"/>
+  <rect x="180" y="1008" width="6" height="42" rx="3" fill="#2ECFCF"/>
+  <text x="208" y="1028" font-size="10" font-weight="bold" fill="#2ECFCF" letter-spacing="1.5">DELIVERY MANAGER · ROUTE VERDICT</text>
+  <text x="208" y="1044" font-size="12" fill="#7A8FAD"><tspan fill="#7ED88A" font-family="Consolas, monospace">accepted</tspan> → ship path  ·  <tspan fill="#FF9090" font-family="Consolas, monospace">changes-requested</tspan> → fix cycle → Implementation</text>
+
+  <!-- Arrow down -->
+  <line x1="450" y1="1050" x2="450" y2="1072" stroke="#2E4070" stroke-width="2" stroke-dasharray="4,3"/>
+  <polygon points="450,1078 444,1068 456,1068" fill="#2E4070"/>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <!-- PHASE 5: SHIP -->
+  <!-- ─────────────────────────────────────────────── -->
+  <rect x="60" y="1080" width="780" height="26" rx="8" fill="#1B3A2A" stroke="#3AB54A" stroke-width="1.5"/>
+  <text x="450" y="1097" text-anchor="middle" font-size="13" font-weight="bold" fill="#7ED88A">🚀  PHASE 5 · SHIP  —  Release notes written · Feature: done · Idea: shipped (PST/PDT timestamp)</text>
+
+  <!-- ─────────────────────────────────────────────── -->
+  <!-- LEGEND -->
+  <!-- ─────────────────────────────────────────────── -->
+  <!-- (no separate legend needed — roles colour-coded inline) -->
+
+</svg>

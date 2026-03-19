@@ -24,12 +24,17 @@ BACKLOG_SCHEMA: dict[str, dict] = {
     "Type": _select_options(["Idea", "Feature", "Task"]),
     "Idea Status": _select_options(["new", "exploring", "promoted", "rejected", "shipped"]),
     "Feature Status": _select_options(
-        ["draft", "architect-review", "implementation-ready", "done"]
+        ["draft", "architect-review", "implementation-ready", "in-progress",
+         "review-ready", "review-accepted", "done", "shipped"]
     ),
     "Task Status": _select_options(["to-do", "in-progress", "blocked", "done"]),
     "Priority": _select_options(["High", "Medium", "Low"]),
+    "Review Verdict": _select_options(["pending", "accepted", "changes-requested"]),
+    "Route State": _select_options(["routed", "returned", "blocked"]),
     "Brief Link": {"url": {}},
+    "Release Note Link": {"url": {}},
     "Notes": {"rich_text": {}},
+    "Automation Trace": {"rich_text": {}},
 }
 # Note: The "Parent" self-relation property is added via PATCH after
 # the database is created (the DB ID is needed as the relation target).

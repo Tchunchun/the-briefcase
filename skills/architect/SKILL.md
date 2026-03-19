@@ -23,6 +23,13 @@ You are responsible for **technical soundness**, not feature delivery. Make sure
 
 You work *with the user*, not independently. All key decisions require their input and agreement.
 
+## Backend Check (Do This First)
+
+> **Read `_project/storage.yaml` before touching any artifact.**
+> When the backend is `notion`, ALL planning artifacts (briefs, backlog, inbox, decisions) exist only in Notion — use `agent` CLI commands exclusively.
+> Do NOT read from or write to `docs/plan/` files directly when backend is `notion` — they may be stale or absent.
+> When the backend is `local`, `docs/plan/` files are the source of truth and direct file access is safe.
+
 ## When to Act
 
 - **Project setup:** `_project/` does not exist yet, or the tech stack has not been decided.
@@ -50,8 +57,22 @@ You work *with the user*, not independently. All key decisions require their inp
 6. Update the Technical Approach section, addressing NFRs that constrain architecture choices.
 7. For any new dependency not already in `_project/tech-stack.md`, include a cost estimate in the Technical Approach: free-tier limits, monthly cost at expected usage, and any licensing constraints. Flag to the user if cost exceeds assumptions in the brief’s NFR section.
 8. Log any significant decisions: `agent decision add --id D-NNN --title "..." --date YYYY-MM-DD --why "..."`
-9. If technically sound → set `Status: implementation-ready` via `agent brief write {feature-name} --status implementation-ready`.
-10. If it needs rethinking → flag issues back to the ideation agent with specific notes.
+9. If technically sound → update the brief head with an explicit revision note and set `Status: implementation-ready` via `agent brief write {feature-name} --status implementation-ready --change-summary "Architect sign-off and technical approach finalized"`.
+10. Update the Feature backlog row: `agent backlog upsert --title "<short-feature-title>" --type Feature --status implementation-ready`
+11. Promote the parent Idea now that architect review is complete: `agent backlog upsert --title "<exact-existing-idea-title>" --type Idea --status promoted --brief-link "<brief-url>" --notes "Brief reviewed by architect; graduated to Feature"`
+12. Record the handoff: run `agent automate implementation-ready --notes-only` to write trace to the Automation Trace field and get dispatch payloads.
+13. **DO NOT STOP. Continue immediately as the implementation agent.** Tell the user: *"Architect review complete. Switching to implementation."* Then for **each** dispatched brief, execute these steps in order — **use the exact `feature_title` from the dispatch payload for all backlog upserts to avoid creating duplicate rows**:
+    1. Run the `command_hint` from the dispatch payload (e.g., `agent brief read {brief_name}`) to load the brief.
+    2. Open `_project/tech-stack.md` and `_project/testing-strategy.md`.
+    3. Run `agent backlog list --type Task` — create Task rows from acceptance criteria if none exist.
+    4. Move the Feature to `in-progress`: `agent backlog upsert --title "<feature_title from payload>" --type Feature --status in-progress`
+    5. Implement each task in order. For **each** task:
+       - Mark it `in-progress` first: `agent backlog upsert --title "<task-title>" --type Task --status in-progress`
+       - Write code under `src/`, tests under `tests/`.
+       - Run the relevant test scope, then mark done: `agent backlog upsert --title "<task-title>" --type Task --status done --notes "Tests: X/X pass"`
+    6. When all tasks are done, move to `review-ready`: `agent backlog upsert --title "<feature_title from payload>" --type Feature --status review-ready`
+    7. Run `agent automate review-ready --notes-only` and continue to the review flow (see implementation skill step 10+).
+14. If it needs rethinking → flag issues back to the ideation agent with specific notes.
 
 ## Decision Log
 
@@ -66,7 +87,10 @@ All planning artifacts are accessed through CLI commands. The CLI routes to the 
 - List inbox: `agent inbox list`
 - Add idea: `agent inbox add --type idea --text "Short title" --notes "Description"`
 - Read brief: `agent brief read {feature-name}`
-- Write brief: `agent brief write {feature-name} --status draft --problem "..." --goal "..."`
+- Write brief head: `agent brief write {feature-name} --status draft --problem "..." --goal "..." --change-summary "..."`
+- List brief revisions: `agent brief history {feature-name}`
+- Read one revision: `agent brief revision {feature-name} <revision-id>`
+- Restore a revision into the head brief: `agent brief restore {feature-name} <revision-id> --change-summary "..."`
 - List briefs: `agent brief list`
 - List backlog: `agent backlog list`
 - Upsert backlog item: `agent backlog upsert --title "..." --type Task --status to-do --priority High`
@@ -82,7 +106,8 @@ You are responsible for updating these statuses in the backlog:
 **When signing off a Feature as implementation-ready:**
 ```
 agent backlog upsert --title "Feature Title" --type Feature --status implementation-ready
-agent backlog upsert --title "Short Title" --type Idea --status promoted --notes "Brief reviewed; graduated to Feature"
+agent backlog upsert --title "<exact-existing-idea-title>" --type Idea --status promoted --brief-link "<brief-url>" --notes "Brief reviewed by architect; graduated to Feature"
+agent automate implementation-ready --notes-only
 ```
 
 **When logging a new decision:**
@@ -97,6 +122,7 @@ agent decision add --id D-NNN --title "Decision" --date YYYY-MM-DD --why "Ration
 - Decisions — owned by you. Managed via `agent decision add`. Append-only.
 - `_project/testing-strategy.md` — owned by you. Defines test types and coverage.
 - Briefs — you may update the Technical Approach section and set the Status field via `agent brief write`.
+- Brief history is append-only. Inspect prior scope/approach states with `agent brief history` and `agent brief revision`, and use `agent brief restore` if a mistaken edit must become the new head.
 - Do NOT create Task backlog rows, write to `src/`, or write to `tests/`.
 
 For cross-agent ownership and handoff rules, read `AGENTS.md`.
