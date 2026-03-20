@@ -2,7 +2,6 @@
 
 import pytest
 import yaml
-from pathlib import Path
 
 from src.core.storage.config import (
     StorageConfig,
@@ -11,7 +10,7 @@ from src.core.storage.config import (
     load_config,
     save_config,
     _find_config_dir,
-    DEFAULT_BACKEND,
+    resolve_config_dir,
     STORAGE_CONFIG_FILENAME,
 )
 
@@ -159,18 +158,18 @@ def test_save_then_load_roundtrip(project_dir):
 # --- _find_config_dir dual-mode tests (D-036) ---
 
 
-def test_find_config_dir_prefers_briefcase(tmp_path):
-    """When both .briefcase/ and _project/ have storage.yaml, .briefcase/ wins."""
+def test_find_config_dir_prefers_project(tmp_path):
+    """When both configs exist and match, _project/ is canonical."""
     briefcase = tmp_path / ".briefcase"
     briefcase.mkdir()
-    (briefcase / STORAGE_CONFIG_FILENAME).write_text("backend: notion\n")
+    (briefcase / STORAGE_CONFIG_FILENAME).write_text("backend: local\n")
 
     project = tmp_path / "_project"
     project.mkdir()
     (project / STORAGE_CONFIG_FILENAME).write_text("backend: local\n")
 
     result = _find_config_dir(tmp_path)
-    assert result == briefcase
+    assert result == project
 
 
 def test_find_config_dir_falls_back_to_project(tmp_path):
@@ -184,7 +183,11 @@ def test_find_config_dir_falls_back_to_project(tmp_path):
 
 
 def test_find_config_dir_from_subdirectory(tmp_path):
-    """Walking up from a subdirectory finds .briefcase/ at root."""
+    """Walking up from a subdirectory finds canonical _project/ at root."""
+    project = tmp_path / "_project"
+    project.mkdir()
+    (project / STORAGE_CONFIG_FILENAME).write_text("backend: local\n")
+
     briefcase = tmp_path / ".briefcase"
     briefcase.mkdir()
     (briefcase / STORAGE_CONFIG_FILENAME).write_text("backend: local\n")
@@ -193,7 +196,7 @@ def test_find_config_dir_from_subdirectory(tmp_path):
     sub.mkdir(parents=True)
 
     result = _find_config_dir(sub)
-    assert result == briefcase
+    assert result == project
 
 
 def test_find_config_dir_raises_when_neither_found(tmp_path):
@@ -219,7 +222,7 @@ def test_find_config_dir_ignores_briefcase_without_yaml(tmp_path):
 
 
 def test_load_config_auto_resolves_briefcase(tmp_path, monkeypatch):
-    """load_config() without explicit dir uses _find_config_dir."""
+    """load_config() without explicit dir still supports .briefcase fallback."""
     briefcase = tmp_path / ".briefcase"
     briefcase.mkdir()
     (briefcase / STORAGE_CONFIG_FILENAME).write_text("backend: notion\nnotion:\n  parent_page_id: abc\n")
@@ -228,6 +231,55 @@ def test_load_config_auto_resolves_briefcase(tmp_path, monkeypatch):
     config = load_config()
     assert config.is_notion()
     assert config.notion.parent_page_id == "abc"
+
+
+def test_find_config_dir_raises_on_mismatched_dual_configs(tmp_path):
+    """Differing _project and .briefcase configs must fail loudly."""
+    briefcase = tmp_path / ".briefcase"
+    briefcase.mkdir()
+    (briefcase / STORAGE_CONFIG_FILENAME).write_text("backend: local\n")
+
+    project = tmp_path / "_project"
+    project.mkdir()
+    (project / STORAGE_CONFIG_FILENAME).write_text("backend: notion\n")
+
+    with pytest.raises(ValueError, match="Config mismatch detected"):
+        _find_config_dir(tmp_path)
+
+
+def test_resolve_config_dir_prefers_project(tmp_path):
+    briefcase = tmp_path / ".briefcase"
+    briefcase.mkdir()
+    (briefcase / STORAGE_CONFIG_FILENAME).write_text("backend: local\n")
+
+    project = tmp_path / "_project"
+    project.mkdir()
+    (project / STORAGE_CONFIG_FILENAME).write_text("backend: local\n")
+
+    result = resolve_config_dir(tmp_path)
+    assert result == project
+
+
+def test_resolve_config_dir_falls_back_to_briefcase(tmp_path):
+    briefcase = tmp_path / ".briefcase"
+    briefcase.mkdir()
+    (briefcase / STORAGE_CONFIG_FILENAME).write_text("backend: local\n")
+
+    result = resolve_config_dir(tmp_path)
+    assert result == briefcase
+
+
+def test_resolve_config_dir_raises_on_mismatch(tmp_path):
+    briefcase = tmp_path / ".briefcase"
+    briefcase.mkdir()
+    (briefcase / STORAGE_CONFIG_FILENAME).write_text("backend: local\n")
+
+    project = tmp_path / "_project"
+    project.mkdir()
+    (project / STORAGE_CONFIG_FILENAME).write_text("backend: notion\n")
+
+    with pytest.raises(ValueError, match="Config mismatch detected"):
+        resolve_config_dir(tmp_path)
 
 
 # --- Upstream config tests ---

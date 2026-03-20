@@ -1,8 +1,8 @@
 """Load and save storage configuration.
 
 Supports dual-mode resolution (D-036):
-- Consumer projects: .briefcase/storage.yaml (primary)
-- Framework repo: _project/storage.yaml (fallback)
+- Canonical: _project/storage.yaml
+- Fallback: .briefcase/storage.yaml (installer bootstrap only)
 """
 
 from __future__ import annotations
@@ -78,19 +78,33 @@ def _find_config_dir(start: str | Path | None = None) -> Path:
     """Locate the directory containing storage.yaml.
 
     Resolution order (D-036):
-    1. .briefcase/storage.yaml — consumer install sentinel
-    2. _project/storage.yaml — framework repo fallback
+    1. _project/storage.yaml — canonical project config
+    2. .briefcase/storage.yaml — fallback for installer bootstrap
 
     Walks up from start (or cwd) checking each ancestor.
     """
     current = Path(start) if start else Path.cwd()
     while True:
         briefcase = current / ".briefcase"
-        if briefcase.is_dir() and (briefcase / STORAGE_CONFIG_FILENAME).exists():
-            return briefcase
         project = current / "_project"
-        if project.is_dir() and (project / STORAGE_CONFIG_FILENAME).exists():
+        project_config_path = project / STORAGE_CONFIG_FILENAME
+        briefcase_config_path = briefcase / STORAGE_CONFIG_FILENAME
+
+        if project.is_dir() and project_config_path.exists():
+            if (
+                briefcase.is_dir()
+                and briefcase_config_path.exists()
+                and not _config_files_match(project_config_path, briefcase_config_path)
+            ):
+                raise ValueError(
+                    "Config mismatch detected: _project/storage.yaml and "
+                    ".briefcase/storage.yaml both exist but differ. "
+                    "Use _project/storage.yaml as canonical and align or remove "
+                    ".briefcase/storage.yaml."
+                )
             return project
+        if briefcase.is_dir() and briefcase_config_path.exists():
+            return briefcase
         parent = current.parent
         if parent == current:
             break
@@ -105,7 +119,7 @@ def load_config(project_dir: str | Path | None = None) -> StorageConfig:
     """Load storage configuration.
 
     If project_dir is given, reads storage.yaml from that directory.
-    Otherwise, walks up from cwd checking .briefcase/ then _project/.
+    Otherwise, walks up from cwd checking _project/ then .briefcase/.
     Returns default local config if file does not exist.
     Raises ValueError if the backend value is not recognized.
     """
@@ -154,6 +168,50 @@ def load_config(project_dir: str | Path | None = None) -> StorageConfig:
     return StorageConfig(
         backend=backend, notion=notion_config, upstream=upstream_config
     )
+
+
+def resolve_config_dir(project_root: str | Path) -> Path:
+    """Resolve config directory for a specific project root.
+
+    Canonical precedence:
+    1. _project/storage.yaml
+    2. .briefcase/storage.yaml
+
+    If both files exist and differ, raises ValueError to prevent silent drift.
+    If neither exists, returns _project/ so callers can use local defaults.
+    """
+    root = Path(project_root).resolve()
+    project_dir = root / "_project"
+    briefcase_dir = root / ".briefcase"
+    project_config_path = project_dir / STORAGE_CONFIG_FILENAME
+    briefcase_config_path = briefcase_dir / STORAGE_CONFIG_FILENAME
+
+    if project_config_path.exists():
+        if (
+            briefcase_config_path.exists()
+            and not _config_files_match(project_config_path, briefcase_config_path)
+        ):
+            raise ValueError(
+                "Config mismatch detected: _project/storage.yaml and "
+                ".briefcase/storage.yaml both exist but differ. "
+                "Use _project/storage.yaml as canonical and align or remove "
+                ".briefcase/storage.yaml."
+            )
+        return project_dir
+
+    if briefcase_config_path.exists():
+        return briefcase_dir
+
+    return project_dir
+
+
+def _config_files_match(path_a: Path, path_b: Path) -> bool:
+    """Return True when two YAML config files are semantically equal."""
+    with open(path_a, "r") as f:
+        raw_a = yaml.safe_load(f) or {}
+    with open(path_b, "r") as f:
+        raw_b = yaml.safe_load(f) or {}
+    return raw_a == raw_b
 
 
 def save_config(config: StorageConfig, project_dir: str | Path) -> Path:
