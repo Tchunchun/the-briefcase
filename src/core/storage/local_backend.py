@@ -17,6 +17,7 @@ from pathlib import Path
 
 from src.core.storage.briefs import (
     build_revision_id,
+    extract_brief_created,
     extract_brief_status,
     parse_brief_sections,
     parse_revision_markdown,
@@ -135,12 +136,19 @@ class LocalBackend:
         path = brief_dir / "brief.md"
         if path.exists():
             current = self.read_brief(brief_name)
+            # Preserve original created date
+            if not data.get("created"):
+                data["created"] = current.get("created", "")
             self._store_brief_revision(
                 brief_name,
                 current,
                 actor=data.get("_actor", ""),
                 change_summary=data.get("_change_summary", ""),
             )
+        else:
+            # Auto-set creation date for new briefs
+            if not data.get("created"):
+                data["created"] = date.today().isoformat()
         revisions = self.list_brief_revisions(brief_name)
         content = self._render_brief(brief_name, data, history=revisions)
         path.write_text(content)
@@ -154,13 +162,16 @@ class LocalBackend:
             if child.is_dir() and not child.name.startswith("_") and brief_file.exists():
                 content = brief_file.read_text()
                 status = extract_brief_status(content)
+                created = extract_brief_created(content)
                 title_match = re.match(r"^#\s+(.+)", content)
                 title = title_match.group(1) if title_match else child.name
-                mtime = datetime.fromtimestamp(
-                    brief_file.stat().st_mtime, tz=timezone.utc
-                ).date().isoformat()
+                # Prefer explicit created date; fall back to file mtime
+                if not created:
+                    created = datetime.fromtimestamp(
+                        brief_file.stat().st_mtime, tz=timezone.utc
+                    ).date().isoformat()
                 briefs.append(
-                    {"name": child.name, "status": status, "title": title, "date": mtime}
+                    {"name": child.name, "status": status, "title": title, "date": created}
                 )
         briefs.sort(key=lambda item: item.get("date", ""), reverse=True)
         return briefs
@@ -460,6 +471,7 @@ class LocalBackend:
         data["title"] = title_match.group(1).strip() if title_match else brief_name
 
         data["status"] = extract_brief_status(content)
+        data["created"] = extract_brief_created(content)
         data.update(parse_brief_sections(content))
 
         return data

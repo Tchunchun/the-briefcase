@@ -11,6 +11,11 @@ _STATUS_PATTERN = re.compile(
     re.MULTILINE,
 )
 
+_CREATED_PATTERN = re.compile(
+    r"^\s*\*{0,2}Created:\s*([^*\n]+?)\*{0,2}\s*$",
+    re.MULTILINE,
+)
+
 BRIEF_SECTIONS = {
     "Problem": "problem",
     "Goal": "goal",
@@ -32,6 +37,12 @@ REVISION_METADATA_FIELDS = {
 def extract_brief_status(content: str, default: str = "draft") -> str:
     """Extract a brief status from markdown-like content."""
     match = _STATUS_PATTERN.search(content)
+    return match.group(1).strip() if match else default
+
+
+def extract_brief_created(content: str, default: str = "") -> str:
+    """Extract a brief creation date from markdown-like content."""
+    match = _CREATED_PATTERN.search(content)
     return match.group(1).strip() if match else default
 
 
@@ -96,12 +107,15 @@ def render_brief_markdown(
     section at the end of the document.
     """
     status = data.get("status", "draft")
+    created = data.get("created", "")
     lines: list[str] = []
     if include_title:
         lines.extend([f"# {data.get('title', brief_name)}", ""])
+    lines.append(f"**Status: {status}**")
+    if created:
+        lines.append(f"**Created: {created}**")
     lines.extend(
         [
-            f"**Status: {status}**",
             "",
             "---",
             "",

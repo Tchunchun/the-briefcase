@@ -19,6 +19,7 @@ from typing import Any
 
 from src.core.storage.briefs import (
     build_revision_id,
+    extract_brief_created,
     extract_brief_status,
     parse_brief_sections,
     parse_revision_markdown,
@@ -216,8 +217,9 @@ class NotionBackend:
             "notion_url": page.get("url", ""),
         }
 
-        # Parse status from body text
+        # Parse status and created date from body text
         data["status"] = extract_brief_status(body_text)
+        data["created"] = extract_brief_created(body_text)
 
         # Parse sections from body
         data.update(parse_brief_sections(body_text))
@@ -225,6 +227,8 @@ class NotionBackend:
         return data
 
     def write_brief(self, brief_name: str, data: dict) -> None:
+        from datetime import date as _date
+
         from src.integrations.notion.provisioner import NotionProvisioner
 
         existing_id = self._find_brief_page(brief_name)
@@ -232,6 +236,9 @@ class NotionBackend:
             current = self.read_brief(brief_name)
             merged_data = dict(current)
             merged_data.update(data)
+            # Preserve original created date
+            if not merged_data.get("created"):
+                merged_data["created"] = current.get("created", "")
             body = self._render_brief_body(brief_name, merged_data)
             blocks = NotionProvisioner._markdown_to_blocks(body)
             self._store_brief_revision(
@@ -247,6 +254,9 @@ class NotionBackend:
             )
             self._replace_page_body(existing_id, blocks)
         else:
+            # Auto-set creation date for new briefs
+            if not data.get("created"):
+                data["created"] = _date.today().isoformat()
             body = self._render_brief_body(brief_name, data)
             blocks = NotionProvisioner._markdown_to_blocks(body)
             self._client.create_page(
@@ -255,6 +265,7 @@ class NotionBackend:
                 icon="📄",
                 children=blocks[:100],
             )
+        self._refresh_briefs_index()
 
     def list_briefs(self) -> list[dict]:
         """List brief pages under the Briefs container page.
@@ -277,20 +288,24 @@ class NotionBackend:
                 continue
             if title.endswith(self._RELEASE_NOTE_TITLE_SUFFIX):
                 continue
-            # Read status from page content
+            # Read status and created date from page content
             try:
                 blocks = self._client.get_block_children(child["id"])
                 body = self._blocks_to_markdown(blocks)
                 status = extract_brief_status(body)
+                created = extract_brief_created(body)
             except Exception:
                 status = "draft"
-            edited_at = child.get("last_edited_time", "")
-            date_value = edited_at[:10] if edited_at else ""
+                created = ""
+            # Prefer explicit created date; fall back to last_edited_time
+            if not created:
+                edited_at = child.get("last_edited_time", "")
+                created = edited_at[:10] if edited_at else ""
             briefs.append({
                 "name": self._title_to_brief_name(title),
                 "status": status,
                 "title": title,
-                "date": date_value,
+                "date": created,
                 "notion_id": child["id"],
             })
         briefs.sort(key=lambda item: item.get("date", ""), reverse=True)
@@ -374,6 +389,52 @@ class NotionBackend:
             if self._title_to_brief_name(title) == brief_name:
                 return child["id"]
         return None
+
+    def _refresh_briefs_index(self) -> None:
+        """Rebuild the Briefs container page body with date-grouped index.
+
+        Renders a list grouped by creation date (newest first), e.g.:
+
+            ## 2026-03-20
+            - Brief Title A (draft)
+            - Brief Title B (approved)
+
+            ## 2026-03-19
+            - Older Brief (shipped)
+        """
+        from src.integrations.notion.provisioner import NotionProvisioner
+
+        briefs = self.list_briefs()
+        grouped: dict[str, list[dict]] = {}
+        for b in briefs:
+            date_key = b.get("date", "") or "unknown"
+            grouped.setdefault(date_key, []).append(b)
+
+        lines: list[str] = []
+        for date_key in sorted(grouped.keys(), reverse=True):
+            lines.append(f"## {date_key}")
+            for b in grouped[date_key]:
+                lines.append(f"- {b['title']} ({b['status']})")
+            lines.append("")
+
+        if not lines:
+            return
+
+        md = "\n".join(lines)
+        blocks = NotionProvisioner._markdown_to_blocks(md)
+        briefs_page = self._briefs_page_id()
+
+        # Remove only non-child_page blocks (preserve the actual brief pages)
+        old_blocks = self._client.get_block_children(briefs_page)
+        for block in old_blocks:
+            if block.get("type") == "child_page":
+                continue
+            if block.get("archived") or block.get("in_trash"):
+                continue
+            self._client.delete_block(block["id"])
+
+        if blocks:
+            self._client.append_block_children(briefs_page, blocks[:100])
 
     @staticmethod
     def _title_to_brief_name(title: str) -> str:
