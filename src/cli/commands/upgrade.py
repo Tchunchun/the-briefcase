@@ -12,7 +12,6 @@ import click
 
 from src.cli.helpers import output_error, project_dir_option
 from src.core.storage.config import load_config, save_config
-from src.integrations.notion.upgrade import FindingStatus
 
 
 @click.command()
@@ -63,7 +62,7 @@ def upgrade(check: bool, yes: bool, project_dir: str) -> None:
 
     # Lazy import to avoid requiring notion-client when not needed
     from src.integrations.notion.client import NotionClient
-    from src.integrations.notion.upgrade import NotionUpgradeService
+    from src.integrations.notion.upgrade import FindingStatus, NotionUpgradeService
 
     try:
         client = NotionClient()

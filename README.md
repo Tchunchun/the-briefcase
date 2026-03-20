@@ -47,10 +47,13 @@ TARGET_DIR=/path/to/your-project ./install.sh
 The install script:
 
 1. Copies `src/`, `skills/`, `template/` into `.briefcase/`
-2. Generates an executable `./agent` entry point
-3. Creates `.briefcase/storage.yaml` (default: `backend: local`)
-4. Updates `.gitignore` (idempotent)
-5. Creates a `.skills` symlink for native AI tool discovery
+2. Creates `.briefcase/storage.yaml` (default: `backend: local`)
+3. Generates an executable `./agent` entry point
+4. Creates a Python venv and installs dependencies (click, pyyaml, notion-client)
+5. Creates `docs/plan/` directory structure for local backend
+6. Copies `AGENTS.md`, `CLAUDE.md`, and `_project/` templates
+7. Updates `.gitignore` (idempotent)
+8. Creates a `.skills` symlink for native AI tool discovery
 
 ### Post-install structure
 
@@ -61,18 +64,32 @@ your-project/
 │   ├── skills/            ← PLAYBOOK.md + 5 SKILL.md agent definitions
 │   ├── template/          ← document templates (brief, backlog, etc.)
 │   ├── src/               ← CLI + storage + sync code
+│   ├── .venv/             ← Python venv with dependencies
 │   └── storage.yaml       ← backend config
 ├── .skills                ← symlink → .briefcase/skills/ (AI tool discovery)
 ├── _project/
 │   ├── tech-stack.md
 │   ├── definition-of-done.md
-│   └── decisions.md
+│   └── testing-strategy.md
+├── docs/plan/             ← local planning artifacts (inbox, backlog, briefs)
 ├── AGENTS.md              ← points to .briefcase/skills/PLAYBOOK.md
 ├── CLAUDE.md              ← points to AGENTS.md
 └── src/                   ← YOUR app code (untouched)
 ```
 
+### Start using it (local backend — default)
+
+The installer defaults to a **local file backend**. No API keys, no external services — everything works immediately:
+
+```bash
+./agent --help                    # See all commands
+./agent inbox add --type idea --text "Build auth flow"
+./agent inbox list                # See your ideas
+```
+
 ### Enable Notion backend (optional)
+
+To use Notion as your planning surface instead of local files:
 
 ```bash
 # Set your API key
