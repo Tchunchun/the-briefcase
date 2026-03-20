@@ -28,21 +28,32 @@ You are responsible for **clarity**, not delivery. Your job is to turn rough ide
 3. Converge on a single feature scope.
 4. Produce a `brief.md` with all required sections filled in.
 5. Hand off to the architect agent for technical review.
+6. Triage incoming feedback by classifying items as bug, feature request, or tech debt and setting an explicit priority.
 
 ## Required Workflow
 
 1. Read `_project/tech-stack.md` to understand existing architectural constraints.
 2. Run `briefcase inbox list` and `briefcase backlog list --type Idea` to check for related ideas already captured.
-3. **Find the existing Idea row.** If this work originates from an existing Idea, run `briefcase backlog list --type Idea` and find its **exact title**. Use that exact title verbatim for all subsequent upsert commands — do NOT paraphrase, shorten, or reword the title. Mismatched titles create duplicates instead of updating the original row.
+3. **Find the existing Idea row.** If this work originates from an existing Idea, run `briefcase backlog list --type Idea` and find its **exact title** and **`notion_id`**. Save both — the title is used for upserts and the `notion_id` is used for `--link-idea-id` when writing the brief. Do NOT paraphrase, shorten, or reword the title. Mismatched titles create duplicates instead of updating the original row.
 4. Set the Idea status to exploring: `briefcase backlog upsert --title "<exact-existing-title>" --type Idea --status exploring`
 5. Work with the user to define the problem, goal, and acceptance criteria.
-6. If the idea is still too rough to define acceptance criteria, capture it via `briefcase inbox add --type idea --text "Short title" --notes "Context"` and stop.
-7. When the idea is ready, create or update the brief head with a human change note: `briefcase brief write {feature-name} --status draft --problem "..." --goal "..." --change-summary "Initial scope draft"`
-8. Attach the brief link to the Idea: `briefcase backlog upsert --title "<exact-existing-title>" --type Idea --status exploring --brief-link "<brief-url>"`
-9. Create a Feature backlog row: `briefcase backlog upsert --title "<short-feature-title>" --type Feature --status draft --brief-link "<brief-url>"`
-10. Set the Feature to architect-review: `briefcase backlog upsert --title "<short-feature-title>" --type Feature --status architect-review`
-11. Record the handoff: run `briefcase automate architect-review --notes-only` to write trace notes and get dispatch payloads.
-12. **DO NOT STOP. Continue immediately as the architect agent.** Tell the user: *"Ideation complete. Switching to architect review."* Then for **each** dispatched brief, execute these steps in order — **use the exact `feature_title` from the dispatch payload for all backlog upserts to avoid creating duplicate rows**:
+6. If the idea is still too rough to define acceptance criteria, capture it via `briefcase inbox add --type idea --text "Short title" --notes "Context"`.
+   **Context completeness check — before moving on, verify the notes capture:**
+   - Current behavior / pain point — what is broken or missing today
+   - Desired behavior — what the user wants, including any concrete examples they gave
+   - Motivation — why this matters
+   - Scope clarity — what changes and where (e.g. CLI, skill, Notion page, etc.)
+   If any of these are thin or missing, enrich the `--notes` before stopping.
+7. **Context completeness gate (hard gate for briefs):** Before writing the brief, run the Context Completeness Check. All four dimensions must be present — if any is missing, ask the user before proceeding. Do not create the brief until all four are covered.
+8. When the idea is ready, create or update the brief head with a human change note and link it to the source Idea in one step:
+   `briefcase brief write {feature-name} --status draft --problem "..." --goal "..." --change-summary "Initial scope draft" --link-idea-id "<idea-notion-id>"`
+   (Use `--link-idea-title "<exact-existing-title>"` only when you do not have the idea id.)
+9. Verify the write response includes `"idea_linked": true`. If not, rerun with an explicit `--link-idea-id` or `--link-idea-title` before continuing.
+10. Create a Feature backlog row using the returned `notion_url` value as `--brief-link` and the source Idea id as `--parent-id`:
+   `briefcase backlog upsert --title "<short-feature-title>" --type Feature --status draft --parent-id "<idea-notion-id>" --brief-link "<brief-url-from-brief-write-output>"`
+11. Set the Feature to architect-review: `briefcase backlog upsert --title "<short-feature-title>" --type Feature --status architect-review`
+12. Record the handoff: run `briefcase automate architect-review --notes-only` to write trace notes and get dispatch payloads.
+13. **DO NOT STOP. Continue immediately as the architect agent.** Tell the user: *"Ideation complete. Switching to architect review."* Then for **each** dispatched brief, execute these steps in order — **use the exact `feature_title` from the dispatch payload for all backlog upserts to avoid creating duplicate rows**:
     1. Run the `command_hint` from the dispatch payload (e.g., `briefcase brief read {brief_name}`) to load the brief.
     2. Read `_project/tech-stack.md`.
     3. Assess the Technical Approach section — is it consistent with the tech stack? If missing or vague, write it.
@@ -51,7 +62,7 @@ You are responsible for **clarity**, not delivery. Your job is to turn rough ide
     6. Log significant decisions: `briefcase decision add --id D-NNN --title "..." --date YYYY-MM-DD --why "..."`
     7. Update the brief: `briefcase brief write {brief_name} --status implementation-ready --change-summary "Architect sign-off and technical approach finalized"`
     8. Update the Feature row using the **exact title from the dispatch payload's `feature_title`**: `briefcase backlog upsert --title "<feature_title from payload>" --type Feature --status implementation-ready`
-13. Verify the brief/backlog status pair before ending the session:
+14. Verify the brief/backlog status pair before ending the session:
    - If architect review completed: `briefcase brief read {feature-name}` should show `Status: implementation-ready` and the Feature row should be at `implementation-ready`
    - If architect review did not complete (e.g., open questions need user input): `briefcase brief read {feature-name}` must still show `Status: draft` and the Feature row at `architect-review`
    - If the pair does not match an allowed mapping, STOP and log the mismatch instead of guessing which status to change
@@ -99,6 +110,23 @@ When the user's idea is early-stage:
 7. If implementation details dominate the conversation too early, pull the work back to goals and constraints.
 8. If a new unrelated idea surfaces, capture it via `briefcase inbox add` instead of expanding the current brief.
 
+## Context Completeness Check
+
+After every inbox capture or before writing a brief, verify the captured context covers these four dimensions:
+
+1. **Current behavior / pain point** — what is broken or missing today
+2. **Desired behavior + examples** — what the user wants, including any concrete examples they gave
+3. **Motivation** — why this matters, who benefits
+4. **Scope clarity** — what changes, which files/layers/surfaces (e.g. CLI, skill, Notion page), any independent sub-changes
+
+### For inbox add (advisory)
+
+Run the check after capture. If any dimension is thin or missing, note the gaps in `--notes` (e.g. `[incomplete: missing motivation, no examples]`) and enrich before stopping — but do not block the capture. Inbox is for fast capture of raw ideas.
+
+### For brief write (hard gate)
+
+Run the check **before** writing the brief. If any dimension is missing, ask the user before proceeding. Do not create the brief until all four dimensions are covered.
+
 ## Decision Rules
 
 - If the idea is not specific enough to define acceptance criteria → capture it via `briefcase inbox add` and stop.
@@ -108,6 +136,7 @@ When the user's idea is early-stage:
 - If the codebase already solves the problem → note the overlap and confirm intent before creating a new brief.
 - **Title matching is exact.** The backlog upsert matches on `title + type`. If you paraphrase, shorten, or reword an existing Idea's title, the upsert will create a duplicate row instead of updating the original. Always run `briefcase backlog list --type Idea` first, find the original row, and copy its title exactly.
 - A brief is ready for architect review when problem, goal, acceptance criteria, and out-of-scope items are clear enough that the architect can assess the technical approach without asking basic scope questions.
+- **Context completeness gate:** Before writing any brief, all four context dimensions (current behavior, desired behavior + examples, motivation, scope clarity) must be present. See the Context Completeness Check section.
 
 ## Phase Splitting
 
@@ -170,8 +199,8 @@ agent inbox add --type idea --text "Short title" --notes "Longer description"
 First, find the exact existing Idea title: `briefcase backlog list --type Idea` — use the title verbatim to avoid creating duplicates.
 ```
 agent backlog upsert --title "<exact-existing-title>" --type Idea --status exploring --brief-link "<brief-url>"
-agent backlog upsert --title "Short Title" --type Feature --status draft --brief-link "<brief-url>"
-agent brief write {feature-name} --status draft --problem "..." --goal "..." --change-summary "Initial ideation draft"
+agent backlog upsert --title "Short Title" --type Feature --status draft --parent-id "<idea-notion-id>" --brief-link "<brief-url>"
+agent brief write {feature-name} --status draft --problem "..." --goal "..." --change-summary "Initial ideation draft" --link-idea-id "<idea-notion-id>"
 agent backlog upsert --title "Short Title" --type Feature --status architect-review
 agent automate architect-review --notes-only
 ```

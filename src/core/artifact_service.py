@@ -10,7 +10,7 @@ exceptions), keeping callers backend-agnostic.
 
 from __future__ import annotations
 
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
 from typing import Any
@@ -110,8 +110,10 @@ class ArtifactService:
 
     # -- Inbox ------------------------------------------------------------
 
-    def list_inbox(self) -> Result:
-        return self._safe(lambda: self._store.read_inbox())
+    def list_inbox(self, since: str | None = None) -> Result:
+        if since is None:
+            return self._safe(lambda: self._store.read_inbox())
+        return self._safe(lambda: self._store.read_inbox(since=since))
 
     def add_inbox(self, *, text: str, entry_type: str = "idea", notes: str = "") -> Result:
         if not text:
@@ -151,8 +153,10 @@ class ArtifactService:
 
     # -- Backlog ----------------------------------------------------------
 
-    def list_backlog(self) -> Result:
-        return self._safe(lambda: self._store.read_backlog())
+    def list_backlog(self, since: str | None = None) -> Result:
+        if since is None:
+            return self._safe(lambda: self._store.read_backlog())
+        return self._safe(lambda: self._store.read_backlog(since=since))
 
     def upsert_backlog(self, row: dict) -> Result:
         for key in ("title", "type", "status"):

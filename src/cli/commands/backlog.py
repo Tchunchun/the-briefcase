@@ -2,9 +2,54 @@
 
 from __future__ import annotations
 
+from datetime import date, datetime
+
 import click
 
 from src.cli.helpers import get_store_from_dir, output_json, output_error, project_dir_option
+
+
+def _resolve_since(since: str | None, today: bool) -> str | None:
+    if since and today:
+        raise ValueError("Use either --since or --today, not both.")
+    if today:
+        return date.today().isoformat()
+    return since
+
+
+def _group_by_date(items: list[dict]) -> list[dict]:
+    grouped: dict[str, list[dict]] = {}
+    for item in items:
+        stamp = item.get("updated_at") or item.get("created_at") or ""
+        bucket = stamp[:10] if stamp else "unknown"
+        grouped.setdefault(bucket, []).append(item)
+    def _sort_key(value: str) -> datetime:
+        if value == "unknown":
+            return datetime.min
+        return datetime.fromisoformat(value)
+    return [
+        {"date": key, "items": grouped[key]}
+        for key in sorted(grouped.keys(), key=_sort_key, reverse=True)
+    ]
+
+
+def _build_children_summary(children: list[dict]) -> dict:
+    total = len(children)
+    done = sum(1 for row in children if row.get("status", "").lower() == "done")
+    in_progress = total - done
+    if done == total and total > 0:
+        readiness = "all done"
+    elif done > 0:
+        readiness = "partially done"
+    else:
+        readiness = "none done"
+    return {
+        "total": total,
+        "done": done,
+        "in_progress": in_progress,
+        "ship_ready": total > 0 and done == total,
+        "readiness": readiness,
+    }
 
 
 @click.group()
@@ -15,15 +60,44 @@ def backlog():
 
 @backlog.command(name="list")
 @click.option("--type", "item_type", default=None, help="Filter by type: Idea, Feature, Task.")
+@click.option("--since", default=None, help="Filter by updated date on/after YYYY-MM-DD.")
+@click.option("--today", is_flag=True, help="Shorthand for --since today's date.")
+@click.option("--group-by-date", is_flag=True, help="Group output under date headers (newest first).")
 @project_dir_option
-def backlog_list(item_type: str | None, project_dir: str) -> None:
+def backlog_list(
+    item_type: str | None,
+    since: str | None,
+    today: bool,
+    group_by_date: bool,
+    project_dir: str,
+) -> None:
     """List backlog items as JSON. Optionally filter by type."""
     try:
         store = get_store_from_dir(project_dir)
-        data = store.read_backlog()
+        since_value = _resolve_since(since, today)
+        data = store.read_backlog(since=since_value)
         if item_type:
             data = [r for r in data if r.get("type", "").lower() == item_type.lower()]
+        if group_by_date:
+            data = _group_by_date(data)
         output_json(data)
+    except Exception as e:
+        output_error(str(e))
+
+
+@backlog.command(name="children")
+@click.option("--parent-id", required=True, help="Parent backlog row id/notion_id.")
+@project_dir_option
+def backlog_children(parent_id: str, project_dir: str) -> None:
+    """List child Features for a parent Idea/Feature row with readiness summary."""
+    try:
+        store = get_store_from_dir(project_dir)
+        children = store.list_children(parent_id)
+        output_json({
+            "parent_id": parent_id,
+            "children": children,
+            "summary": _build_children_summary(children),
+        })
     except Exception as e:
         output_error(str(e))
 

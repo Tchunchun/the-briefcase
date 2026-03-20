@@ -55,8 +55,10 @@ Do NOT change Feature/Task status — that is owned by the role agent doing the 
 
 **After ship (delivery-manager owns this):**
 ```
-agent backlog upsert --title "Short Title" --type Idea --status shipped --notes "Shipped in vX.Y.Z on YYYY-MM-DD HH:MM PST/PDT"
+agent backlog upsert --title "Short Title" --type Idea --status shipped --release-note-link "<release-note-url>" --notes "Shipped in vX.Y.Z on YYYY-MM-DD HH:MM PST/PDT"
 ```
+
+When marking an Idea shipped, always copy the `release_note_link` from the child Feature's `done` row to the Idea row. If multiple Features share a parent Idea, use the most recent release note link.
 
 Always include the shipped timestamp in Pacific Time, with the timezone abbreviation explicitly written as `PST` or `PDT`.
 
@@ -122,7 +124,10 @@ Dispatch rule:
 - Feature Status is `review-accepted`
 - No blocking findings remain
 - Release notes readiness is confirmed for implementation handoff
+- Run `briefcase backlog children --parent-id <idea-notion-id>` and verify all child Features are `done` before marking the parent Idea as `shipped`
+- If child Features are mixed (some done, some not), block the shipped transition and record which Feature titles are still not done
 - After ship is confirmed, set Idea status to `shipped`
+- **Propagate Release Note Link to parent Idea:** When marking an Idea as `shipped`, read the child Feature's `release_note_link` and set it on the Idea row: `briefcase backlog upsert --title "<Idea title>" --type Idea --status shipped --release-note-link "<release-note-url>" --notes "Shipped in vX.Y.Z on YYYY-MM-DD HH:MM PST/PDT"`. If multiple Features share a parent Idea, use the most recent release note link.
 
 ## Handoff Packet Contract (Required)
 

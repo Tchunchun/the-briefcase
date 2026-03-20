@@ -26,6 +26,14 @@ class FakeStore:
                 self.rows[idx] = dict(row)
                 break
 
+    def list_children(self, parent_id: str) -> list[dict]:
+        return [
+            dict(row)
+            for row in self.rows
+            if row.get("type", "").lower() == "feature"
+            and parent_id in (row.get("parent_ids") or [])
+        ]
+
 
 class FakeDispatcher:
     def __init__(self) -> None:
@@ -145,3 +153,227 @@ def test_skips_non_review_accepted():
     )
     assert result["dispatched_count"] == 0
     assert result["blocked_count"] == 0
+
+
+# --- propagate_release_links tests ---
+
+
+def test_propagate_release_link_to_parent_idea():
+    store = FakeStore(
+        rows=[
+            {
+                "title": "Parent Idea",
+                "type": "Idea",
+                "status": "exploring",
+                "release_note_link": "",
+                "parent_ids": [],
+                "notion_id": "idea-1",
+            },
+            {
+                "title": "Child Feature",
+                "type": "Feature",
+                "status": "done",
+                "release_note_link": "https://notion.so/release-v1",
+                "parent_ids": ["idea-1"],
+                "notion_id": "feat-1",
+            },
+        ],
+        briefs=[],
+    )
+    result = ShipRoutingAutomationService(store).propagate_release_links()
+    assert result["propagated_count"] == 1
+    assert result["propagated"][0]["idea_title"] == "Parent Idea"
+    assert result["propagated"][0]["release_note_link"] == "https://notion.so/release-v1"
+    # Verify the Idea row was updated in the store
+    assert any(
+        w.get("title") == "Parent Idea" and w.get("release_note_link") == "https://notion.so/release-v1"
+        for w in store.writes
+    )
+
+
+def test_propagate_skips_idea_with_existing_link():
+    store = FakeStore(
+        rows=[
+            {
+                "title": "Parent Idea",
+                "type": "Idea",
+                "status": "shipped",
+                "release_note_link": "https://notion.so/old-link",
+                "parent_ids": [],
+                "notion_id": "idea-1",
+            },
+            {
+                "title": "Child Feature",
+                "type": "Feature",
+                "status": "done",
+                "release_note_link": "https://notion.so/release-v2",
+                "parent_ids": ["idea-1"],
+                "notion_id": "feat-1",
+            },
+        ],
+        briefs=[],
+    )
+    result = ShipRoutingAutomationService(store).propagate_release_links()
+    assert result["propagated_count"] == 0
+    assert result["skipped_count"] == 1
+    assert len(store.writes) == 0
+
+
+def test_propagate_skips_feature_without_release_link():
+    store = FakeStore(
+        rows=[
+            {
+                "title": "Parent Idea",
+                "type": "Idea",
+                "status": "exploring",
+                "release_note_link": "",
+                "parent_ids": [],
+                "notion_id": "idea-1",
+            },
+            {
+                "title": "Child Feature",
+                "type": "Feature",
+                "status": "done",
+                "release_note_link": "",
+                "parent_ids": ["idea-1"],
+                "notion_id": "feat-1",
+            },
+        ],
+        briefs=[],
+    )
+    result = ShipRoutingAutomationService(store).propagate_release_links()
+    assert result["propagated_count"] == 0
+    assert result["skipped_count"] == 0
+
+
+def test_propagate_skips_non_done_features():
+    store = FakeStore(
+        rows=[
+            {
+                "title": "Parent Idea",
+                "type": "Idea",
+                "status": "exploring",
+                "release_note_link": "",
+                "parent_ids": [],
+                "notion_id": "idea-1",
+            },
+            {
+                "title": "Child Feature",
+                "type": "Feature",
+                "status": "in-progress",
+                "release_note_link": "https://notion.so/release-v1",
+                "parent_ids": ["idea-1"],
+                "notion_id": "feat-1",
+            },
+        ],
+        briefs=[],
+    )
+    result = ShipRoutingAutomationService(store).propagate_release_links()
+    assert result["propagated_count"] == 0
+
+
+def test_propagate_multiple_features_last_wins():
+    """When multiple done Features share a parent Idea, the last one wins."""
+    store = FakeStore(
+        rows=[
+            {
+                "title": "Parent Idea",
+                "type": "Idea",
+                "status": "exploring",
+                "release_note_link": "",
+                "parent_ids": [],
+                "notion_id": "idea-1",
+            },
+            {
+                "title": "Feature Phase 1",
+                "type": "Feature",
+                "status": "done",
+                "release_note_link": "https://notion.so/release-v1",
+                "parent_ids": ["idea-1"],
+                "notion_id": "feat-1",
+            },
+            {
+                "title": "Feature Phase 2",
+                "type": "Feature",
+                "status": "done",
+                "release_note_link": "https://notion.so/release-v2",
+                "parent_ids": ["idea-1"],
+                "notion_id": "feat-2",
+            },
+        ],
+        briefs=[],
+    )
+    result = ShipRoutingAutomationService(store).propagate_release_links()
+    # First feature propagates; second is skipped because idea already has link
+    assert result["propagated_count"] == 1
+    assert result["skipped_count"] == 1
+
+
+def test_propagate_ignores_non_idea_parents():
+    store = FakeStore(
+        rows=[
+            {
+                "title": "Parent Feature",
+                "type": "Feature",
+                "status": "done",
+                "release_note_link": "",
+                "parent_ids": [],
+                "notion_id": "feat-parent",
+            },
+            {
+                "title": "Child Feature",
+                "type": "Feature",
+                "status": "done",
+                "release_note_link": "https://notion.so/release-v1",
+                "parent_ids": ["feat-parent"],
+                "notion_id": "feat-child",
+            },
+        ],
+        briefs=[],
+    )
+    result = ShipRoutingAutomationService(store).propagate_release_links()
+    assert result["propagated_count"] == 0
+
+
+def test_propagate_blocks_when_sibling_features_not_done_and_notes_partial_ship():
+    store = FakeStore(
+        rows=[
+            {
+                "title": "Parent Idea",
+                "type": "Idea",
+                "status": "exploring",
+                "release_note_link": "",
+                "notes": "",
+                "parent_ids": [],
+                "notion_id": "idea-1",
+            },
+            {
+                "title": "Feature Phase 1",
+                "type": "Feature",
+                "status": "done",
+                "release_note_link": "https://notion.so/release-v1",
+                "parent_ids": ["idea-1"],
+                "notion_id": "feat-1",
+            },
+            {
+                "title": "Feature Phase 2",
+                "type": "Feature",
+                "status": "in-progress",
+                "release_note_link": "",
+                "parent_ids": ["idea-1"],
+                "notion_id": "feat-2",
+            },
+        ],
+        briefs=[],
+    )
+
+    result = ShipRoutingAutomationService(store).propagate_release_links()
+
+    assert result["propagated_count"] == 0
+    assert result["blocked_partial_count"] == 1
+    assert result["blocked_partial"][0]["done"] == 1
+    assert result["blocked_partial"][0]["total"] == 2
+    assert any(
+        w.get("title") == "Parent Idea" and "[partial-ship] 1/2 Features done as of" in w.get("notes", "")
+        for w in store.writes
+    )

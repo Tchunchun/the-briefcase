@@ -148,18 +148,36 @@ class NotionBackend:
 
     # -- Inbox (Backlog rows where Type = Idea) --
 
-    def read_inbox(self) -> list[dict]:
+    def read_inbox(self, since: str | None = None) -> list[dict]:
+        filters: list[dict[str, Any]] = [
+            {"property": "Type", "select": {"equals": "Idea"}}
+        ]
+        if since:
+            filters.append(
+                {
+                    "timestamp": "last_edited_time",
+                    "last_edited_time": {"on_or_after": since},
+                }
+            )
+        query_filter: dict[str, Any]
+        if len(filters) == 1:
+            query_filter = filters[0]
+        else:
+            query_filter = {"and": filters}
         rows = self._client.query_database(
             self._db("backlog"),
-            filter={"property": "Type", "select": {"equals": "Idea"}},
+            filter=query_filter,
         )
         return [
             {
                 "text": self._get_title(r["properties"]),
                 "type": "idea",
                 "status": self._get_select(r["properties"], "Idea Status"),
+                "priority": self._get_select(r["properties"], "Priority") or "Medium",
                 "notes": self._get_rich_text(r["properties"], "Notes"),
                 "notion_id": r["id"],
+                "created_at": r.get("created_time", ""),
+                "updated_at": r.get("last_edited_time", ""),
             }
             for r in rows
         ]
@@ -172,8 +190,7 @@ class NotionBackend:
         }
         if entry.get("notes"):
             props["Notes"] = self._rich_text_prop(entry["notes"])
-        if entry.get("priority"):
-            props["Priority"] = self._select_prop(entry["priority"])
+        props["Priority"] = self._select_prop(entry.get("priority", "Medium"))
         self._client.create_database_page(self._db("backlog"), props)
 
     # -- Briefs (standalone pages under project root) --
@@ -210,12 +227,13 @@ class NotionBackend:
     def write_brief(self, brief_name: str, data: dict) -> None:
         from src.integrations.notion.provisioner import NotionProvisioner
 
-        body = self._render_brief_body(brief_name, data)
-        blocks = NotionProvisioner._markdown_to_blocks(body)
-
         existing_id = self._find_brief_page(brief_name)
         if existing_id:
             current = self.read_brief(brief_name)
+            merged_data = dict(current)
+            merged_data.update(data)
+            body = self._render_brief_body(brief_name, merged_data)
+            blocks = NotionProvisioner._markdown_to_blocks(body)
             self._store_brief_revision(
                 brief_name,
                 current,
@@ -225,10 +243,12 @@ class NotionBackend:
             # Keep the page identity stable while replacing the brief body.
             self._client.update_page(
                 existing_id,
-                {"title": self._title_prop(data.get("title", brief_name))["title"]},
+                {"title": self._title_prop(merged_data.get("title", brief_name))["title"]},
             )
             self._replace_page_body(existing_id, blocks)
         else:
+            body = self._render_brief_body(brief_name, data)
+            blocks = NotionProvisioner._markdown_to_blocks(body)
             self._client.create_page(
                 self._briefs_page_id(),
                 data.get("title", brief_name),
@@ -264,12 +284,16 @@ class NotionBackend:
                 status = extract_brief_status(body)
             except Exception:
                 status = "draft"
+            edited_at = child.get("last_edited_time", "")
+            date_value = edited_at[:10] if edited_at else ""
             briefs.append({
                 "name": self._title_to_brief_name(title),
                 "status": status,
                 "title": title,
+                "date": date_value,
                 "notion_id": child["id"],
             })
+        briefs.sort(key=lambda item: item.get("date", ""), reverse=True)
         return briefs
 
     def list_brief_revisions(self, brief_name: str) -> list[dict]:
@@ -493,8 +517,14 @@ class NotionBackend:
 
     # -- Backlog (unified: Idea/Feature/Task) --
 
-    def read_backlog(self) -> list[dict]:
-        rows = self._client.query_database(self._db("backlog"))
+    def read_backlog(self, since: str | None = None) -> list[dict]:
+        query_filter = None
+        if since:
+            query_filter = {
+                "timestamp": "last_edited_time",
+                "last_edited_time": {"on_or_after": since},
+            }
+        rows = self._client.query_database(self._db("backlog"), filter=query_filter)
         return [
             {
                 "title": self._get_title(r["properties"]),
@@ -510,6 +540,8 @@ class NotionBackend:
                 "parent_ids": self._get_relation_ids(r["properties"], "Parent"),
                 "notion_id": r["id"],
                 "notion_url": r.get("url", ""),
+                "created_at": r.get("created_time", ""),
+                "updated_at": r.get("last_edited_time", ""),
             }
             for r in rows
         ]
@@ -557,6 +589,40 @@ class NotionBackend:
                 self._client.update_database_page(existing[0]["id"], props)
             else:
                 self._client.create_database_page(self._db("backlog"), props)
+
+    def list_children(self, parent_id: str) -> list[dict]:
+        """Return direct child Feature rows for a parent backlog item id."""
+        rows = self._client.query_database(
+            self._db("backlog"),
+            filter={
+                "and": [
+                    {"property": "Type", "select": {"equals": "Feature"}},
+                    {"property": "Parent", "relation": {"contains": parent_id}},
+                ]
+            },
+        )
+        return [
+            {
+                "title": self._get_title(r["properties"]),
+                "type": self._get_select(r["properties"], "Type"),
+                "status": self._get_status_for_row(r["properties"]),
+                "priority": self._get_select(r["properties"], "Priority"),
+                "review_verdict": self._get_select(r["properties"], "Review Verdict"),
+                "route_state": self._get_select(r["properties"], "Route State"),
+                "brief_link": self._get_url(r["properties"], "Brief Link"),
+                "release_note_link": self._get_url(r["properties"], "Release Note Link"),
+                "notes": self._get_rich_text(r["properties"], "Notes"),
+                "automation_trace": self._get_rich_text(
+                    r["properties"], "Automation Trace"
+                ),
+                "parent_ids": self._get_relation_ids(r["properties"], "Parent"),
+                "notion_id": r["id"],
+                "notion_url": r.get("url", ""),
+                "created_at": r.get("created_time", ""),
+                "updated_at": r.get("last_edited_time", ""),
+            }
+            for r in rows
+        ]
 
     # -- Templates (child pages of Templates page) --
 
@@ -920,12 +986,26 @@ class NotionBackend:
     @staticmethod
     def _blocks_to_markdown(blocks: list[dict]) -> str:
         """Convert Notion blocks back to markdown (simplified)."""
+        def _render_rich_text(items: list[dict]) -> str:
+            rendered = []
+            for item in items:
+                text = item.get("plain_text")
+                if text is None:
+                    text = item.get("text", {}).get("content", "")
+                annotations = item.get("annotations", {})
+                if annotations.get("bold"):
+                    text = f"**{text}**"
+                if annotations.get("italic"):
+                    text = f"*{text}*"
+                rendered.append(text)
+            return "".join(rendered)
+
         lines = []
         for block in blocks:
             btype = block.get("type", "")
             data = block.get(btype, {})
             text_items = data.get("rich_text", [])
-            text = "".join(t.get("plain_text", "") for t in text_items)
+            text = _render_rich_text(text_items)
 
             if btype == "heading_1":
                 lines.append(f"# {text}")
@@ -941,6 +1021,8 @@ class NotionBackend:
                 checked = data.get("checked", False)
                 mark = "x" if checked else " "
                 lines.append(f"- [{mark}] {text}")
+            elif btype == "divider":
+                lines.append("---")
             elif btype == "paragraph":
                 lines.append(text if text else "")
             else:

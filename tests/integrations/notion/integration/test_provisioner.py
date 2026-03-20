@@ -220,17 +220,17 @@ def test_provision_reports_errors(provisioner, mock_client):
 
 
 def test_markdown_to_blocks():
-    content = "# Heading\n\n## Subheading\n\n- Bullet\n- [ ] Todo\n- [x] Done\n\nParagraph"
+    content = "# Heading\n\n## Subheading\n\n- Bullet\n- [ ] Todo\n- [x] Done\n\n---\n\nParagraph"
     blocks = NotionProvisioner._markdown_to_blocks(content)
 
     assert blocks[0]["type"] == "heading_1"
-    assert blocks[1]["type"] == "heading_2"
-    assert blocks[2]["type"] == "bulleted_list_item"
-    assert blocks[3]["type"] == "to_do"
-    assert blocks[3]["to_do"]["checked"] is False
-    assert blocks[4]["type"] == "to_do"
-    assert blocks[4]["to_do"]["checked"] is True
-    assert blocks[3]["to_do"]["checked"] is False
-    assert blocks[4]["type"] == "to_do"
-    assert blocks[4]["to_do"]["checked"] is True
-    assert blocks[5]["type"] == "paragraph"
+    assert blocks[1]["type"] == "paragraph"
+    assert blocks[1]["paragraph"]["rich_text"] == []
+    assert blocks[2]["type"] == "heading_2"
+    assert blocks[4]["type"] == "bulleted_list_item"
+    assert blocks[5]["type"] == "to_do"
+    assert blocks[5]["to_do"]["checked"] is False
+    assert blocks[6]["type"] == "to_do"
+    assert blocks[6]["to_do"]["checked"] is True
+    assert blocks[8]["type"] == "divider"
+    assert blocks[10]["type"] == "paragraph"

@@ -1,5 +1,7 @@
 """Unit + integration tests for LocalBackend."""
 
+import os
+
 import pytest
 
 from src.core.storage.local_backend import LocalBackend
@@ -83,8 +85,11 @@ def test_read_inbox(backend):
     entries = backend.read_inbox()
     assert len(entries) == 2
     assert entries[0]["type"] == "idea"
+    assert entries[0]["priority"] == "Medium"
     assert entries[0]["text"] == "Build a notification system"
     assert entries[1]["status"] == "architect review"
+    assert "created_at" in entries[0]
+    assert "updated_at" in entries[0]
 
 
 def test_append_inbox(backend):
@@ -92,7 +97,17 @@ def test_append_inbox(backend):
     entries = backend.read_inbox()
     assert len(entries) == 3
     assert entries[2]["type"] == "tech-debt"
+    assert entries[2]["priority"] == "Medium"
     assert entries[2]["text"] == "Refactor sync module"
+
+
+def test_append_inbox_with_priority(backend):
+    backend.append_inbox(
+        {"type": "idea", "text": "Investigate flaky test", "priority": "High"}
+    )
+    entries = backend.read_inbox()
+    assert entries[-1]["type"] == "idea"
+    assert entries[-1]["priority"] == "High"
 
 
 def test_read_inbox_empty(tmp_path):
@@ -143,6 +158,7 @@ def test_list_briefs(backend):
     assert len(briefs) == 1
     assert briefs[0]["name"] == "notifications"
     assert briefs[0]["status"] == "draft"
+    assert "date" in briefs[0]
 
 
 def test_write_brief_creates_revision_history_for_existing_head(backend):
@@ -231,6 +247,61 @@ def test_read_backlog(backend):
     assert len(rows) == 1
     assert rows[0]["id"] == "T-001"
     assert rows[0]["status"] == "To Do"
+    assert "created_at" in rows[0]
+    assert "updated_at" in rows[0]
+
+
+def test_read_inbox_since_filters_by_updated_at(backend, project):
+    inbox_path = project / "docs" / "plan" / "_inbox.md"
+    old_ts = 1704067200  # 2024-01-01T00:00:00Z
+    os.utime(inbox_path, (old_ts, old_ts))
+    assert backend.read_inbox(since="2026-01-01") == []
+    assert len(backend.read_inbox(since="2023-01-01")) == 2
+
+
+def test_read_backlog_since_filters_by_updated_at(backend, project):
+    backlog_path = project / "docs" / "plan" / "_shared" / "backlog.md"
+    old_ts = 1704067200  # 2024-01-01T00:00:00Z
+    os.utime(backlog_path, (old_ts, old_ts))
+    assert backend.read_backlog(since="2026-01-01") == []
+    assert len(backend.read_backlog(since="2023-01-01")) == 1
+
+
+def test_list_children_filters_feature_rows_by_parent(backend, monkeypatch):
+    monkeypatch.setattr(
+        backend,
+        "read_backlog",
+        lambda since=None: [
+            {
+                "title": "Child Feature A",
+                "type": "Feature",
+                "status": "done",
+                "parent_ids": ["idea-1"],
+            },
+            {
+                "title": "Child Feature B",
+                "type": "Feature",
+                "status": "in-progress",
+                "parent_ids": ["idea-1"],
+            },
+            {
+                "title": "Unrelated Feature",
+                "type": "Feature",
+                "status": "done",
+                "parent_ids": ["idea-2"],
+            },
+            {
+                "title": "Task under idea",
+                "type": "Task",
+                "status": "done",
+                "parent_ids": ["idea-1"],
+            },
+        ],
+    )
+
+    children = backend.list_children("idea-1")
+
+    assert [row["title"] for row in children] == ["Child Feature A", "Child Feature B"]
 
 
 def test_write_backlog_row_update(backend):

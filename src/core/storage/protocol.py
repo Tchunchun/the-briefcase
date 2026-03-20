@@ -20,11 +20,14 @@ class ArtifactStore(Protocol):
 
     # -- Inbox --
 
-    def read_inbox(self) -> list[dict]:
+    def read_inbox(self, since: str | None = None) -> list[dict]:
         """Return all inbox entries.
 
-        Each entry is a dict with at least: {text, type, status, notes}.
+        Each entry is a dict with at least:
+        {text, type, status, notes, created_at, updated_at}.
         text is a short title (3-7 words). notes holds the longer description.
+        If since is provided (YYYY-MM-DD), return only entries with
+        updated_at on/after that date.
         """
         ...
 
@@ -32,7 +35,8 @@ class ArtifactStore(Protocol):
         """Append a single entry to the inbox.
 
         entry must include at least: {text, type}.
-        Optional: {notes} for longer description/context.
+        Optional: {notes, priority} for longer description/context and
+        priority classification.
         text should be a short title (3-7 words).
         """
         ...
@@ -63,9 +67,12 @@ class ArtifactStore(Protocol):
         ...
 
     def list_briefs(self) -> list[dict]:
-        """Return summaries of all briefs.
+        """Return summaries of all briefs, sorted newest-first.
 
-        Each summary is a dict with: {name, status, title}.
+        Each summary is a dict with: {name, status, title, date}.
+        date is an ISO-8601 date string (YYYY-MM-DD) derived from the
+        page's last-modified time (Notion) or file mtime (local).
+        Results are sorted by date descending (most recent first).
         """
         ...
 
@@ -107,11 +114,13 @@ class ArtifactStore(Protocol):
 
     # -- Backlog --
 
-    def read_backlog(self) -> list[dict]:
+    def read_backlog(self, since: str | None = None) -> list[dict]:
         """Return all backlog rows.
 
         Each row is a dict with: {id, type, use_case, feature, title,
-        priority, status, notes}.
+        priority, status, notes, created_at, updated_at}.
+        If since is provided (YYYY-MM-DD), return only rows with
+        updated_at on/after that date.
         """
         ...
 
@@ -124,6 +133,14 @@ class ArtifactStore(Protocol):
 
         Lookup precedence: by id if present, then by title + type.
         If no match is found, a new row is appended.
+        """
+        ...
+
+    def list_children(self, parent_id: str) -> list[dict]:
+        """Return child Feature rows for the given parent backlog item id.
+
+        parent_id should be a Notion/local row identifier used in parent_ids.
+        Returns only Feature rows directly linked to parent_id (one level).
         """
         ...
 

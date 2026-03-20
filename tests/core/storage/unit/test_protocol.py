@@ -6,7 +6,7 @@ from src.core.storage.protocol import ArtifactStore, SyncableStore
 class _MockLocalBackend:
     """Minimal mock that satisfies ArtifactStore but NOT SyncableStore."""
 
-    def read_inbox(self) -> list[dict]:
+    def read_inbox(self, since: str | None = None) -> list[dict]:
         return []
 
     def append_inbox(self, entry: dict) -> None:
@@ -43,11 +43,14 @@ class _MockLocalBackend:
     def append_decision(self, entry: dict) -> None:
         pass
 
-    def read_backlog(self) -> list[dict]:
+    def read_backlog(self, since: str | None = None) -> list[dict]:
         return []
 
     def write_backlog_row(self, row: dict) -> None:
         pass
+
+    def list_children(self, parent_id: str) -> list[dict]:
+        return []
 
     def write_release_note(self, version: str, content: str) -> None:
         pass
@@ -80,7 +83,7 @@ class _MockCloudBackend(_MockLocalBackend):
 class _IncompleteBackend:
     """Does NOT implement all ArtifactStore methods."""
 
-    def read_inbox(self) -> list[dict]:
+    def read_inbox(self, since: str | None = None) -> list[dict]:
         return []
 
 

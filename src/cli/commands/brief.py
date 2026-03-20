@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import os
+import re
 import click
 
 from src.cli.helpers import get_store_from_dir, output_json, output_error, project_dir_option
@@ -23,6 +24,131 @@ def _default_actor() -> str:
     return os.environ.get("USER", "")
 
 
+def _tokenize(value: str) -> set[str]:
+    return {token for token in re.findall(r"[a-z0-9]+", (value or "").lower()) if token}
+
+
+def _build_notion_url(value: str) -> str:
+    compact = "".join(ch for ch in value if ch.isalnum())
+    if len(compact) != 32:
+        return ""
+    return f"https://www.notion.so/{compact.lower()}"
+
+
+def _idea_match_score(
+    idea_title: str, brief_name: str, brief_title: str, *, idea_status: str = ""
+) -> float:
+    idea_tokens = _tokenize(idea_title)
+    if not idea_tokens:
+        return 0.0
+    target_tokens = _tokenize(brief_name) | _tokenize(brief_title)
+    if not target_tokens:
+        return 0.0
+    overlap = idea_tokens & target_tokens
+    if not overlap:
+        return 0.0
+    # Use the better of both directions to handle asymmetric token counts
+    score = max(
+        len(overlap) / max(1, len(target_tokens)),
+        len(overlap) / max(1, len(idea_tokens)),
+    )
+    # Boost ideas at exploring status — they're the most likely link target
+    if idea_status == "exploring":
+        score = min(score * 1.15, 1.0)
+    return score
+
+
+def _resolve_idea_row(
+    store,
+    *,
+    idea_id: str,
+    idea_title: str,
+    brief_name: str,
+    brief_title: str,
+) -> tuple[dict | None, str]:
+    rows = store.read_backlog()
+    ideas = [row for row in rows if row.get("type", "").lower() == "idea"]
+    if not ideas:
+        return None, "no idea rows found"
+
+    if idea_id:
+        for row in ideas:
+            candidate_id = row.get("notion_id") or row.get("id") or ""
+            if candidate_id == idea_id:
+                return row, "matched by idea id"
+        raise ValueError(f"Idea not found for --link-idea-id '{idea_id}'.")
+
+    if idea_title:
+        for row in ideas:
+            if row.get("title", "") == idea_title:
+                return row, "matched by idea title"
+        raise ValueError(f"Idea not found for --link-idea-title '{idea_title}'.")
+
+    scored: list[tuple[float, dict]] = []
+    for row in ideas:
+        if row.get("brief_link"):
+            continue
+        idea_status = row.get("status", "")
+        score = _idea_match_score(
+            row.get("title", ""), brief_name, brief_title, idea_status=idea_status
+        )
+        if score > 0:
+            scored.append((score, row))
+    if not scored:
+        return None, "no unlinked idea title matched brief"
+
+    scored.sort(key=lambda item: item[0], reverse=True)
+    best_score, best_row = scored[0]
+    second_score = scored[1][0] if len(scored) > 1 else 0.0
+    if best_score < 0.5 or (best_score - second_score) < 0.2:
+        return None, "ambiguous idea match; provide --link-idea-id or --link-idea-title"
+    return best_row, "matched by title token overlap"
+
+
+def _link_brief_to_idea(
+    store,
+    *,
+    brief_name: str,
+    brief_title: str,
+    brief_url: str,
+    idea_id: str,
+    idea_title: str,
+) -> dict:
+    if not brief_url:
+        return {"idea_linked": False, "link_reason": "brief has no notion url"}
+
+    idea_row, reason = _resolve_idea_row(
+        store,
+        idea_id=idea_id,
+        idea_title=idea_title,
+        brief_name=brief_name,
+        brief_title=brief_title,
+    )
+    if idea_row is None:
+        return {"idea_linked": False, "link_reason": reason}
+
+    updated_row = dict(idea_row)
+    updated_row["brief_link"] = brief_url
+    store.write_backlog_row(updated_row)
+    return {
+        "idea_linked": True,
+        "linked_idea_title": updated_row.get("title", ""),
+        "linked_idea_id": updated_row.get("notion_id") or updated_row.get("id", ""),
+        "link_reason": reason,
+    }
+
+
+def _group_briefs_by_date(briefs: list[dict]) -> list[dict]:
+    grouped: dict[str, list[dict]] = {}
+    for brief in briefs:
+        date_value = brief.get("date", "") or "unknown"
+        grouped.setdefault(date_value, []).append(brief)
+    return [
+        {"date": date_value, "briefs": grouped[date_value]}
+        for date_value in sorted(grouped.keys(), reverse=True)
+    ]
+
+
 @brief.command(name="list")
 @project_dir_option
 def brief_list(project_dir: str) -> None:
@@ -30,7 +156,7 @@ def brief_list(project_dir: str) -> None:
     try:
         store = get_store_from_dir(project_dir)
         data = store.list_briefs()
-        output_json(data)
+        output_json({"groups": _group_briefs_by_date(data)})
     except Exception as e:
         output_error(str(e))
 
@@ -68,6 +194,8 @@ def brief_read(name: str, project_dir: str) -> None:
 @click.option("--technical-approach", "ta", default=None, help="Technical approach.")
 @click.option("--change-summary", default="", help="Optional human summary for the new revision.")
 @click.option("--file", "file_path", default=None, type=click.Path(exists=True), help="Read brief from a markdown file instead of inline options.")
+@click.option("--link-idea-id", default="", help="Idea notion_id/id to attach this brief URL to.")
+@click.option("--link-idea-title", default="", help="Idea title to attach this brief URL to.")
 @project_dir_option
 def brief_write(
     name: str,
@@ -82,15 +210,19 @@ def brief_write(
     ta: str | None,
     change_summary: str,
     file_path: str | None,
+    link_idea_id: str,
+    link_idea_title: str,
     project_dir: str,
 ) -> None:
     """Create or update a brief. Use --file to import from markdown, or inline options."""
     try:
+        if link_idea_id and link_idea_title:
+            raise ValueError("Use only one of --link-idea-id or --link-idea-title.")
+
         store = get_store_from_dir(project_dir)
 
         if file_path:
             # Parse brief from markdown file
-            import re
             content = open(file_path).read()
             data = {"title": title or name, "status": status or "draft"}
             data.update(parse_brief_sections(content))
@@ -150,7 +282,36 @@ def brief_write(
         data["_actor"] = _default_actor()
         data["_change_summary"] = change_summary
         store.write_brief(name, data)
-        output_json({"written": name, "status": data.get("status", status or "draft")})
+        output_data = {
+            "written": name,
+            "status": data.get("status", status or "draft"),
+        }
+        try:
+            written_brief = store.read_brief(name)
+            brief_title = written_brief.get("title", data.get("title", name))
+            brief_url = (
+                written_brief.get("notion_url", "")
+                or _build_notion_url(written_brief.get("notion_id", ""))
+            )
+            if brief_url:
+                output_data["notion_url"] = brief_url
+
+            link_data = _link_brief_to_idea(
+                store,
+                brief_name=name,
+                brief_title=brief_title,
+                brief_url=brief_url,
+                idea_id=link_idea_id,
+                idea_title=link_idea_title,
+            )
+            output_data.update(link_data)
+        except Exception as exc:  # noqa: BLE001
+            if link_idea_id or link_idea_title:
+                raise
+            output_data["idea_linked"] = False
+            output_data["link_reason"] = str(exc)
+
+        output_json(output_data)
     except Exception as e:
         output_error(str(e))
 

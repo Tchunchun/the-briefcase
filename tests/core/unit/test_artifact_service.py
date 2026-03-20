@@ -6,11 +6,8 @@ import pytest
 
 from src.core.artifact_service import (
     ArtifactService,
-    BackendError,
     ErrorKind,
-    NotFoundError,
     Result,
-    ValidationError,
 )
 
 
@@ -25,8 +22,11 @@ class FakeStore:
         self.decisions: list[dict] = []
         self.backlog: list[dict] = []
         self.release_notes: dict[str, dict] = {}
+        self.last_inbox_since: str | None = None
+        self.last_backlog_since: str | None = None
 
-    def read_inbox(self) -> list[dict]:
+    def read_inbox(self, since: str | None = None) -> list[dict]:
+        self.last_inbox_since = since
         return list(self.inbox)
 
     def append_inbox(self, entry: dict) -> None:
@@ -49,7 +49,8 @@ class FakeStore:
     def append_decision(self, entry: dict) -> None:
         self.decisions.append(entry)
 
-    def read_backlog(self) -> list[dict]:
+    def read_backlog(self, since: str | None = None) -> list[dict]:
+        self.last_backlog_since = since
         return list(self.backlog)
 
     def write_backlog_row(self, row: dict) -> None:
@@ -101,6 +102,11 @@ class TestInbox:
         r = svc.add_inbox(text="")
         assert not r.success
         assert r.error_kind == ErrorKind.VALIDATION
+
+    def test_list_passes_since(self, svc: ArtifactService, store: FakeStore):
+        r = svc.list_inbox(since="2026-03-20")
+        assert r.success
+        assert store.last_inbox_since == "2026-03-20"
 
 
 # -- Brief tests ---------------------------------------------------------------
@@ -179,6 +185,11 @@ class TestBacklog:
         assert not r.success
         assert r.error_kind == ErrorKind.VALIDATION
 
+    def test_list_passes_since(self, svc: ArtifactService, store: FakeStore):
+        r = svc.list_backlog(since="2026-03-20")
+        assert r.success
+        assert store.last_backlog_since == "2026-03-20"
+
 
 # -- Release notes tests -------------------------------------------------------
 
@@ -213,7 +224,6 @@ class TestReleaseNotes:
 class TestErrorNormalization:
     def test_backend_error_wrapped(self, svc: ArtifactService, store: FakeStore):
         """Raw exceptions from the store become backend_error Results."""
-        original_read = store.read_inbox
         store.read_inbox = lambda: (_ for _ in ()).throw(RuntimeError("API down"))
         r = svc.list_inbox()
         assert not r.success

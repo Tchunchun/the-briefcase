@@ -3,9 +3,11 @@
 import pytest
 from unittest.mock import MagicMock, patch
 
+from src.core.storage.briefs import parse_brief_sections, render_brief_markdown
 from src.core.storage.config import NotionConfig
 from src.core.storage.protocol import ArtifactStore, SyncableStore
 from src.integrations.notion.backend import NotionBackend
+from src.integrations.notion.provisioner import NotionProvisioner
 
 
 @pytest.fixture
@@ -51,10 +53,13 @@ def test_read_inbox(backend):
     backend._mock_client.query_database.return_value = [
         {
             "id": "row-1",
+            "created_time": "2026-03-20T01:02:03.000Z",
+            "last_edited_time": "2026-03-20T04:05:06.000Z",
             "properties": {
                 "Title": {"title": [{"plain_text": "Add notification system"}]},
                 "Type": {"select": {"name": "Idea"}},
                 "Idea Status": {"select": {"name": "new"}},
+                "Priority": {"select": {"name": "High"}},
             },
         }
     ]
@@ -63,12 +68,24 @@ def test_read_inbox(backend):
     assert entries[0]["text"] == "Add notification system"
     assert entries[0]["type"] == "idea"
     assert entries[0]["status"] == "new"
+    assert entries[0]["priority"] == "High"
+    assert entries[0]["created_at"] == "2026-03-20T01:02:03.000Z"
+    assert entries[0]["updated_at"] == "2026-03-20T04:05:06.000Z"
 
     # Verify query used Type=Idea filter
     call_args = backend._mock_client.query_database.call_args
     assert call_args[0][0] == "db-backlog"
-    filt = call_args[1].get("filter") or call_args[0][1] if len(call_args[0]) > 1 else call_args[1].get("filter")
-    assert filt["property"] == "Type"
+    assert call_args[1]["filter"]["property"] == "Type"
+    assert call_args[1]["filter"]["select"]["equals"] == "Idea"
+
+
+def test_read_inbox_applies_since_filter(backend):
+    backend._mock_client.query_database.return_value = []
+    backend.read_inbox(since="2026-03-20")
+    call_args = backend._mock_client.query_database.call_args
+    assert call_args[1]["filter"]["and"][0]["property"] == "Type"
+    assert call_args[1]["filter"]["and"][1]["timestamp"] == "last_edited_time"
+    assert call_args[1]["filter"]["and"][1]["last_edited_time"]["on_or_after"] == "2026-03-20"
 
 
 def test_append_inbox(backend):
@@ -78,6 +95,14 @@ def test_append_inbox(backend):
     props = call_args[0][1]
     assert props["Type"]["select"]["name"] == "Idea"
     assert props["Idea Status"]["select"]["name"] == "new"
+    assert props["Priority"]["select"]["name"] == "Medium"
+
+
+def test_append_inbox_with_priority(backend):
+    backend._mock_client.create_database_page.return_value = {"id": "new-1"}
+    backend.append_inbox({"text": "New idea", "type": "idea", "priority": "Low"})
+    props = backend._mock_client.create_database_page.call_args[0][1]
+    assert props["Priority"]["select"]["name"] == "Low"
 
 
 # --- Briefs (standalone pages under project root) ---
@@ -85,25 +110,45 @@ def test_append_inbox(backend):
 
 def test_list_briefs(backend):
     parent_children = [
-        {"type": "child_page", "id": "p1", "child_page": {"title": "Notifications"}},
+        {
+            "type": "child_page",
+            "id": "p1",
+            "last_edited_time": "2026-03-19T10:00:00.000Z",
+            "child_page": {"title": "Notifications"},
+        },
+        {
+            "type": "child_page",
+            "id": "p4",
+            "last_edited_time": "2026-03-20T12:00:00.000Z",
+            "child_page": {"title": "Agent Entry Point"},
+        },
         {"type": "child_page", "id": "p2", "child_page": {"title": "README"}},
         {"type": "child_page", "id": "p3", "child_page": {"title": "Templates"}},
         {"type": "child_page", "id": "rn1", "child_page": {"title": "v0.1.0 Release Notes"}},
         {"type": "child_database", "id": "db1", "child_database": {"title": "Backlog"}},
     ]
-    brief_blocks = [
+    brief_blocks_draft = [
         {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Status: draft**"}]}},
     ]
+    brief_blocks_impl = [
+        {
+            "type": "paragraph",
+            "paragraph": {"rich_text": [{"plain_text": "**Status: implementation-ready**"}]},
+        },
+    ]
 
-    # Use side_effect list: first call = parent children, subsequent calls = brief blocks
+    # first call = parent children, then one call per brief page
     backend._client.get_block_children = MagicMock(
-        side_effect=[parent_children, brief_blocks]
+        side_effect=[parent_children, brief_blocks_draft, brief_blocks_impl]
     )
 
     briefs = backend.list_briefs()
-    assert len(briefs) == 1
-    assert briefs[0]["name"] == "notifications"
-    assert briefs[0]["status"] == "draft"
+    assert len(briefs) == 2
+    assert briefs[0]["name"] == "agent-entry-point"
+    assert briefs[0]["status"] == "implementation-ready"
+    assert briefs[0]["date"] == "2026-03-20"
+    assert briefs[1]["name"] == "notifications"
+    assert briefs[1]["date"] == "2026-03-19"
 
 
 def test_read_brief_not_found(backend):
@@ -155,13 +200,14 @@ def test_write_brief_updates_existing_body(backend):
         {"type": "paragraph", "id": "blk-1", "paragraph": {"rich_text": [{"plain_text": "Old."}]}},
         {"type": "paragraph", "id": "blk-2", "paragraph": {"rich_text": [{"plain_text": "Body."}]}},
     ]
-    backend._mock_client.get_block_children.side_effect = [
-        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
-        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
-        old_blocks,
-        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
-        old_blocks,
-    ]
+    briefs_children = [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}]
+
+    def _get_block_children(page_id):
+        if page_id == "brief-1":
+            return list(old_blocks)
+        return list(briefs_children)
+
+    backend._mock_client.get_block_children.side_effect = _get_block_children
     backend._mock_client.get_page.return_value = {
         "properties": {"title": {"title": [{"plain_text": "Agent Entry Point"}]}},
         "url": "https://notion.so/brief-1",
@@ -210,13 +256,14 @@ def test_write_brief_skips_archived_existing_blocks(backend):
             "paragraph": {"rich_text": [{"plain_text": "Old active."}]},
         },
     ]
-    backend._mock_client.get_block_children.side_effect = [
-        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
-        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
-        old_blocks,
-        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
-        old_blocks,
-    ]
+    briefs_children = [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}]
+
+    def _get_block_children_archived(page_id):
+        if page_id == "brief-1":
+            return list(old_blocks)
+        return list(briefs_children)
+
+    backend._mock_client.get_block_children.side_effect = _get_block_children_archived
     backend._mock_client.get_page.return_value = {
         "properties": {"title": {"title": [{"plain_text": "Agent Entry Point"}]}},
         "url": "https://notion.so/brief-1",
@@ -378,13 +425,14 @@ def test_write_brief_snapshots_existing_head_to_history_page(backend):
     old_blocks = [
         {"type": "paragraph", "id": "blk-1", "paragraph": {"rich_text": [{"plain_text": "Old."}]}}
     ]
-    backend._mock_client.get_block_children.side_effect = [
-        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
-        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
-        old_blocks,
-        [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
-        old_blocks,
-    ]
+    briefs_children = [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}]
+
+    def _get_block_children_history(page_id):
+        if page_id == "brief-1":
+            return list(old_blocks)
+        return list(briefs_children)
+
+    backend._mock_client.get_block_children.side_effect = _get_block_children_history
     backend._mock_client.get_page.return_value = {
         "properties": {"title": {"title": [{"plain_text": "Agent Entry Point"}]}},
         "url": "https://notion.so/brief-1",
@@ -414,31 +462,30 @@ def test_write_brief_snapshots_existing_head_to_history_page(backend):
 
 
 def test_list_and_read_brief_revisions(backend):
-    backend._mock_client.get_block_children.side_effect = [
-        [{"type": "child_page", "id": "history-1", "child_page": {"title": "Agent Entry Point History"}}],
-        [{"type": "child_page", "id": "rev-1", "child_page": {"title": "Revision 20260317T120000000000Z"}}],
-        [
-            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Revision ID: 20260317T120000000000Z**"}]}},
-            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Captured At: 20260317T120000000000Z**"}]}},
-            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Actor: tester**"}]}},
-            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Change Summary: Clarified rollout path.**"}]}},
-            {"type": "heading_1", "heading_1": {"rich_text": [{"plain_text": "Agent Entry Point"}]}},
-            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Status: draft**"}]}},
-            {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Problem"}]}},
-            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "Old invocation is clunky."}]}},
-        ],
-        [{"type": "child_page", "id": "history-1", "child_page": {"title": "Agent Entry Point History"}}],
-        [{"type": "child_page", "id": "rev-1", "child_page": {"title": "Revision 20260317T120000000000Z"}}],
-        [
-            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Revision ID: 20260317T120000000000Z**"}]}},
-            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Captured At: 20260317T120000000000Z**"}]}},
-            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Actor: tester**"}]}},
-            {"type": "heading_1", "heading_1": {"rich_text": [{"plain_text": "Agent Entry Point"}]}},
-            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Status: draft**"}]}},
-            {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Problem"}]}},
-            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "Old invocation is clunky."}]}},
-        ],
+    briefs_children = [{"type": "child_page", "id": "history-1", "child_page": {"title": "Agent Entry Point History"}}]
+    revision_children = [{"type": "child_page", "id": "rev-1", "child_page": {"title": "Revision 20260317T120000000000Z"}}]
+    revision_body = [
+        {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Revision ID: 20260317T120000000000Z**"}]}},
+        {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Captured At: 20260317T120000000000Z**"}]}},
+        {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Actor: tester**"}]}},
+        {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Change Summary: Clarified rollout path.**"}]}},
+        {"type": "heading_1", "heading_1": {"rich_text": [{"plain_text": "Agent Entry Point"}]}},
+        {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Status: draft**"}]}},
+        {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Problem"}]}},
+        {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "Old invocation is clunky."}]}},
     ]
+
+    def _get_block_children(page_id):
+        briefs_page = backend._briefs_page_id()
+        if page_id == briefs_page:
+            return list(briefs_children)
+        if page_id == "history-1":
+            return list(revision_children)
+        if page_id == "rev-1":
+            return list(revision_body)
+        return []
+
+    backend._mock_client.get_block_children.side_effect = _get_block_children
     backend._mock_client.get_page.return_value = {"url": "https://notion.so/rev-1"}
 
     revisions = backend.list_brief_revisions("agent-entry-point")
@@ -566,6 +613,8 @@ def test_read_backlog(backend):
     backend._mock_client.query_database.return_value = [
         {
             "id": "bl-1",
+            "created_time": "2026-03-19T01:02:03.000Z",
+            "last_edited_time": "2026-03-20T04:05:06.000Z",
             "properties": {
                 "Title": {"title": [{"plain_text": "Add email alerts"}]},
                 "Type": {"select": {"name": "Task"}},
@@ -584,6 +633,50 @@ def test_read_backlog(backend):
     assert rows[0]["type"] == "Task"
     assert rows[0]["status"] == "to-do"
     assert rows[0]["parent_ids"] == ["feature-1"]
+    assert rows[0]["created_at"] == "2026-03-19T01:02:03.000Z"
+    assert rows[0]["updated_at"] == "2026-03-20T04:05:06.000Z"
+
+
+def test_read_backlog_applies_since_filter(backend):
+    backend._mock_client.query_database.return_value = []
+    backend.read_backlog(since="2026-03-20")
+    call_args = backend._mock_client.query_database.call_args
+    assert call_args[1]["filter"]["timestamp"] == "last_edited_time"
+    assert call_args[1]["filter"]["last_edited_time"]["on_or_after"] == "2026-03-20"
+
+
+def test_list_children_filters_by_parent_relation(backend):
+    backend._mock_client.query_database.return_value = [
+        {
+            "id": "feat-1",
+            "url": "https://notion.so/feat-1",
+            "created_time": "2026-03-19T01:02:03.000Z",
+            "last_edited_time": "2026-03-20T04:05:06.000Z",
+            "properties": {
+                "Title": {"title": [{"plain_text": "Feature A"}]},
+                "Type": {"select": {"name": "Feature"}},
+                "Feature Status": {"select": {"name": "done"}},
+                "Priority": {"select": {"name": "High"}},
+                "Parent": {"relation": [{"id": "idea-1"}]},
+                "Notes": {"rich_text": []},
+                "Automation Trace": {"rich_text": []},
+                "Brief Link": {"url": ""},
+                "Release Note Link": {"url": ""},
+                "Review Verdict": {"select": {"name": ""}},
+                "Route State": {"select": {"name": ""}},
+            },
+        }
+    ]
+
+    children = backend.list_children("idea-1")
+    call_args = backend._mock_client.query_database.call_args
+    assert call_args[1]["filter"]["and"][0]["property"] == "Type"
+    assert call_args[1]["filter"]["and"][0]["select"]["equals"] == "Feature"
+    assert call_args[1]["filter"]["and"][1]["property"] == "Parent"
+    assert call_args[1]["filter"]["and"][1]["relation"]["contains"] == "idea-1"
+    assert len(children) == 1
+    assert children[0]["title"] == "Feature A"
+    assert children[0]["status"] == "done"
 
 
 def test_write_backlog_row_creates_new(backend):
@@ -668,6 +761,103 @@ def test_blocks_to_markdown():
     assert "- [x] Task" in md
     assert "1. Step" in md
 
+
+def test_blocks_to_markdown_preserves_annotations_and_dividers():
+    blocks = [
+        {
+            "type": "paragraph",
+            "paragraph": {
+                "rich_text": [
+                    {"plain_text": "Status: draft", "annotations": {"bold": True}},
+                    {"plain_text": " ", "annotations": {}},
+                    {"plain_text": "needs review", "annotations": {"italic": True}},
+                ]
+            },
+        },
+        {"type": "divider", "divider": {}},
+        {"type": "paragraph", "paragraph": {"rich_text": []}},
+    ]
+
+    md = NotionBackend._blocks_to_markdown(blocks)
+
+    assert "**Status: draft**" in md
+    assert "*needs review*" in md
+    assert "---" in md
+    assert "\n\n" in md
+
+
+def test_brief_block_roundtrip_preserves_all_sections():
+    write_data = {
+        "title": "Brief Write Corruption",
+        "status": "implementation-ready",
+        "problem": "Problem line one.\n\nProblem line two.",
+        "goal": "Keep content stable.",
+        "acceptance_criteria": "- [ ] First\n- [x] Second",
+        "non_functional_requirements": "- **Constraint:** No corruption",
+        "out_of_scope": "No extra markdown features.",
+        "open_questions": "None",
+        "technical_approach": "### Step 1\nDo this.\n\n---\n\n### Step 2\nDo that.",
+    }
+
+    source = render_brief_markdown(
+        "brief-write-corruption",
+        write_data,
+        include_title=False,
+    ).rstrip()
+    blocks = NotionProvisioner._markdown_to_blocks(source)
+    markdown = NotionBackend._blocks_to_markdown(blocks)
+    parsed = parse_brief_sections(markdown)
+
+    expected = {
+        "problem": write_data["problem"],
+        "goal": write_data["goal"],
+        "acceptance_criteria": write_data["acceptance_criteria"],
+        "non_functional_requirements": write_data["non_functional_requirements"],
+        "out_of_scope": write_data["out_of_scope"],
+        "open_questions": write_data["open_questions"],
+        "technical_approach": write_data["technical_approach"],
+    }
+    assert parsed == expected
+
+
+def test_write_brief_merges_existing_fields_on_partial_update(backend):
+    backend._find_brief_page = MagicMock(return_value="brief-1")
+    backend._store_brief_revision = MagicMock()
+    backend._replace_page_body = MagicMock()
+    backend._mock_client.update_page.return_value = {"id": "brief-1"}
+    backend.read_brief = MagicMock(
+        return_value={
+            "name": "brief-write-corruption",
+            "title": "Brief Write Corruption",
+            "status": "implementation-ready",
+            "problem": "Existing problem",
+            "goal": "Existing goal",
+            "acceptance_criteria": "- [ ] Existing AC",
+            "non_functional_requirements": "Existing NFR",
+            "out_of_scope": "Existing OOS",
+            "open_questions": "Existing OQ",
+            "technical_approach": "Existing TA",
+        }
+    )
+
+    with patch(
+        "src.integrations.notion.provisioner.NotionProvisioner._markdown_to_blocks",
+        return_value=[{"type": "paragraph", "paragraph": {"rich_text": []}}],
+    ) as mocked_to_blocks:
+        backend.write_brief(
+            "brief-write-corruption",
+            {
+                "title": "Brief Write Corruption",
+                "status": "implementation-ready",
+                "goal": "Updated goal",
+                "_actor": "tester",
+            },
+        )
+
+    body = mocked_to_blocks.call_args[0][0]
+    assert "## Problem\nExisting problem" in body
+    assert "## Goal\nUpdated goal" in body
+    assert "## Technical Approach\nExisting TA" in body
 
 # --- Release Notes ---
 

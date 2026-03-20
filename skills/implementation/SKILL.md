@@ -41,8 +41,9 @@ Before writing any code, verify:
 8. Write code under `src/{feature-name}/`, tests under `tests/{feature-name}/` following `_project/testing-strategy.md`.
 9. Run the relevant test scope, then mark task done: `briefcase backlog upsert --title "Task title" --type Task --status done --notes "Tests: X/X pass"`
 10. When all scoped implementation is complete, all feature tasks are `done`, and the work is ready for review, move the Feature row from `in-progress` to `review-ready`: `briefcase backlog upsert --title "Feature Title" --type Feature --status review-ready --notes "Implementation complete; ready for review on <date>"`
-11. Record the handoff: run `briefcase automate review-ready --notes-only` to write trace to the Automation Trace field and get dispatch payloads.
-12. **DO NOT STOP. Continue immediately as the review agent.** Tell the user: *"Implementation complete. Switching to review."* Then for **each** dispatched brief, execute these steps in order — **use the exact `feature_title` from the dispatch payload for all backlog upserts to avoid creating duplicate rows**:
+11. If the Feature row already has `parent_ids`, preserve them on Feature upserts (do not clear parent links when updating status/notes).
+12. Record the handoff: run `briefcase automate review-ready --notes-only` to write trace to the Automation Trace field and get dispatch payloads.
+13. **DO NOT STOP. Continue immediately as the review agent.** Tell the user: *"Implementation complete. Switching to review."* Then for **each** dispatched brief, execute these steps in order — **use the exact `feature_title` from the dispatch payload for all backlog upserts to avoid creating duplicate rows**:
     1. Run the `command_hint` from the dispatch payload (e.g., `briefcase brief read {brief_name}`) to load the brief.
     2. Open `_project/tech-stack.md`.
     3. Run `briefcase backlog list --type Task` to review task rows for this feature.
@@ -51,7 +52,7 @@ Before writing any code, verify:
     6. Run the full test suite to check for regressions.
     7. If accepted: `briefcase backlog upsert --title "<feature_title from payload>" --type Feature --status review-accepted --review-verdict accepted --notes "Review: all AC met"`
     8. If changes needed: `briefcase backlog upsert --title "<feature_title from payload>" --type Feature --status in-progress --review-verdict changes-requested --notes "Review: see findings"` and list the findings, then immediately re-enter the implementation fix cycle.
-13. After review accepts the work, complete release notes and ship wrap-up, then move the Feature row from `review-accepted` to `done`: `briefcase backlog upsert --title "Feature Title" --type Feature --status done --release-note-link "<release-note-url>" --notes "Shipped in vX.Y.Z on YYYY-MM-DD HH:MM PST/PDT"`
+14. After review accepts the work, complete release notes and ship wrap-up, then move the Feature row from `review-accepted` to `done`: `briefcase backlog upsert --title "Feature Title" --type Feature --status done --release-note-link "<release-note-url>" --notes "Shipped in vX.Y.Z on YYYY-MM-DD HH:MM PST/PDT"`
 
 ## Status Updates You Own
 

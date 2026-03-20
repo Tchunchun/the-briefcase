@@ -85,6 +85,24 @@ The installer defaults to a **local file backend**. No API keys, no external ser
 ./briefcase inbox list                # See your ideas
 ```
 
+### Verify your install
+
+Run this quick smoke test right after install:
+
+```bash
+./briefcase --help
+./briefcase inbox add --type idea --text "Install smoke test" --notes "Safe to keep or delete later"
+./briefcase inbox list
+```
+
+Expected success indicators:
+
+```json
+{"success": true, "data": ...}
+```
+
+This works for both local and Notion backends because all commands route through the same CLI contract.
+
 ### Enable Notion backend (optional)
 
 To use Notion as your planning surface instead of local files:
@@ -109,7 +127,7 @@ All commands output JSON (`{"success": true, "data": ...}`) to stdout, errors to
 
 ```bash
 ./briefcase inbox list                                    # List all ideas
-./briefcase inbox add --type idea --text "Build auth"     # Add an idea
+./briefcase inbox add --type idea --text "Build auth" --priority High
 ```
 
 ### Briefs

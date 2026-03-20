@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import os
 import re
+from datetime import datetime, date, timezone
 from pathlib import Path
 
 from src.core.storage.briefs import (
@@ -35,15 +36,55 @@ class LocalBackend:
 
     # -- Inbox --
 
-    def read_inbox(self) -> list[dict]:
+    @staticmethod
+    def _iso_from_timestamp(ts: float) -> str:
+        return datetime.fromtimestamp(ts, tz=timezone.utc).isoformat()
+
+    @staticmethod
+    def _parse_since_date(since: str | None) -> date | None:
+        if not since:
+            return None
+        return date.fromisoformat(since)
+
+    @staticmethod
+    def _extract_frontmatter_created_at(path: Path) -> str | None:
+        try:
+            text = path.read_text(encoding="utf-8")
+        except OSError:
+            return None
+        match = re.match(r"^---\n(?P<body>.*?)\n---\n", text, flags=re.DOTALL)
+        if not match:
+            return None
+        for line in match.group("body").splitlines():
+            if line.startswith("created_at:"):
+                value = line.split(":", 1)[1].strip().strip("\"'")
+                if value:
+                    return value
+        return None
+
+    @staticmethod
+    def _iso_on_or_after(iso_value: str, since_date: date | None) -> bool:
+        if since_date is None:
+            return True
+        if not iso_value:
+            return False
+        normalized = iso_value.replace("Z", "+00:00")
+        return datetime.fromisoformat(normalized).date() >= since_date
+
+    def read_inbox(self, since: str | None = None) -> list[dict]:
         path = self.plan_dir / "_inbox.md"
         if not path.exists():
             return []
+        created_at = self._extract_frontmatter_created_at(path)
+        stat = path.stat()
+        created_at = created_at or self._iso_from_timestamp(stat.st_ctime)
+        updated_at = self._iso_from_timestamp(stat.st_mtime)
+        since_date = self._parse_since_date(since)
         content = path.read_text()
         entries = []
         for line in content.splitlines():
             match = re.match(
-                r"^- \[(?P<type>[^\]]+)\]\s*(?P<text>.+?)(?:\s+\[-> (?P<status>[^\]]+)\])?(?:\s+\u2192\s.+)?$",
+                r"^- \[(?P<type>[^\]/]+)(?:/(?P<priority>[^\]]+))?\]\s*(?P<text>.+?)(?:\s+\[-> (?P<status>[^\]]+)\])?(?:\s+\u2192\s.+)?$",
                 line,
             )
             if match:
@@ -55,22 +96,27 @@ class LocalBackend:
                     title, notes = raw_text, ""
                 entry = {
                     "type": match.group("type"),
+                    "priority": match.group("priority") or "Medium",
                     "text": title.strip(),
                     "status": match.group("status") or "new",
                     "notes": notes.strip(),
+                    "created_at": created_at,
+                    "updated_at": updated_at,
                 }
-                entries.append(entry)
+                if self._iso_on_or_after(updated_at, since_date):
+                    entries.append(entry)
         return entries
 
     def append_inbox(self, entry: dict) -> None:
         path = self.plan_dir / "_inbox.md"
         entry_type = entry.get("type", "idea")
+        priority = entry.get("priority", "Medium")
         text = entry["text"]
         notes = entry.get("notes", "")
         if notes:
-            line = f"- [{entry_type}] {text} \u2014 {notes}\n"
+            line = f"- [{entry_type}/{priority}] {text} \u2014 {notes}\n"
         else:
-            line = f"- [{entry_type}] {text}\n"
+            line = f"- [{entry_type}/{priority}] {text}\n"
         with open(path, "a") as f:
             f.write(line)
 
@@ -103,16 +149,20 @@ class LocalBackend:
         briefs = []
         if not self.plan_dir.exists():
             return briefs
-        for child in sorted(self.plan_dir.iterdir()):
+        for child in self.plan_dir.iterdir():
             brief_file = child / "brief.md"
             if child.is_dir() and not child.name.startswith("_") and brief_file.exists():
                 content = brief_file.read_text()
                 status = extract_brief_status(content)
                 title_match = re.match(r"^#\s+(.+)", content)
                 title = title_match.group(1) if title_match else child.name
+                mtime = datetime.fromtimestamp(
+                    brief_file.stat().st_mtime, tz=timezone.utc
+                ).date().isoformat()
                 briefs.append(
-                    {"name": child.name, "status": status, "title": title}
+                    {"name": child.name, "status": status, "title": title, "date": mtime}
                 )
+        briefs.sort(key=lambda item: item.get("date", ""), reverse=True)
         return briefs
 
     def list_brief_revisions(self, brief_name: str) -> list[dict]:
@@ -211,10 +261,15 @@ class LocalBackend:
 
     # -- Backlog --
 
-    def read_backlog(self) -> list[dict]:
+    def read_backlog(self, since: str | None = None) -> list[dict]:
         path = self.plan_dir / "_shared" / "backlog.md"
         if not path.exists():
             return []
+        created_at = self._extract_frontmatter_created_at(path)
+        stat = path.stat()
+        created_at = created_at or self._iso_from_timestamp(stat.st_ctime)
+        updated_at = self._iso_from_timestamp(stat.st_mtime)
+        since_date = self._parse_since_date(since)
         content = path.read_text()
         rows = []
         in_table = False
@@ -241,6 +296,8 @@ class LocalBackend:
                             "release_note_link": cols[9],
                             "notes": cols[10],
                             "automation_trace": cols[11],
+                            "created_at": created_at,
+                            "updated_at": updated_at,
                         }
                     )
                 elif len(cols) >= 8:
@@ -258,11 +315,13 @@ class LocalBackend:
                             "release_note_link": "",
                             "notes": cols[7],
                             "automation_trace": cols[8] if len(cols) >= 9 else "",
+                            "created_at": created_at,
+                            "updated_at": updated_at,
                         }
                     )
             elif in_table and not line.startswith("|"):
                 break
-        return rows
+        return [row for row in rows if self._iso_on_or_after(row["updated_at"], since_date)]
 
     def write_backlog_row(self, row: dict) -> None:
         path = self.plan_dir / "_shared" / "backlog.md"
@@ -315,6 +374,21 @@ class LocalBackend:
                     break
             lines.insert(insert_idx, new_line)
         path.write_text("\n".join(lines) + "\n")
+
+    def list_children(self, parent_id: str) -> list[dict]:
+        """Return direct child Feature rows for parent_id.
+
+        Local backlog markdown does not persist parent links by default, but this
+        method supports rows that include parent_ids to keep behavior aligned with
+        cloud backends and test doubles.
+        """
+        rows = self.read_backlog()
+        return [
+            row
+            for row in rows
+            if row.get("type", "").lower() == "feature"
+            and parent_id in (row.get("parent_ids") or [])
+        ]
 
     # -- Release Notes --
 

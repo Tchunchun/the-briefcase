@@ -7,6 +7,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
+import src.cli.commands.brief as brief_module
 from src.cli.main import cli
 from src.core.storage.config import StorageConfig, save_config
 
@@ -38,6 +39,43 @@ def project(tmp_path):
 @pytest.fixture
 def runner():
     return CliRunner()
+
+
+class BriefLinkStoreDouble:
+    def __init__(self, *, ideas: list[dict], brief_title: str, brief_url: str):
+        self.ideas = ideas
+        self.brief_title = brief_title
+        self.brief_url = brief_url
+        self.updated_rows: list[dict] = []
+
+    def read_brief(self, name: str) -> dict:
+        return {
+            "name": name,
+            "title": self.brief_title,
+            "status": "draft",
+            "notion_url": self.brief_url,
+        }
+
+    def write_brief(self, name: str, data: dict) -> None:
+        return None
+
+    def read_backlog(self) -> list[dict]:
+        return list(self.ideas)
+
+    def write_backlog_row(self, row: dict) -> None:
+        self.updated_rows.append(dict(row))
+        row_id = row.get("notion_id") or row.get("id")
+        for idx, idea in enumerate(self.ideas):
+            idea_id = idea.get("notion_id") or idea.get("id")
+            if row_id and row_id == idea_id:
+                self.ideas[idx] = dict(row)
+                return
+            if (
+                idea.get("type", "").lower() == row.get("type", "").lower()
+                and idea.get("title", "") == row.get("title", "")
+            ):
+                self.ideas[idx] = dict(row)
+                return
 
 
 def test_brief_write_updates_existing_fields_without_wiping_unspecified_content(runner, project):
@@ -256,3 +294,116 @@ def test_brief_history_and_restore_commands(runner, project):
     )
     restored = json.loads(result.output)["data"]
     assert restored["problem"] == "Original problem."
+
+
+def test_brief_write_auto_links_matching_idea_when_unambiguous(runner, project, monkeypatch):
+    store = BriefLinkStoreDouble(
+        ideas=[
+            {
+                "title": "Bug: inbox add ignores priority field",
+                "type": "Idea",
+                "status": "exploring",
+                "priority": "Medium",
+                "brief_link": "",
+                "notion_id": "idea-1",
+            }
+        ],
+        brief_title="Inbox priority bug",
+        brief_url="https://www.notion.so/inbox-priority-bug-329b5a09fa4a81a5bcd9ffe8d07a227b",
+    )
+    monkeypatch.setattr(brief_module, "get_store_from_dir", lambda _project_dir: store)
+
+    result = runner.invoke(
+        cli,
+        [
+            "brief",
+            "write",
+            "inbox-priority-bug",
+            "--status",
+            "draft",
+            "--project-dir",
+            str(project),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)["data"]
+    assert payload["idea_linked"] is True
+    assert payload["linked_idea_title"] == "Bug: inbox add ignores priority field"
+    assert payload["notion_url"] == store.brief_url
+    assert store.updated_rows[-1]["brief_link"] == store.brief_url
+
+
+def test_brief_write_links_explicit_idea_title(runner, project, monkeypatch):
+    store = BriefLinkStoreDouble(
+        ideas=[
+            {
+                "title": "Completely different phrasing",
+                "type": "Idea",
+                "status": "exploring",
+                "priority": "Medium",
+                "brief_link": "",
+                "notion_id": "idea-2",
+            }
+        ],
+        brief_title="Inbox priority bug",
+        brief_url="https://www.notion.so/inbox-priority-bug-329b5a09fa4a81a5bcd9ffe8d07a227b",
+    )
+    monkeypatch.setattr(brief_module, "get_store_from_dir", lambda _project_dir: store)
+
+    result = runner.invoke(
+        cli,
+        [
+            "brief",
+            "write",
+            "inbox-priority-bug",
+            "--status",
+            "draft",
+            "--link-idea-title",
+            "Completely different phrasing",
+            "--project-dir",
+            str(project),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)["data"]
+    assert payload["idea_linked"] is True
+    assert payload["link_reason"] == "matched by idea title"
+    assert store.updated_rows[-1]["brief_link"] == store.brief_url
+
+
+def test_brief_list_returns_grouped_output(runner, project):
+    write_result = runner.invoke(
+        cli,
+        [
+            "brief",
+            "write",
+            "grouping-check",
+            "--status",
+            "draft",
+            "--problem",
+            "Need grouped list output.",
+            "--goal",
+            "Show date headers.",
+            "--project-dir",
+            str(project),
+        ],
+    )
+    assert write_result.exit_code == 0, write_result.output
+
+    result = runner.invoke(
+        cli,
+        [
+            "brief",
+            "list",
+            "--project-dir",
+            str(project),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["success"] is True
+    groups = payload["data"]["groups"]
+    assert isinstance(groups, list)
+    assert groups
+    assert "date" in groups[0]
+    assert "briefs" in groups[0]

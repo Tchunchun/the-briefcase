@@ -522,6 +522,13 @@ class NotionProvisioner:
         blocks = []
         for line in content.split("\n"):
             if not line.strip():
+                blocks.append({
+                    "type": "paragraph",
+                    "paragraph": {"rich_text": []},
+                })
+                continue
+            if line.strip() == "---":
+                blocks.append({"type": "divider", "divider": {}})
                 continue
             if line.startswith("# "):
                 blocks.append({
