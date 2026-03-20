@@ -1,0 +1,111 @@
+name: Notion Backlog
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: "Action to perform"
+        required: true
+        default: "backlog list"
+        type: choice
+        options:
+          - "backlog list"
+          - "backlog list --type Feature"
+          - "backlog list --type Task"
+          - "backlog list --type Idea"
+          - "backlog list --today"
+          - "backlog upsert"
+          - "brief list"
+          - "inbox list"
+          - "inbox add"
+      title:
+        description: "Title (required for upsert / add)"
+        required: false
+      type:
+        description: "Item type"
+        required: false
+        default: ""
+        type: choice
+        options:
+          - ""
+          - "Idea"
+          - "Feature"
+          - "Task"
+      status:
+        description: "Status (e.g. new, draft, to-do)"
+        required: false
+      priority:
+        description: "Priority"
+        required: false
+        default: ""
+        type: choice
+        options:
+          - ""
+          - "High"
+          - "Medium"
+          - "Low"
+      notes:
+        description: "Notes / extra context"
+        required: false
+  schedule:
+    # Daily snapshot at 8am UTC (midnight PST)
+    - cron: "0 8 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  notion:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -e .
+
+      - name: Run briefcase command
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+        run: |
+          ACTION="${{ github.event.inputs.action || 'backlog list' }}"
+          TITLE="${{ github.event.inputs.title }}"
+          TYPE="${{ github.event.inputs.type }}"
+          STATUS="${{ github.event.inputs.status }}"
+          PRIORITY="${{ github.event.inputs.priority }}"
+          NOTES="${{ github.event.inputs.notes }}"
+
+          CMD="python3 -m src.cli.main"
+
+          case "${ACTION}" in
+            "inbox add")
+              if [ -z "${TITLE}" ]; then
+                echo "::error::Title is required for inbox add"
+                exit 1
+              fi
+              INBOX_TYPE="${TYPE:-idea}"
+              ${CMD} inbox add --type "${INBOX_TYPE}" --text "${TITLE}" \
+                ${NOTES:+--notes "${NOTES}"}
+              ;;
+
+            "backlog upsert")
+              if [ -z "${TITLE}" ] || [ -z "${TYPE}" ] || [ -z "${STATUS}" ]; then
+                echo "::error::Title, type, and status are required for backlog upsert"
+                exit 1
+              fi
+              ${CMD} backlog upsert \
+                --title "${TITLE}" \
+                --type "${TYPE}" \
+                --status "${STATUS}" \
+                ${PRIORITY:+--priority "${PRIORITY}"} \
+                ${NOTES:+--notes "${NOTES}"}
+              ;;
+
+            *)
+              echo "Running: briefcase ${ACTION}"
+              ${CMD} ${ACTION}
+              ;;
+          esac
