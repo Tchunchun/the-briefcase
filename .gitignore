@@ -25,6 +25,8 @@ __pycache__/
 
 # Consumer-project install target (prevent accidental self-install)
 .briefcase/
+agent
+.skills
 
 # Plan artifacts (synced from Notion, not source-controlled)
 docs/plan/
