@@ -15,7 +15,7 @@ from enum import Enum
 from pathlib import Path
 from typing import Any
 
-from src.core.storage.config import load_config
+from src.core.storage.config import load_config, resolve_config_dir
 from src.core.storage.factory import get_store
 from src.core.storage.protocol import ArtifactStore
 
@@ -95,15 +95,8 @@ class ArtifactService:
     def from_project_dir(cls, project_dir: str = ".") -> "ArtifactService":
         """Resolve config and return a ready-to-use service instance."""
         root = Path(project_dir).resolve()
-        briefcase_dir = root / ".briefcase"
-        project_config_dir = root / "_project"
-
-        if (briefcase_dir / "storage.yaml").exists():
-            config = load_config(briefcase_dir)
-        elif project_config_dir.exists():
-            config = load_config(project_config_dir)
-        else:
-            config = load_config(project_config_dir)
+        config_dir = resolve_config_dir(root)
+        config = load_config(config_dir)
 
         store = get_store(config, str(root))
         return cls(store)

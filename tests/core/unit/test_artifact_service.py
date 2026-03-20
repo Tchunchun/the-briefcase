@@ -9,6 +9,7 @@ from src.core.artifact_service import (
     ErrorKind,
     Result,
 )
+from src.core.storage.local_backend import LocalBackend
 
 
 # -- Fake store ---------------------------------------------------------------
@@ -240,3 +241,29 @@ class TestErrorNormalization:
         d = r.to_dict()
         assert d["success"] is False
         assert d["error_kind"] == "not_found"
+
+
+class TestFactoryResolution:
+    def test_from_project_dir_uses_briefcase_fallback(self, tmp_path):
+        briefcase = tmp_path / ".briefcase"
+        briefcase.mkdir()
+        (briefcase / "storage.yaml").write_text("backend: local\n")
+
+        svc = ArtifactService.from_project_dir(str(tmp_path))
+        assert isinstance(svc._store, LocalBackend)
+
+    def test_from_project_dir_defaults_to_local_when_missing(self, tmp_path):
+        svc = ArtifactService.from_project_dir(str(tmp_path))
+        assert isinstance(svc._store, LocalBackend)
+
+    def test_from_project_dir_raises_on_config_mismatch(self, tmp_path):
+        briefcase = tmp_path / ".briefcase"
+        briefcase.mkdir()
+        (briefcase / "storage.yaml").write_text("backend: local\n")
+
+        project = tmp_path / "_project"
+        project.mkdir()
+        (project / "storage.yaml").write_text("backend: notion\n")
+
+        with pytest.raises(ValueError, match="Config mismatch detected"):
+            ArtifactService.from_project_dir(str(tmp_path))

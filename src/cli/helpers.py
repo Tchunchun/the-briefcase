@@ -12,7 +12,7 @@ from pathlib import Path
 
 import click
 
-from src.core.storage.config import load_config
+from src.core.storage.config import load_config, resolve_config_dir
 from src.core.storage.factory import get_store
 from src.core.storage.protocol import ArtifactStore
 
@@ -20,21 +20,13 @@ from src.core.storage.protocol import ArtifactStore
 def get_store_from_dir(project_dir: str = ".") -> ArtifactStore:
     """Load config and return the active ArtifactStore backend.
 
-    Resolves config from the given directory. Checks .briefcase/storage.yaml
-    first, then _project/storage.yaml (D-036 dual-mode).
+    Resolves config from the given directory.
+    Canonical precedence is _project/storage.yaml, with .briefcase/storage.yaml
+    as installer bootstrap fallback (D-036 dual-mode).
     """
     root = Path(project_dir).resolve()
-
-    # Try .briefcase/ first (consumer install), then _project/ (framework repo)
-    briefcase_dir = root / ".briefcase"
-    project_config_dir = root / "_project"
-
-    if (briefcase_dir / "storage.yaml").exists():
-        config = load_config(briefcase_dir)
-    elif project_config_dir.exists():
-        config = load_config(project_config_dir)
-    else:
-        config = load_config(project_config_dir)  # Will use defaults
+    config_dir = resolve_config_dir(root)
+    config = load_config(config_dir)
 
     return get_store(config, str(root))
 
