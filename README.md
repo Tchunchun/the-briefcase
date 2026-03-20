@@ -225,6 +225,25 @@ Read .briefcase/skills/ideation/SKILL.md and follow it for this task.
 
 ---
 
+## Feedback
+
+Found a bug? Have a feature request? Submit it directly through the CLI:
+
+```bash
+# Bug report
+./briefcase inbox add --type idea --text "Bug: short description" --notes "Steps to reproduce and context"
+
+# Feature request
+./briefcase inbox add --type idea --text "Short feature title" --notes "What you need and why"
+
+# Tech debt
+./briefcase inbox add --type idea --text "[tech-debt] Short description" --notes "Details"
+```
+
+The ideation agent triages incoming feedback, classifies it (bug / feature / tech-debt), and routes it through the standard workflow pipeline.
+
+---
+
 ## How It Works
 
 - **Skills** (`SKILL.md`) define how each agent behaves — what it produces, what it must not touch, and what CLI commands it uses.
