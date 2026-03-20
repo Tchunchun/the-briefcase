@@ -7,11 +7,14 @@
 #
 # What this does:
 #   1. Copies src/, skills/, template/ into .briefcase/
-#   2. Generates ./agent entry point at project root
-#   3. Creates .briefcase/storage.yaml (backend: local) if not present
-#   4. Appends framework entries to .gitignore (idempotent)
-#   5. Creates .skills symlink for native skill discovery
-#   6. Reports Notion token status
+#   2. Creates .briefcase/storage.yaml (backend: local) if not present
+#   3. Generates ./agent entry point at project root
+#   4. Creates Python venv and installs dependencies
+#   5. Creates docs/plan/ directory structure for local backend
+#   6. Copies AGENTS.md, CLAUDE.md, and _project/ templates
+#   7. Appends framework entries to .gitignore (idempotent)
+#   8. Creates .skills symlink for native skill discovery
+#   9. Reports Notion token status
 #
 # Idempotent: re-running overwrites .briefcase/ and ./agent only.
 # Never modifies consumer src/, tests/, docs/, or any other consumer-owned file.
@@ -44,8 +47,10 @@ echo "  Source:  $FRAMEWORK_DIR"
 echo "  Target:  $TARGET_DIR"
 echo ""
 
+TOTAL_STEPS=8
+
 # --- 1. Copy framework code into .briefcase/ ---
-echo "  [1/4] Copying framework to .briefcase/..."
+echo "  [1/$TOTAL_STEPS] Copying framework to .briefcase/..."
 
 # Remove old copy for clean overwrite
 if [ -d "$BRIEFCASE" ]; then
@@ -57,6 +62,11 @@ cp -r "$FRAMEWORK_DIR/src"      "$BRIEFCASE/src"
 cp -r "$FRAMEWORK_DIR/skills"   "$BRIEFCASE/skills"
 cp -r "$FRAMEWORK_DIR/template" "$BRIEFCASE/template"
 
+# Copy pyproject.toml for dependency management
+if [ -f "$FRAMEWORK_DIR/pyproject.toml" ]; then
+    cp "$FRAMEWORK_DIR/pyproject.toml" "$BRIEFCASE/pyproject.toml"
+fi
+
 # Rewrite skill path references from skills/ to .briefcase/skills/
 find "$BRIEFCASE/skills" -name '*.md' -exec sed -i '' 's|skills/|.briefcase/skills/|g' {} + 2>/dev/null || \
 find "$BRIEFCASE/skills" -name '*.md' -exec sed -i 's|skills/|.briefcase/skills/|g' {} +
@@ -66,17 +76,17 @@ echo "        src/, skills/, template/ copied."
 # --- 2. Create .briefcase/storage.yaml (if not present) ---
 STORAGE_YAML="$BRIEFCASE/storage.yaml"
 if [ ! -f "$STORAGE_YAML" ]; then
-    echo "  [2/4] Creating .briefcase/storage.yaml (backend: local)..."
+    echo "  [2/$TOTAL_STEPS] Creating .briefcase/storage.yaml (backend: local)..."
     cat > "$STORAGE_YAML" << 'EOF'
 backend: local
 EOF
     echo "        Default backend: local."
 else
-    echo "  [2/4] .briefcase/storage.yaml already exists — skipped."
+    echo "  [2/$TOTAL_STEPS] .briefcase/storage.yaml already exists — skipped."
 fi
 
 # --- 3. Generate ./agent entry point ---
-echo "  [3/4] Generating ./agent entry point..."
+echo "  [3/$TOTAL_STEPS] Generating ./agent entry point..."
 AGENT_WRAPPER="$TARGET_DIR/agent"
 
 cat > "$AGENT_WRAPPER" << 'WRAPPER_EOF'
@@ -129,8 +139,85 @@ WRAPPER_EOF
 chmod +x "$AGENT_WRAPPER"
 echo "        ./agent created and made executable."
 
-# --- 4. Update .gitignore (idempotent) ---
-echo "  [4/5] Updating .gitignore..."
+# --- 4. Create Python venv and install dependencies ---
+echo "  [4/$TOTAL_STEPS] Creating Python venv and installing dependencies..."
+if [ ! -d "$BRIEFCASE/.venv" ]; then
+    python3 -m venv "$BRIEFCASE/.venv" 2>/dev/null && \
+        "$BRIEFCASE/.venv/bin/pip" install -q --upgrade pip 2>/dev/null && \
+        "$BRIEFCASE/.venv/bin/pip" install -q -e "$BRIEFCASE/" 2>/dev/null && \
+        echo "        .venv created and dependencies installed." || {
+            echo "        ⚠ Could not create venv (non-fatal). CLI will use system python3."
+        }
+else
+    echo "        .venv already exists — skipped."
+fi
+
+# --- 5. Create docs/plan/ directory structure for local backend ---
+echo "  [5/$TOTAL_STEPS] Creating docs/plan/ directory structure..."
+mkdir -p "$TARGET_DIR/docs/plan/_shared" "$TARGET_DIR/docs/plan/_reference/adr"
+# Copy template files if they don't exist yet (idempotent)
+if [ ! -f "$TARGET_DIR/docs/plan/_inbox.md" ] && [ -f "$BRIEFCASE/template/_inbox.md" ]; then
+    cp "$BRIEFCASE/template/_inbox.md" "$TARGET_DIR/docs/plan/_inbox.md"
+fi
+if [ ! -f "$TARGET_DIR/docs/plan/_shared/backlog.md" ] && [ -f "$BRIEFCASE/template/backlog.md" ]; then
+    cp "$BRIEFCASE/template/backlog.md" "$TARGET_DIR/docs/plan/_shared/backlog.md"
+fi
+echo "        docs/plan/ structure ready."
+
+# --- 6. Copy AGENTS.md, CLAUDE.md, and _project/ templates ---
+echo "  [6/$TOTAL_STEPS] Copying project entrypoint files..."
+# Copy AGENTS.md and CLAUDE.md from the rewritten .briefcase/skills/ PLAYBOOK
+# Generate consumer-facing AGENTS.md if not present
+if [ ! -f "$TARGET_DIR/AGENTS.md" ]; then
+    cat > "$TARGET_DIR/AGENTS.md" << 'AGENTS_EOF'
+# AGENTS.md
+
+Read `.briefcase/skills/PLAYBOOK.md` fully before taking any action.
+
+## Commands
+
+| Task | Command |
+|------|--------|
+| List inbox | `./agent inbox list` |
+| Add idea | `./agent inbox add --type idea --text "..."` |
+| Read brief | `./agent brief read {name}` |
+| List backlog | `./agent backlog list` |
+| Setup | `./agent setup` |
+AGENTS_EOF
+    echo "        AGENTS.md created."
+else
+    echo "        AGENTS.md already exists — skipped."
+fi
+
+if [ ! -f "$TARGET_DIR/CLAUDE.md" ]; then
+    cat > "$TARGET_DIR/CLAUDE.md" << 'CLAUDE_EOF'
+# CLAUDE.md
+
+This is the Claude Code entrypoint. All workflow rules, agent routing, folder structure,
+session protocols, and collaboration guidelines are defined in `AGENTS.md`.
+
+**Read `AGENTS.md` before taking any action.**
+CLAUDE_EOF
+    echo "        CLAUDE.md created."
+else
+    echo "        CLAUDE.md already exists — skipped."
+fi
+
+# Copy _project/ templates if the directory doesn't exist
+if [ ! -d "$TARGET_DIR/_project" ]; then
+    mkdir -p "$TARGET_DIR/_project"
+    for tpl in definition-of-done.md testing-strategy.md tech-stack.md; do
+        if [ -f "$BRIEFCASE/template/$tpl" ]; then
+            cp "$BRIEFCASE/template/$tpl" "$TARGET_DIR/_project/$tpl"
+        fi
+    done
+    echo "        _project/ templates copied."
+else
+    echo "        _project/ already exists — skipped."
+fi
+
+# --- 7. Update .gitignore (idempotent) ---
+echo "  [7/$TOTAL_STEPS] Updating .gitignore..."
 
 # Prefer the shared Python helper (single source of truth for entries).
 # Fall back to bash if python3 is unavailable.
@@ -164,7 +251,7 @@ echo "        .gitignore updated."
 # Expose skill files through a well-known path so AI coding tools can
 # discover them automatically.  Creates a minimal .skills/ directory with
 # symlinks back to .briefcase/skills/ so there is one source of truth.
-echo "  [5/5] Setting up skill discovery..."
+echo "  [8/$TOTAL_STEPS] Setting up skill discovery..."
 SKILLS_LINK="$TARGET_DIR/.skills"
 if [ ! -e "$SKILLS_LINK" ]; then
     ln -s .briefcase/skills "$SKILLS_LINK" 2>/dev/null && \
@@ -183,8 +270,13 @@ echo "    .briefcase/src/       — CLI and storage backends"
 echo "    .briefcase/skills/    — Agent role definitions"
 echo "    .briefcase/template/  — Document templates"
 echo "    .briefcase/storage.yaml — Storage config (backend: local)"
+echo "    .briefcase/.venv/     — Python virtual environment with deps"
 echo "    .skills               — Symlink for native skill discovery"
 echo "    ./agent               — CLI entry point"
+echo "    AGENTS.md             — Agent entrypoint"
+echo "    CLAUDE.md             — Claude Code entrypoint"
+echo "    _project/             — Project constants (tech-stack, DoD, tests)"
+echo "    docs/plan/            — Local planning artifacts"
 echo ""
 
 # --- Notion token check ---
@@ -202,5 +294,6 @@ fi
 echo ""
 echo "Next steps:"
 echo "  ./agent --help          — See available commands"
-echo "  ./agent setup           — Initialize storage backend"
+echo "  ./agent setup           — Initialize storage backend (optional)"
 echo "  ./agent inbox list      — List inbox ideas"
+echo "  ./agent inbox add       — Capture a new idea"

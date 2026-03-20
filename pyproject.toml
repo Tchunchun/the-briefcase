@@ -1,0 +1,17 @@
+[project]
+name = "the-briefcase"
+version = "0.8.0"
+description = "0-to-1 Agent Skills framework — CLI for planning artifacts"
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.0",
+    "pyyaml>=6.0",
+    "notion-client>=2.0",
+]
+
+[project.optional-dependencies]
+dev = [
+    "pytest>=7.0",
+    "pytest-mock>=3.0",
+    "ruff>=0.1",
+]
