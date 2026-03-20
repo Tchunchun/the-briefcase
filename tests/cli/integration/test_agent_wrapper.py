@@ -1,4 +1,4 @@
-"""Integration tests for the ./agent entry point wrapper."""
+"""Integration tests for the ./briefcase entry point wrapper."""
 
 import os
 import stat
@@ -45,9 +45,9 @@ def consumer_project(tmp_path):
     # Create template/
     (root / "template").mkdir()
 
-    # Generate ./agent wrapper from template
-    template_path = Path(__file__).resolve().parents[3] / "template" / "agent.sh"
-    wrapper = root / "agent"
+    # Generate ./briefcase wrapper from template
+    template_path = Path(__file__).resolve().parents[3] / "template" / "briefcase.sh"
+    wrapper = root / "briefcase"
     wrapper.write_text(template_path.read_text())
     wrapper.chmod(wrapper.stat().st_mode | stat.S_IEXEC)
 
@@ -56,13 +56,13 @@ def consumer_project(tmp_path):
 
 class TestAgentWrapper:
     def test_wrapper_is_executable(self, consumer_project):
-        wrapper = consumer_project / "agent"
+        wrapper = consumer_project / "briefcase"
         assert wrapper.exists()
         assert os.access(wrapper, os.X_OK)
 
     def test_wrapper_shows_help(self, consumer_project):
         result = subprocess.run(
-            ["./agent", "--help"],
+            ["./briefcase", "--help"],
             capture_output=True, text=True,
             cwd=str(consumer_project),
             timeout=15,
@@ -72,7 +72,7 @@ class TestAgentWrapper:
 
     def test_wrapper_runs_inbox_list(self, consumer_project):
         result = subprocess.run(
-            ["./agent", "inbox", "list"],
+            ["./briefcase", "inbox", "list"],
             capture_output=True, text=True,
             cwd=str(consumer_project),
             timeout=15,
@@ -85,7 +85,7 @@ class TestAgentWrapper:
         subdir.mkdir(parents=True)
 
         # Need to use absolute path to wrapper since we're in subdir
-        wrapper = consumer_project / "agent"
+        wrapper = consumer_project / "briefcase"
         result = subprocess.run(
             [str(wrapper), "--help"],
             capture_output=True, text=True,
@@ -102,13 +102,13 @@ class TestAgentWrapper:
         empty = tmp_path / "nowhere"
         empty.mkdir()
 
-        template_path = Path(__file__).resolve().parents[3] / "template" / "agent.sh"
-        wrapper = empty / "agent"
+        template_path = Path(__file__).resolve().parents[3] / "template" / "briefcase.sh"
+        wrapper = empty / "briefcase"
         wrapper.write_text(template_path.read_text())
         wrapper.chmod(wrapper.stat().st_mode | stat.S_IEXEC)
 
         result = subprocess.run(
-            ["./agent", "--help"],
+            ["./briefcase", "--help"],
             capture_output=True, text=True,
             cwd=str(empty),
             timeout=15,

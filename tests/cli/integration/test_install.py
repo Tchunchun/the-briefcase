@@ -55,9 +55,9 @@ class TestFreshInstall:
         content = yaml_path.read_text()
         assert "backend: local" in content
 
-    def test_generates_agent_wrapper(self, consumer_dir):
+    def test_generates_briefcase_wrapper(self, consumer_dir):
         run_install(consumer_dir)
-        wrapper = consumer_dir / "agent"
+        wrapper = consumer_dir / "briefcase"
         assert wrapper.exists()
         assert os.access(wrapper, os.X_OK)
         content = wrapper.read_text()
@@ -130,12 +130,12 @@ class TestIdempotentReInstall:
         assert not marker.exists()
 
 
-class TestAgentWrapperIntegration:
-    def test_agent_help_works(self, consumer_dir):
+class TestBriefcaseWrapperIntegration:
+    def test_briefcase_help_works(self, consumer_dir):
         run_install(consumer_dir)
 
         result = subprocess.run(
-            [str(consumer_dir / "agent"), "--help"],
+            [str(consumer_dir / "briefcase"), "--help"],
             capture_output=True, text=True,
             cwd=str(consumer_dir),
             timeout=15,
@@ -143,13 +143,13 @@ class TestAgentWrapperIntegration:
         assert result.returncode == 0
         assert "Agent workflow CLI" in result.stdout
 
-    def test_agent_command_works_with_local_backend(self, consumer_dir):
+    def test_briefcase_command_works_with_local_backend(self, consumer_dir):
         run_install(consumer_dir)
 
         # Create minimal local backend structure
         plan = consumer_dir / "docs" / "plan"
         shared = plan / "_shared"
-        shared.mkdir(parents=True)
+        shared.mkdir(parents=True, exist_ok=True)
         (plan / "_inbox.md").write_text("# Inbox\n\n## Entries\n\n")
         (shared / "backlog.md").write_text(
             "# Backlog\n\n"
@@ -159,7 +159,7 @@ class TestAgentWrapperIntegration:
         (consumer_dir / "_project").mkdir(exist_ok=True)
 
         result = subprocess.run(
-            [str(consumer_dir / "agent"), "inbox", "list"],
+            [str(consumer_dir / "briefcase"), "inbox", "list"],
             capture_output=True, text=True,
             cwd=str(consumer_dir),
             timeout=15,

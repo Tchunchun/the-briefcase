@@ -4,7 +4,11 @@ from __future__ import annotations
 
 from datetime import datetime, timezone
 
-from src.core.automation.scanner import StatusEntryScanner
+from src.core.automation.scanner import (
+    StatusEntryScanner,
+    _is_slug_prefix,
+    resolve_brief_context,
+)
 
 
 class FakeStore:
@@ -215,3 +219,72 @@ def test_scanner_preserves_status_changes_made_during_dispatch():
     assert result["dispatched_count"] == 1
     assert store.rows[0]["status"] == "review-ready"
     assert "[auto-test]" in store.rows[0]["automation_trace"]
+
+
+# -- resolve_brief_context tests --
+
+
+def test_resolve_brief_context_exact_match():
+    row = {"title": "Lazy Import Notion", "brief_link": ""}
+    briefs = [{"name": "lazy-import-notion", "title": "Lazy Import Notion", "notion_id": "b1"}]
+    ctx = resolve_brief_context(row, briefs)
+    assert ctx["brief_name_resolved"] is True
+    assert ctx["brief_name"] == "lazy-import-notion"
+
+
+def test_resolve_brief_context_prefix_match_brief_shorter():
+    """Feature 'Lazy-import Notion modules' should match brief 'lazy-import-notion'."""
+    row = {"title": "Lazy-import Notion modules", "brief_link": ""}
+    briefs = [{"name": "lazy-import-notion", "title": "Lazy Import Notion", "notion_id": "b1"}]
+    ctx = resolve_brief_context(row, briefs)
+    assert ctx["brief_name_resolved"] is True
+    assert ctx["brief_name"] == "lazy-import-notion"
+
+
+def test_resolve_brief_context_prefix_match_selects_longest():
+    """When multiple briefs match as prefix, the longest (most specific) wins."""
+    row = {"title": "Lazy-import Notion modules v2", "brief_link": ""}
+    briefs = [
+        {"name": "lazy-import", "title": "Lazy Import", "notion_id": "b0"},
+        {"name": "lazy-import-notion-modules", "title": "Lazy Import Notion Modules", "notion_id": "b2"},
+        {"name": "lazy-import-notion", "title": "Lazy Import Notion", "notion_id": "b1"},
+    ]
+    ctx = resolve_brief_context(row, briefs)
+    assert ctx["brief_name_resolved"] is True
+    assert ctx["brief_name"] == "lazy-import-notion-modules"
+
+
+def test_resolve_brief_context_no_match():
+    row = {"title": "Completely Different Feature", "brief_link": ""}
+    briefs = [{"name": "lazy-import-notion", "title": "Lazy Import Notion", "notion_id": "b1"}]
+    ctx = resolve_brief_context(row, briefs)
+    assert ctx["brief_name_resolved"] is False
+
+
+def test_resolve_brief_context_notion_id_match():
+    row = {"title": "Wrong Title", "brief_link": "https://notion.so/abc12345678901234567890123456789"}
+    briefs = [{"name": "my-brief", "title": "My Brief", "notion_id": "abc12345-6789-0123-4567-890123456789"}]
+    ctx = resolve_brief_context(row, briefs)
+    assert ctx["brief_name_resolved"] is True
+    assert ctx["brief_name"] == "my-brief"
+
+
+# -- _is_slug_prefix tests --
+
+
+def test_is_slug_prefix_true():
+    assert _is_slug_prefix("lazy-import-notion", "lazy-import-notion-modules") is True
+
+
+def test_is_slug_prefix_exact():
+    assert _is_slug_prefix("lazy-import-notion", "lazy-import-notion") is True
+
+
+def test_is_slug_prefix_false_partial_segment():
+    """Prefix must align on hyphen boundaries, not mid-word."""
+    assert _is_slug_prefix("lazy-import-not", "lazy-import-notion") is False
+
+
+def test_is_slug_prefix_empty():
+    assert _is_slug_prefix("", "lazy-import-notion") is False
+    assert _is_slug_prefix("lazy-import-notion", "") is False

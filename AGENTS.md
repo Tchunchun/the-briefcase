@@ -15,7 +15,7 @@ Note: In this repo, skills live at `skills/` and paths in the PLAYBOOK are corre
 | Lint all | `ruff check src/ tests/` |
 | Lint one file | `ruff check path/to/file.py` |
 | Run CLI (framework repo) | `python3 -m src.cli.main <command>` |
-| Run CLI (consumer project) | `./agent <command>` |
+| Run CLI (consumer project) | `./briefcase <command>` |
 | Format | `ruff format src/ tests/` |
 
 Load `.env` before CLI commands that hit Notion:

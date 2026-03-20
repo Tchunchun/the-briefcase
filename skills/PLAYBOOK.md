@@ -19,13 +19,13 @@ Read this file fully before taking any action.
 ├── template/                          ← blank templates; copy when creating new artifacts
 ├── docs/
 │   ├── plan/
-│   │   ├── _inbox.md                  ← raw ideas (local backend); managed via `agent inbox` CLI
+│   │   ├── _inbox.md                  ← raw ideas (local backend); managed via `briefcase inbox` CLI
 │   │   ├── _shared/
-│   │   │   └── backlog.md             ← local backend only; managed via `agent backlog` CLI
+│   │   │   └── backlog.md             ← local backend only; managed via `briefcase backlog` CLI
 │   │   ├── _reference/
 │   │   │   └── adr/
 │   │   └── {feature-name}/
-│   │       └── brief.md              ← local backend only; managed via `agent brief` CLI
+│   │       └── brief.md              ← local backend only; managed via `briefcase brief` CLI
 │   └── user/
 ├── src/
 │   ├── core/
@@ -160,12 +160,12 @@ Delivery-manager must not replace, duplicate, or reinterpret implementation/revi
 
 | Phase | Trigger | Action |
 |---|---|---|
-| 0 Capture | New idea | Ideation captures via `agent inbox add` |
-| 1 Plan | Idea promoted | Ideation creates brief via `agent brief write` (`Status: draft`), sets Feature to architect-review |
+| 0 Capture | New idea | Ideation captures via `briefcase inbox add` |
+| 1 Plan | Idea promoted | Ideation creates brief via `briefcase brief write` (`Status: draft`), sets Feature to architect-review |
 | 1.25 Orchestrate | Brief drafted | Delivery manager validates packet + routes to architect |
 | 1.5 Architect | Brief drafted | Architect resolves open questions, sets Status: implementation-ready |
 | 1.75 Orchestrate | Brief implementation-ready | Delivery manager validates packet + routes to implementation |
-| 2 Break Down | Brief ready | Implementation creates Task backlog rows via `agent backlog upsert` |
+| 2 Break Down | Brief ready | Implementation creates Task backlog rows via `briefcase backlog upsert` |
 | 3 Build | Tasks ready | Implementation builds src/, tests/, updates status |
 | 3.5 Orchestrate | Build complete | Delivery manager validates packet + routes to review |
 | 4 Review | Work done | Review validates against brief.md, records verdict, and moves accepted Features to `review-accepted` |
@@ -188,7 +188,7 @@ Backlog database fields: Title · Type · Status (per-type) · Priority · Revie
 - Brief Link: URL to the brief page (set on Feature rows)
 - Release Note Link: URL to the release note page (set when Feature ships)
 - Parent: self-relation for Idea→Feature and Feature→Task hierarchy
-- Tech debt items must be logged via `agent inbox add --type idea --text "[tech-debt] ..."` before backlog.
+- Tech debt items must be logged via `briefcase inbox add --type idea --text "[tech-debt] ..."` before backlog.
 - Ship notes on Feature `done` rows and Idea `shipped` rows must include an explicit Pacific timestamp in the form `YYYY-MM-DD HH:MM PST/PDT`.
 
 ### Lifecycle Axes
@@ -212,7 +212,7 @@ Feature lifecycle is tracked on separate axes — do not collapse into one field
 ## Backend Protocol
 
 > **Read `_project/storage.yaml` before touching any artifact.**
-> When the backend is `notion`, ALL planning artifacts (briefs, backlog, inbox, decisions) exist only in Notion — use `agent` CLI commands exclusively.
+> When the backend is `notion`, ALL planning artifacts (briefs, backlog, inbox, decisions) exist only in Notion — use `briefcase` CLI commands exclusively.
 > Do NOT read from or write to `docs/plan/` files directly when backend is `notion` — they may be stale or absent.
 > When the backend is `local`, `docs/plan/` files are the source of truth and direct file access is safe.
 
@@ -222,21 +222,21 @@ All planning artifacts are accessed through CLI commands. The CLI routes to the 
 
 | Action | Command |
 |---|---|
-| List inbox | `agent inbox list` |
-| Add idea | `agent inbox add --type idea --text "Short title" --notes "Description"` |
-| Read brief | `agent brief read {feature-name}` |
-| Write brief head | `agent brief write {feature-name} --status draft --problem "..." --goal "..." --change-summary "..."` |
-| List brief revisions | `agent brief history {feature-name}` |
-| Read one revision | `agent brief revision {feature-name} <revision-id>` |
-| Restore a revision | `agent brief restore {feature-name} <revision-id> --change-summary "..."` |
-| List briefs | `agent brief list` |
-| List backlog | `agent backlog list` |
-| Upsert backlog item | `agent backlog upsert --title "..." --type Task --status to-do --priority High` |
-| List decisions | `agent decision list` |
-| Add decision | `agent decision add --id D-NNN --title "..." --date YYYY-MM-DD --why "..."` |
-| Write release note | `agent release write --version v0.x.0 --notes "..."` |
-| Read release note | `agent release read --version v0.x.0` |
-| List release notes | `agent release list` |
+| List inbox | `briefcase inbox list` |
+| Add idea | `briefcase inbox add --type idea --text "Short title" --notes "Description"` |
+| Read brief | `briefcase brief read {feature-name}` |
+| Write brief head | `briefcase brief write {feature-name} --status draft --problem "..." --goal "..." --change-summary "..."` |
+| List brief revisions | `briefcase brief history {feature-name}` |
+| Read one revision | `briefcase brief revision {feature-name} <revision-id>` |
+| Restore a revision | `briefcase brief restore {feature-name} <revision-id> --change-summary "..."` |
+| List briefs | `briefcase brief list` |
+| List backlog | `briefcase backlog list` |
+| Upsert backlog item | `briefcase backlog upsert --title "..." --type Task --status to-do --priority High` |
+| List decisions | `briefcase decision list` |
+| Add decision | `briefcase decision add --id D-NNN --title "..." --date YYYY-MM-DD --why "..."` |
+| Write release note | `briefcase release write --version v0.x.0 --notes "..."` |
+| Read release note | `briefcase release read --version v0.x.0` |
+| List release notes | `briefcase release list` |
 
 **Direct file access** is allowed only for project constants (`_project/tech-stack.md`, `_project/testing-strategy.md`, `_project/definition-of-done.md`), source code (`src/`, `tests/`), and ADR templates.
 
@@ -249,16 +249,16 @@ All planning artifacts are accessed through CLI commands. The CLI routes to the 
 2. Determine the correct agent role for the current request.
 3. Read skills/{role}/SKILL.md for that role.
 4. If `_project/` does not exist, route to the architect agent for project setup before any implementation work.
-5. **Read `_project/storage.yaml` and identify the active backend (`local` or `notion`).** This determines where ALL planning artifacts live — do not read or write `docs/plan/` files directly if the backend is `notion`. When backend is `notion`, every artifact read and write MUST go through `agent` CLI commands.
+5. **Read `_project/storage.yaml` and identify the active backend (`local` or `notion`).** This determines where ALL planning artifacts live — do not read or write `docs/plan/` files directly if the backend is `notion`. When backend is `notion`, every artifact read and write MUST go through `briefcase` CLI commands.
 6. Read _project/tech-stack.md before touching any code.
 7. Read _project/testing-strategy.md before writing any test.
-8. Run `agent brief read {feature-name}` and `agent backlog list --type Task` before making changes.
+8. Run `briefcase brief read {feature-name}` and `briefcase backlog list --type Task` before making changes.
 9. Do not start new work until you understand current state and artifact ownership.
 
 ### On Session End
 1. Update all artifacts owned by your active agent role via CLI commands.
-2. Keep backlog rows aligned with actual progress via `agent backlog upsert`.
-3. If a new idea surfaced, capture it via `agent inbox add`.
+2. Keep backlog rows aligned with actual progress via `briefcase backlog upsert`.
+3. If a new idea surfaced, capture it via `briefcase inbox add`.
 
 ---
 
@@ -266,11 +266,11 @@ All planning artifacts are accessed through CLI commands. The CLI routes to the 
 
 | Artifact | Owner | Others |
 |---|---|---|
-| Inbox (via `agent inbox`) | Any agent may add | Never overwrite |
-| Brief (via `agent brief`) | Ideation (scope) + Architect (technical approach + status) | Implementation and review: read-only |
-| Backlog - Tasks (via `agent backlog`) | Implementation | Review may add findings to `--notes` only; delivery-manager may add coordination notes only |
-| Backlog - Features (via `agent backlog`) | Implementation owns status | Review and delivery-manager may add notes only |
-| Decisions (via `agent decision`) | Architect | All other agents: read-only |
+| Inbox (via `briefcase inbox`) | Any agent may add | Never overwrite |
+| Brief (via `briefcase brief`) | Ideation (scope) + Architect (technical approach + status) | Implementation and review: read-only |
+| Backlog - Tasks (via `briefcase backlog`) | Implementation | Review may add findings to `--notes` only; delivery-manager may add coordination notes only |
+| Backlog - Features (via `briefcase backlog`) | Implementation owns status | Review and delivery-manager may add notes only |
+| Decisions (via `briefcase decision`) | Architect | All other agents: read-only |
 | src/ | Implementation | Other agents: read-only |
 | tests/ | Implementation | Other agents: read-only |
 | _project/ | Architect | All other agents: read-only |
@@ -282,7 +282,7 @@ Rules:
 - The brief is the source of truth for scope. Do not modify during implementation.
 - Brief status and Feature backlog status are related but not interchangeable. During ideation, the valid handoff pair is: brief `draft` + Feature `architect-review`.
 - Agents must not force brief status and Feature status to match unless the workflow explicitly defines that mapping for the active phase.
-- Decisions are append-only. Log via `agent decision add`, never delete.
+- Decisions are append-only. Log via `briefcase decision add`, never delete.
 - Delivery manager may only append coordination notes and route decisions; it must not edit scope, code, tests, or review findings.
 
 ### Delivery Manager Optionality
@@ -298,8 +298,8 @@ In manual mode, the same handoff checks still apply, but the active role owner p
 ## Definition of Done
 
 A task is Done only when ALL are true:
-- Acceptance criteria in the brief are met (verify via `agent brief read`)
-- Task backlog row status is `done` (via `agent backlog upsert`)
+- Acceptance criteria in the brief are met (verify via `briefcase brief read`)
+- Task backlog row status is `done` (via `briefcase backlog upsert`)
 - Works end-to-end in target environment
 - Relevant tests added or updated under tests/
 - Backlog rows updated via CLI
@@ -325,5 +325,5 @@ Delivery manager orchestration never replaces review acceptance requirements.
 - Delivery manager owns handoff orchestration only. It cannot redefine scope, architecture, or acceptance outcomes.
 - Small commits. Commit after each completed task with a meaningful message.
 - Ask before creating files. Only create a file if the workflow explicitly calls for it.
-- Capture, don't lose. Any new idea or out-of-scope request → `agent inbox add` immediately.
+- Capture, don't lose. Any new idea or out-of-scope request → `briefcase inbox add` immediately.
 - Read _project/tech-stack.md before writing code. Never introduce unlisted technology without logging a decision.

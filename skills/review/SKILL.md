@@ -28,9 +28,9 @@ In orchestrated mode, this skill is dispatched by delivery-manager, but review a
 ## Required Workflow
 
 1. Read `_project/tech-stack.md` — establish approved technologies.
-2. Run `agent brief read {feature-name}` to read the brief.
-3. Run `agent backlog list --type Task` to review task rows for this feature.
-4. Run `agent backlog list` to check related backlog state.
+2. Run `briefcase brief read {feature-name}` to read the brief.
+3. Run `briefcase backlog list --type Task` to review task rows for this feature.
+4. Run `briefcase backlog list` to check related backlog state.
 5. Inspect the implementation under `src/` and tests under `tests/`.
 6. Compare actual behavior to the brief's acceptance criteria.
 7. Check all dependencies and libraries against `_project/tech-stack.md`.
@@ -52,7 +52,7 @@ In orchestrated mode, this skill is dispatched by delivery-manager, but review a
 
 ## Finding Rules
 
-Log all findings as notes on the relevant Task backlog rows via `agent backlog upsert --title "Task Title" --type Task --notes "Review: [severity] finding description"`. Each finding must include a severity level.
+Log all findings as notes on the relevant Task backlog rows via `briefcase backlog upsert --title "Task Title" --type Task --notes "Review: [severity] finding description"`. Each finding must include a severity level.
 
 **Severity levels:**
 - **Blocking** — must be fixed before acceptance (acceptance criterion not met, unapproved dependency, security issue)
@@ -85,17 +85,17 @@ After a `changes-requested` verdict, trigger the implementation follow-up dispat
 
 ## Artifact Rules
 
-- Brief — source of truth for requirements. Read via `agent brief read`. Do NOT modify.
-- Backlog — source of truth for task status and portfolio status. You may add review findings to Task notes via `agent backlog upsert --notes`.
+- Brief — source of truth for requirements. Read via `briefcase brief read`. Do NOT modify.
+- Backlog — source of truth for task status and portfolio status. You may add review findings to Task notes via `briefcase backlog upsert --notes`.
 - `tests/` — source of truth for test coverage. Read-only.
-- If a new idea or follow-up is found, capture it via `agent inbox add`.
+- If a new idea or follow-up is found, capture it via `briefcase inbox add`.
 
 For cross-agent ownership and handoff rules, read `AGENTS.md`.
 
 ## Approval Standard
 
 Accept the feature only when:
-- Acceptance criteria in the brief (via `agent brief read`) are satisfied.
+- Acceptance criteria in the brief (via `briefcase brief read`) are satisfied.
 - Task backlog rows show status `done` and are truly complete.
 - Backlog rows are accurate and current.
 - No Blocking findings remain.

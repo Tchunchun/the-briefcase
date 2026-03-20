@@ -95,7 +95,8 @@ class LocalBackend:
                 actor=data.get("_actor", ""),
                 change_summary=data.get("_change_summary", ""),
             )
-        content = self._render_brief(brief_name, data)
+        revisions = self.list_brief_revisions(brief_name)
+        content = self._render_brief(brief_name, data, history=revisions)
         path.write_text(content)
 
     def list_briefs(self) -> list[dict]:
@@ -390,9 +391,9 @@ class LocalBackend:
         return data
 
     @staticmethod
-    def _render_brief(brief_name: str, data: dict) -> str:
+    def _render_brief(brief_name: str, data: dict, *, history: list[dict] | None = None) -> str:
         """Render structured brief data to markdown."""
-        return render_brief_markdown(brief_name, data)
+        return render_brief_markdown(brief_name, data, history=history)
 
     def _brief_history_dir(self, brief_name: str) -> Path:
         return self.plan_dir / brief_name / "_history"

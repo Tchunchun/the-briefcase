@@ -73,12 +73,12 @@ class TestRoleSkillsReferencePlaybook:
 
 
 class TestInstallSkillDiscovery:
-    """install.sh must create the .skills symlink for native discovery."""
+    """install.sh must set up .briefcase/skills/ for framework skill access."""
 
-    def test_install_has_skills_symlink_step(self):
+    def test_install_copies_skills_to_briefcase(self):
         content = (ROOT_DIR / "install.sh").read_text()
-        assert ".skills" in content
-        assert "ln -s" in content
+        assert ".briefcase" in content
+        assert "skills" in content
 
 
 class TestTokenFootprintBaseline:

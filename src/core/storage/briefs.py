@@ -68,13 +68,33 @@ def normalize_inline_brief_value(value: str | None) -> str | None:
     return value.replace("\\n", "\n")
 
 
+def render_history_section(history: list[dict]) -> str:
+    """Render a ``## History`` section from a list of revision summaries."""
+    if not history:
+        return ""
+    lines = ["## History", ""]
+    for entry in history:
+        rid = entry.get("revision_id", "")
+        summary = entry.get("change_summary", "no summary")
+        actor = entry.get("actor", "unknown")
+        ts = entry.get("captured_at", "")
+        lines.append(f"- **{rid}** — {summary} (by {actor}, {ts})")
+    lines.append("")
+    return "\n".join(lines)
+
+
 def render_brief_markdown(
     brief_name: str,
     data: dict,
     *,
     include_title: bool = True,
+    history: list[dict] | None = None,
 ) -> str:
-    """Render structured brief data to markdown."""
+    """Render structured brief data to markdown.
+
+    If *history* is provided the entries are appended as a ``## History``
+    section at the end of the document.
+    """
     status = data.get("status", "draft")
     lines: list[str] = []
     if include_title:
@@ -108,6 +128,8 @@ def render_brief_markdown(
             "",
         ]
     )
+    if history:
+        lines.append(render_history_section(history))
     return "\n".join(lines) + "\n"
 
 

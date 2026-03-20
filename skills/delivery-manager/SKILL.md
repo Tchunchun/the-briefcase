@@ -71,7 +71,7 @@ Always include the shipped timestamp in Pacific Time, with the timezone abbrevia
 ## Required Workflow
 
 1. Read `skills/PLAYBOOK.md` and identify the current transition.
-2. Run `agent brief read {feature-name}` to read the brief, `agent backlog list --type Task` to review tasks, and `agent backlog list` for backlog state.
+2. Run `briefcase brief read {feature-name}` to read the brief, `briefcase backlog list --type Task` to review tasks, and `briefcase backlog list` for backlog state.
 3. Run the transition-specific checklist.
 4. Produce a handoff packet using the contract below.
 5. If checklist passes, route to the next role owner.
@@ -93,20 +93,20 @@ Dispatch rule:
 
 ### Ideation -> Architect
 
-- Brief exists (verify via `agent brief read {feature-name}`)
+- Brief exists (verify via `briefcase brief read {feature-name}`)
 - `Status: draft`
 - Problem, Goal, Acceptance Criteria, and Out of Scope are present
 - Open Questions are present or explicitly "none"
 
 ### Architect -> Implementation
 
-- Brief has `Status: implementation-ready` (verify via `agent brief read`)
+- Brief has `Status: implementation-ready` (verify via `briefcase brief read`)
 - `Technical Approach` is filled
 - No unresolved architectural blocker is recorded
 
 ### Implementation -> Review
 
-- Task backlog rows exist and reflect actual implementation progress (verify via `agent backlog list --type Task`)
+- Task backlog rows exist and reflect actual implementation progress (verify via `briefcase backlog list --type Task`)
 - Required tests are noted/run per `_project/testing-strategy.md`
 - Feature backlog row exists and status reflects reality
 
@@ -165,8 +165,8 @@ Never silently continue after repeated delegation failure.
 
 ## Artifact Rules
 
-- Backlog — may append coordination notes via `agent backlog upsert --notes` only; do not change ownership status fields.
-- Brief — read-only for delivery manager. Read via `agent brief read`.
+- Backlog — may append coordination notes via `briefcase backlog upsert --notes` only; do not change ownership status fields.
+- Brief — read-only for delivery manager. Read via `briefcase brief read`.
 - `src/`, `tests/`, `_project/` — read-only for delivery manager.
 
 For cross-agent ownership and handoff rules, read `AGENTS.md`.

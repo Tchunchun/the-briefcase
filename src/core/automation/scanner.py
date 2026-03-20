@@ -105,11 +105,25 @@ def append_dispatch_log(
     return NOTE_SEPARATOR.join(lines)
 
 
+def _is_slug_prefix(prefix: str, full: str) -> bool:
+    """Check if *prefix* matches *full* at a hyphen word-boundary.
+
+    ``_is_slug_prefix("lazy-import-notion", "lazy-import-notion-modules")``
+    returns ``True`` because the prefix aligns on a ``-`` boundary.
+    """
+    if not prefix or not full:
+        return False
+    if full == prefix:
+        return True
+    return full.startswith(prefix + "-")
+
+
 def resolve_brief_context(row: dict, briefs: list[dict]) -> dict[str, str | bool]:
     brief_link = row.get("brief_link", "")
     title_slug = slugify(row.get("title", ""))
     brief_id = parse_notion_id(brief_link)
 
+    # Pass 1 — match by Notion page ID embedded in the brief link.
     for brief in briefs:
         if brief_id and parse_notion_id(brief.get("notion_id", "")) == brief_id:
             return {
@@ -119,6 +133,7 @@ def resolve_brief_context(row: dict, briefs: list[dict]) -> dict[str, str | bool
                 "brief_name_resolved": True,
             }
 
+    # Pass 2 — exact slug match (feature title slug == brief name or brief title slug).
     for brief in briefs:
         if brief.get("name", "") == title_slug or slugify(brief.get("title", "")) == title_slug:
             return {
@@ -127,6 +142,26 @@ def resolve_brief_context(row: dict, briefs: list[dict]) -> dict[str, str | bool
                 "brief_link": brief_link,
                 "brief_name_resolved": True,
             }
+
+    # Pass 3 — prefix match: the brief name is a prefix of the feature title
+    # slug (or vice-versa) on a hyphen word-boundary.  When several briefs
+    # match, the longest brief name wins (most specific).
+    best: dict | None = None
+    best_len = 0
+    for brief in briefs:
+        bname = brief.get("name", "")
+        if _is_slug_prefix(bname, title_slug) or _is_slug_prefix(title_slug, bname):
+            if len(bname) > best_len:
+                best = brief
+                best_len = len(bname)
+
+    if best is not None:
+        return {
+            "brief_name": best.get("name", ""),
+            "brief_title": best.get("title", ""),
+            "brief_link": brief_link,
+            "brief_name_resolved": True,
+        }
 
     return {
         "brief_name": title_slug,

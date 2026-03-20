@@ -25,10 +25,7 @@ You work *with the user*, not independently. All key decisions require their inp
 
 ## Backend Check (Do This First)
 
-> **Read `_project/storage.yaml` before touching any artifact.**
-> When the backend is `notion`, ALL planning artifacts (briefs, backlog, inbox, decisions) exist only in Notion — use `agent` CLI commands exclusively.
-> Do NOT read from or write to `docs/plan/` files directly when backend is `notion` — they may be stale or absent.
-> When the backend is `local`, `docs/plan/` files are the source of truth and direct file access is safe.
+> **Backend & artifact rules:** see PLAYBOOK.md — Backend Protocol and Artifact Access Rules.
 
 ## When to Act
 
@@ -50,33 +47,33 @@ You work *with the user*, not independently. All key decisions require their inp
 ### At Feature Review
 
 1. Read `_project/tech-stack.md` fully.
-2. Run `agent brief read {feature-name}` to read the brief.
+2. Run `briefcase brief read {feature-name}` to read the brief.
 3. Assess the Technical Approach section — is it consistent with the tech stack?
 4. Review the Non-Functional Requirements section. If any NFR has architectural implications or is listed as “not yet known,” resolve it with the user.
 5. Resolve any Open Questions — work with the user on each one.
 6. Update the Technical Approach section, addressing NFRs that constrain architecture choices.
 7. For any new dependency not already in `_project/tech-stack.md`, include a cost estimate in the Technical Approach: free-tier limits, monthly cost at expected usage, and any licensing constraints. Flag to the user if cost exceeds assumptions in the brief’s NFR section.
-8. Log any significant decisions: `agent decision add --id D-NNN --title "..." --date YYYY-MM-DD --why "..."`
-9. If technically sound → update the brief head with an explicit revision note and set `Status: implementation-ready` via `agent brief write {feature-name} --status implementation-ready --change-summary "Architect sign-off and technical approach finalized"`.
-10. Update the Feature backlog row: `agent backlog upsert --title "<short-feature-title>" --type Feature --status implementation-ready`
-11. Promote the parent Idea now that architect review is complete: `agent backlog upsert --title "<exact-existing-idea-title>" --type Idea --status promoted --brief-link "<brief-url>" --notes "Brief reviewed by architect; graduated to Feature"`
-12. Record the handoff: run `agent automate implementation-ready --notes-only` to write trace to the Automation Trace field and get dispatch payloads.
+8. Log any significant decisions: `briefcase decision add --id D-NNN --title "..." --date YYYY-MM-DD --why "..."`
+9. If technically sound → update the brief head with an explicit revision note and set `Status: implementation-ready` via `briefcase brief write {feature-name} --status implementation-ready --change-summary "Architect sign-off and technical approach finalized"`.
+10. Update the Feature backlog row: `briefcase backlog upsert --title "<short-feature-title>" --type Feature --status implementation-ready`
+11. Promote the parent Idea now that architect review is complete: `briefcase backlog upsert --title "<exact-existing-idea-title>" --type Idea --status promoted --brief-link "<brief-url>" --notes "Brief reviewed by architect; graduated to Feature"`
+12. Record the handoff: run `briefcase automate implementation-ready --notes-only` to write trace to the Automation Trace field and get dispatch payloads.
 13. **DO NOT STOP. Continue immediately as the implementation agent.** Tell the user: *"Architect review complete. Switching to implementation."* Then for **each** dispatched brief, execute these steps in order — **use the exact `feature_title` from the dispatch payload for all backlog upserts to avoid creating duplicate rows**:
-    1. Run the `command_hint` from the dispatch payload (e.g., `agent brief read {brief_name}`) to load the brief.
+    1. Run the `command_hint` from the dispatch payload (e.g., `briefcase brief read {brief_name}`) to load the brief.
     2. Open `_project/tech-stack.md` and `_project/testing-strategy.md`.
-    3. Run `agent backlog list --type Task` — create Task rows from acceptance criteria if none exist.
-    4. Move the Feature to `in-progress`: `agent backlog upsert --title "<feature_title from payload>" --type Feature --status in-progress`
+    3. Run `briefcase backlog list --type Task` — create Task rows from acceptance criteria if none exist.
+    4. Move the Feature to `in-progress`: `briefcase backlog upsert --title "<feature_title from payload>" --type Feature --status in-progress`
     5. Implement each task in order. For **each** task:
-       - Mark it `in-progress` first: `agent backlog upsert --title "<task-title>" --type Task --status in-progress`
+       - Mark it `in-progress` first: `briefcase backlog upsert --title "<task-title>" --type Task --status in-progress`
        - Write code under `src/`, tests under `tests/`.
-       - Run the relevant test scope, then mark done: `agent backlog upsert --title "<task-title>" --type Task --status done --notes "Tests: X/X pass"`
-    6. When all tasks are done, move to `review-ready`: `agent backlog upsert --title "<feature_title from payload>" --type Feature --status review-ready`
-    7. Run `agent automate review-ready --notes-only` and continue to the review flow (see implementation skill step 10+).
+       - Run the relevant test scope, then mark done: `briefcase backlog upsert --title "<task-title>" --type Task --status done --notes "Tests: X/X pass"`
+    6. When all tasks are done, move to `review-ready`: `briefcase backlog upsert --title "<feature_title from payload>" --type Feature --status review-ready`
+    7. Run `briefcase automate review-ready --notes-only` and continue to the review flow (see implementation skill step 10+).
 14. If it needs rethinking → flag issues back to the ideation agent with specific notes.
 
 ## Decision Log
 
-Decisions are logged via `agent decision add`. Each entry has: `ID · Date · Decision · Why · Alternatives Rejected · ADR`.
+Decisions are logged via `briefcase decision add`. Each entry has: `ID · Date · Decision · Why · Alternatives Rejected · ADR`.
 
 For significant decisions (new tech, meaningful alternatives, reversals), create a full ADR at `docs/plan/_reference/adr/ADR-{NNN}.md` using `template/adr.md`. For minor decisions, a summary row is sufficient.
 
@@ -84,18 +81,18 @@ For significant decisions (new tech, meaningful alternatives, reversals), create
 
 All planning artifacts are accessed through CLI commands. The CLI routes to the correct backend (local files or Notion) based on `_project/storage.yaml`.
 
-- List inbox: `agent inbox list`
-- Add idea: `agent inbox add --type idea --text "Short title" --notes "Description"`
-- Read brief: `agent brief read {feature-name}`
-- Write brief head: `agent brief write {feature-name} --status draft --problem "..." --goal "..." --change-summary "..."`
-- List brief revisions: `agent brief history {feature-name}`
-- Read one revision: `agent brief revision {feature-name} <revision-id>`
-- Restore a revision into the head brief: `agent brief restore {feature-name} <revision-id> --change-summary "..."`
-- List briefs: `agent brief list`
-- List backlog: `agent backlog list`
-- Upsert backlog item: `agent backlog upsert --title "..." --type Task --status to-do --priority High`
-- List decisions: `agent decision list`
-- Add decision: `agent decision add --id D-NNN --title "..." --date YYYY-MM-DD --why "..."`
+- List inbox: `briefcase inbox list`
+- Add idea: `briefcase inbox add --type idea --text "Short title" --notes "Description"`
+- Read brief: `briefcase brief read {feature-name}`
+- Write brief head: `briefcase brief write {feature-name} --status draft --problem "..." --goal "..." --change-summary "..."`
+- List brief revisions: `briefcase brief history {feature-name}`
+- Read one revision: `briefcase brief revision {feature-name} <revision-id>`
+- Restore a revision into the head brief: `briefcase brief restore {feature-name} <revision-id> --change-summary "..."`
+- List briefs: `briefcase brief list`
+- List backlog: `briefcase backlog list`
+- Upsert backlog item: `briefcase backlog upsert --title "..." --type Task --status to-do --priority High`
+- List decisions: `briefcase decision list`
+- Add decision: `briefcase decision add --id D-NNN --title "..." --date YYYY-MM-DD --why "..."`
 
 Direct file access is only for project constants (`_project/tech-stack.md`, `_project/testing-strategy.md`, `_project/definition-of-done.md`), source code (`src/`, `tests/`), and ADR templates.
 
@@ -119,10 +116,10 @@ agent decision add --id D-NNN --title "Decision" --date YYYY-MM-DD --why "Ration
 
 - `_project/tech-stack.md` — owned by you. Updated only on deliberate, logged decisions.
 - `_project/definition-of-done.md` — owned by you.
-- Decisions — owned by you. Managed via `agent decision add`. Append-only.
+- Decisions — owned by you. Managed via `briefcase decision add`. Append-only.
 - `_project/testing-strategy.md` — owned by you. Defines test types and coverage.
-- Briefs — you may update the Technical Approach section and set the Status field via `agent brief write`.
-- Brief history is append-only. Inspect prior scope/approach states with `agent brief history` and `agent brief revision`, and use `agent brief restore` if a mistaken edit must become the new head.
+- Briefs — you may update the Technical Approach section and set the Status field via `briefcase brief write`.
+- Brief history is append-only. Inspect prior scope/approach states with `briefcase brief history` and `briefcase brief revision`, and use `briefcase brief restore` if a mistaken edit must become the new head.
 - Do NOT create Task backlog rows, write to `src/`, or write to `tests/`.
 
 For cross-agent ownership and handoff rules, read `AGENTS.md`.
@@ -141,6 +138,6 @@ Your work on a feature is complete when:
 - The Technical Approach section is filled and consistent with `_project/tech-stack.md`.
 - All Open Questions are resolved.
 - New dependencies have a cost estimate documented in the Technical Approach.
-- New decisions are logged via `agent decision add`.
+- New decisions are logged via `briefcase decision add`.
 - `Status: implementation-ready` is set.
 - The user has agreed to the technical approach.

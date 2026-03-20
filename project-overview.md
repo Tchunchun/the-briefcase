@@ -168,8 +168,8 @@ When `orchestrated-mode: true`, users interact only with the Delivery Manager. A
 | Claim | Evidence in the project | Verdict |
 |---|---|---|
 | **Automated workflow from ideation to ship** | Full 9-step handoff sequence (Ideation → Architect → Implementation → Review → Ship) is defined and enforced in PLAYBOOK.md | ✅ Fully realized |
-| **Automated handoff** | Delivery Manager role owns all phase transitions with structured readiness checklists and handoff packets; `agent automate` CLI commands trigger dispatch | ✅ Fully realized |
-| **Automated dispatch** | `agent automate architect-review --notes-only` and `agent automate review-ready --notes-only` produce dispatch payloads that trigger the next role automatically (in orchestrated mode, without user intervention) | ✅ Fully realized |
+| **Automated handoff** | Delivery Manager role owns all phase transitions with structured readiness checklists and handoff packets; `briefcase automate` CLI commands trigger dispatch | ✅ Fully realized |
+| **Automated dispatch** | `briefcase automate architect-review --notes-only` and `briefcase automate review-ready --notes-only` produce dispatch payloads that trigger the next role automatically (in orchestrated mode, without user intervention) | ✅ Fully realized |
 | **Proper documentation** | Each feature produces: brief.md (problem, goal, AC, NFRs, technical approach), task backlog rows, decisions log, and a release note. All are versioned/append-only | ✅ Fully realized |
 | **Notion as backend DB** | Notion is the active backend; all artifacts are managed through the `agent` CLI backed by the `notion-client` SDK | ✅ Fully realized |
 | **Future support for other backends** | `_project/storage.yaml` + CLI abstraction layer means any storage target that implements the CLI contract is a drop-in replacement | ✅ Architected for, not yet built — honest gap to note |
@@ -178,6 +178,6 @@ When `orchestrated-mode: true`, users interact only with the Delivery Manager. A
 
 - **Orchestrated mode is opt-in** (`orchestrated-mode: false` by default for backward compatibility). Full end-to-end automation requires the user to explicitly enable it. This is a minor friction point between the stated aim and the current default.
 - **Future backends are designed for, not built.** Only `local` and `notion` are currently implemented. The pluggable layer exists, but no third backend (e.g. Linear, GitHub Projects) is functional yet.
-- **GitHub Actions CI/CD is "planned"** in the tech stack but not yet implemented. The "automated ship" step is currently a manual `agent release write` command rather than a triggered pipeline.
+- **GitHub Actions CI/CD is "planned"** in the tech stack but not yet implemented. The "automated ship" step is currently a manual `briefcase release write` command rather than a triggered pipeline.
 
 Overall, the project substantially delivers on its stated aim. The core automation loop — idea to brief to implementation to review to ship — is fully specified and backed by a working CLI and Notion integration. The gaps are honest engineering deferrals, not misalignments with the goal.

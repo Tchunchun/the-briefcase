@@ -2,7 +2,7 @@
 
 Source: User laptop fresh install test
 Logged by: Ideation Agent
-Status: Pending Notion sync — capture via `agent inbox add` when NOTION_API_KEY is available
+Status: Pending Notion sync — capture via `briefcase inbox add` when NOTION_API_KEY is available
 
 ---
 
@@ -11,49 +11,49 @@ Status: Pending Notion sync — capture via `agent inbox add` when NOTION_API_KE
 ### 1. No dependency manifest
 
 ```
-agent inbox add --type idea --text "Add dependency manifest file" --notes "[tech-debt] No requirements.txt or pyproject.toml. Users must discover click, pyyaml, and notion-client through tracebacks. Add a pyproject.toml with all dependencies."
+briefcase inbox add --type idea --text "Add dependency manifest file" --notes "[tech-debt] No requirements.txt or pyproject.toml. Users must discover click, pyyaml, and notion-client through tracebacks. Add a pyproject.toml with all dependencies."
 ```
 
 ### 2. Installer skips venv and packages
 
 ```
-agent inbox add --type idea --text "Installer create venv and deps" --notes "[tech-debt] install.sh never creates .briefcase/.venv or installs packages. The ./agent wrapper checks for .briefcase/.venv/bin/python but it doesn't exist. Every new user hits ModuleNotFoundError immediately. Have install.sh create the venv and pip install into it."
+briefcase inbox add --type idea --text "Installer create venv and deps" --notes "[tech-debt] install.sh never creates .briefcase/.venv or installs packages. The ./briefcase wrapper checks for .briefcase/.venv/bin/python but it doesn't exist. Every new user hits ModuleNotFoundError immediately. Have install.sh create the venv and pip install into it."
 ```
 
 ### 3. Notion import blocks all CLI
 
 ```
-agent inbox add --type idea --text "Lazy-import Notion modules in CLI" --notes "[tech-debt] upgrade.py unconditionally imports notion_client, so even ./agent --help fails without it installed. This blocks local-only users. Imports should be lazy/conditional so local backend works without notion-client."
+briefcase inbox add --type idea --text "Lazy-import Notion modules in CLI" --notes "[tech-debt] upgrade.py unconditionally imports notion_client, so even ./briefcase --help fails without it installed. This blocks local-only users. Imports should be lazy/conditional so local backend works without notion-client."
 ```
 
 ### 4. docs/plan/ not created on install
 
 ```
-agent inbox add --type idea --text "Create docs/plan/ during install" --notes "[tech-debt] The local backend reads/writes to docs/plan/, but neither install.sh nor ./agent setup creates it. Every write command fails with FileNotFoundError. Create docs/plan/ during install or setup for the local backend."
+briefcase inbox add --type idea --text "Create docs/plan/ during install" --notes "[tech-debt] The local backend reads/writes to docs/plan/, but neither install.sh nor ./briefcase setup creates it. Every write command fails with FileNotFoundError. Create docs/plan/ during install or setup for the local backend."
 ```
 
 ### 5. AGENTS.md and CLAUDE.md not installed
 
 ```
-agent inbox add --type idea --text "Install AGENTS.md CLAUDE.md files" --notes "[tech-debt] The README shows AGENTS.md, CLAUDE.md, and _project/ in the post-install structure, but the installer doesn't copy them."
+briefcase inbox add --type idea --text "Install AGENTS.md CLAUDE.md files" --notes "[tech-debt] The README shows AGENTS.md, CLAUDE.md, and _project/ in the post-install structure, but the installer doesn't copy them."
 ```
 
 ### 6. Step counter mismatch in installer
 
 ```
-agent inbox add --type idea --text "Fix install.sh step counter" --notes "[tech-debt] install.sh prints [1/4], [2/4], [3/4], then switches to [4/5], [5/5]. Step count is inconsistent."
+briefcase inbox add --type idea --text "Fix install.sh step counter" --notes "[tech-debt] install.sh prints [1/4], [2/4], [3/4], then switches to [4/5], [5/5]. Step count is inconsistent."
 ```
 
 ### 7. README misleads about default backend
 
 ```
-agent inbox add --type idea --text "Clarify default backend in README" --notes "[tech-debt] README section ordering and emphasis could mislead users into thinking Notion is the primary path, but install.sh and setup both default to local. Reorder or clarify that local is the default."
+briefcase inbox add --type idea --text "Clarify default backend in README" --notes "[tech-debt] README section ordering and emphasis could mislead users into thinking Notion is the primary path, but install.sh and setup both default to local. Reorder or clarify that local is the default."
 ```
 
 ### 8. Setup --backend flag missing
 
 ```
-agent inbox add --type idea --text "Add --backend flag to setup" --notes "[tech-debt] README says './agent setup --backend notion', but the actual command prompts interactively for backend choice. There's no --backend flag. Either add the flag or fix the README."
+briefcase inbox add --type idea --text "Add --backend flag to setup" --notes "[tech-debt] README says './briefcase setup --backend notion', but the actual command prompts interactively for backend choice. There's no --backend flag. Either add the flag or fix the README."
 ```
 
 ---
@@ -74,19 +74,19 @@ Items 1–8 above were fixed in commit `3e51d97`. The following new issues were 
 ### 9. Self-install guard missing — duplicate folders
 
 ```
-agent inbox add --type idea --text "Add self-install guard to install.sh" --notes "[tech-debt] Running 'bash install.sh' from inside the framework repo installs .briefcase/ into the repo itself, creating duplicates of skills/, src/, template/ alongside the originals. Add a guard that detects when TARGET_DIR is the framework repo (e.g. check for install.sh + tests/ in TARGET_DIR) and exits with a message: 'You are installing the framework into its own repo. Use TARGET_DIR=/path/to/your-project ./install.sh instead.' The .gitignore already has a comment about preventing self-install but nothing enforces it."
+briefcase inbox add --type idea --text "Add self-install guard to install.sh" --notes "[tech-debt] Running 'bash install.sh' from inside the framework repo installs .briefcase/ into the repo itself, creating duplicates of skills/, src/, template/ alongside the originals. Add a guard that detects when TARGET_DIR is the framework repo (e.g. check for install.sh + tests/ in TARGET_DIR) and exits with a message: 'You are installing the framework into its own repo. Use TARGET_DIR=/path/to/your-project ./install.sh instead.' The .gitignore already has a comment about preventing self-install but nothing enforces it."
 ```
 
 ### 10. _project/ template files need scaffolding header
 
 ```
-agent inbox add --type idea --text "Add scaffolding header to _project files" --notes "[tech-debt] install.sh copies tech-stack.md, definition-of-done.md, testing-strategy.md into _project/ as starter files. Add a comment header like '# Generated by install.sh — customize for your project' so consumers know these are scaffolding they own, not framework files."
+briefcase inbox add --type idea --text "Add scaffolding header to _project files" --notes "[tech-debt] install.sh copies tech-stack.md, definition-of-done.md, testing-strategy.md into _project/ as starter files. Add a comment header like '# Generated by install.sh — customize for your project' so consumers know these are scaffolding they own, not framework files."
 ```
 
 ### 11. User hit old installer version (no venv, wrong step counter)
 
 ```
-agent inbox add --type idea --text "Installer version check or tag" --notes "[tech-debt] User cloned the repo but got the pre-fix version of install.sh. The fixes from commit 3e51d97 weren't in their clone. Consider adding a version string to install.sh output (e.g. 'Installer v0.5.1') so users and support can quickly identify which version they ran."
+briefcase inbox add --type idea --text "Installer version check or tag" --notes "[tech-debt] User cloned the repo but got the pre-fix version of install.sh. The fixes from commit 3e51d97 weren't in their clone. Consider adding a version string to install.sh output (e.g. 'Installer v0.5.1') so users and support can quickly identify which version they ran."
 ```
 
 ---
@@ -98,6 +98,6 @@ agent inbox add --type idea --text "Installer version check or tag" --notes "[te
 3. ~~Lazy-import Notion modules so local-only users aren't blocked~~ (fixed in 3e51d97)
 4. ~~Create docs/plan/ during install or setup for the local backend~~ (fixed in 3e51d97)
 5. Add a post-install smoke test in the README
-6. Add self-install guard to install.sh
-7. Add scaffolding header to _project/ template files
-8. Add installer version string for troubleshooting
+6. ~~Add self-install guard to install.sh~~ (fixed: guard detects framework repo)
+7. ~~Add scaffolding header to _project/ template files~~ (fixed: HTML comment header added)
+8. ~~Add installer version string for troubleshooting~~ (fixed: prints Installer v0.5.2)

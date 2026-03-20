@@ -366,9 +366,25 @@ class NotionBackend:
         return f"{brief_title} History"
 
     def _find_brief_history_page(self, brief_name: str, title: str = "") -> str | None:
+        # Look for the History page as a child of the brief page first.
+        brief_page_id = self._find_brief_page(brief_name)
+        if brief_page_id:
+            preferred_title = self._brief_history_page_title(brief_name, title) if title else ""
+            for child in self._client.get_block_children(brief_page_id):
+                if child.get("type") != "child_page":
+                    continue
+                child_title = child.get("child_page", {}).get("title", "")
+                if preferred_title and child_title == preferred_title:
+                    return child["id"]
+                if not child_title.endswith(" History"):
+                    continue
+                ct_brief = child_title[: -len(" History")]
+                if self._title_to_brief_name(ct_brief) == brief_name:
+                    return child["id"]
+
+        # Fallback: check the legacy location (sibling under Briefs container).
         preferred_title = self._brief_history_page_title(brief_name, title) if title else ""
-        children = self._client.get_block_children(self._briefs_page_id())
-        for child in children:
+        for child in self._client.get_block_children(self._briefs_page_id()):
             if child.get("type") != "child_page":
                 continue
             child_title = child.get("child_page", {}).get("title", "")
@@ -385,8 +401,12 @@ class NotionBackend:
         page_id = self._find_brief_history_page(brief_name, title)
         if page_id:
             return page_id
+        # Create the History page as a child of the brief page itself,
+        # keeping it out of the top-level Briefs listing.
+        brief_page_id = self._find_brief_page(brief_name)
+        parent_id = brief_page_id or self._briefs_page_id()
         result = self._client.create_page(
-            self._briefs_page_id(),
+            parent_id,
             self._brief_history_page_title(brief_name, title),
             icon="🕘",
         )
@@ -928,6 +948,13 @@ class NotionBackend:
         return "\n".join(lines) + "\n" if lines else ""
 
     @staticmethod
-    def _render_brief_body(brief_name: str, data: dict) -> str:
+    def _render_brief_body(
+        brief_name: str,
+        data: dict,
+        *,
+        history: list[dict] | None = None,
+    ) -> str:
         """Render brief sections to markdown for Notion block content."""
-        return render_brief_markdown(brief_name, data, include_title=False).rstrip()
+        return render_brief_markdown(
+            brief_name, data, include_title=False, history=history,
+        ).rstrip()

@@ -4,7 +4,7 @@ A multi-agent workflow framework that takes a software idea from raw thought to 
 
 ## What This Does
 
-Five specialized AI agent roles, a strict handoff protocol between them, and a CLI toolchain (`agent`) that manages every planning artifact against a pluggable storage backend (local files or Notion).
+Five specialized AI agent roles, a strict handoff protocol between them, and a CLI toolchain (`briefcase`) that manages every planning artifact against a pluggable storage backend (local files or Notion).
 
 | Skill | Responsibility |
 |---|---|
@@ -48,25 +48,23 @@ The install script:
 
 1. Copies `src/`, `skills/`, `template/` into `.briefcase/`
 2. Creates `.briefcase/storage.yaml` (default: `backend: local`)
-3. Generates an executable `./agent` entry point
+3. Generates an executable `./briefcase` entry point
 4. Creates a Python venv and installs dependencies (click, pyyaml, notion-client)
 5. Creates `docs/plan/` directory structure for local backend
 6. Copies `AGENTS.md`, `CLAUDE.md`, and `_project/` templates
 7. Updates `.gitignore` (idempotent)
-8. Creates a `.skills` symlink for native AI tool discovery
 
 ### Post-install structure
 
 ```
 your-project/
-├── agent                  ← CLI entry point (executable, committed to git)
+├── briefcase               ← CLI entry point (executable, committed to git)
 ├── .briefcase/            ← THE FRAMEWORK (gitignored)
 │   ├── skills/            ← PLAYBOOK.md + 5 SKILL.md agent definitions
 │   ├── template/          ← document templates (brief, backlog, etc.)
 │   ├── src/               ← CLI + storage + sync code
 │   ├── .venv/             ← Python venv with dependencies
 │   └── storage.yaml       ← backend config
-├── .skills                ← symlink → .briefcase/skills/ (AI tool discovery)
 ├── _project/
 │   ├── tech-stack.md
 │   ├── definition-of-done.md
@@ -82,9 +80,9 @@ your-project/
 The installer defaults to a **local file backend**. No API keys, no external services — everything works immediately:
 
 ```bash
-./agent --help                    # See all commands
-./agent inbox add --type idea --text "Build auth flow"
-./agent inbox list                # See your ideas
+./briefcase --help                    # See all commands
+./briefcase inbox add --type idea --text "Build auth flow"
+./briefcase inbox list                # See your ideas
 ```
 
 ### Enable Notion backend (optional)
@@ -96,10 +94,10 @@ To use Notion as your planning surface instead of local files:
 export NOTION_API_KEY="ntn_..."
 
 # Provision Notion workspace
-./agent setup --backend notion
+./briefcase setup --backend notion
 ```
 
-This prompts for a parent page ID, provisions the Briefs and Backlog databases, and saves config. All `./agent` commands then route transparently to Notion.
+This prompts for a parent page ID, provisions the Briefs and Backlog databases, and saves config. All `./briefcase` commands then route transparently to Notion.
 
 ---
 
@@ -110,68 +108,68 @@ All commands output JSON (`{"success": true, "data": ...}`) to stdout, errors to
 ### Inbox
 
 ```bash
-./agent inbox list                                    # List all ideas
-./agent inbox add --type idea --text "Build auth"     # Add an idea
+./briefcase inbox list                                    # List all ideas
+./briefcase inbox add --type idea --text "Build auth"     # Add an idea
 ```
 
 ### Briefs
 
 ```bash
-./agent brief list                                    # List all briefs
-./agent brief read my-feature                         # Read a brief as JSON
-./agent brief write my-feature --problem "..." --goal "..." --change-summary "..."
-./agent brief write my-feature --file brief.md        # Import from markdown file
-./agent brief history my-feature                      # List stored brief revisions
-./agent brief revision my-feature <revision-id>       # Read one stored revision
-./agent brief restore my-feature <revision-id> --change-summary "..."
+./briefcase brief list                                    # List all briefs
+./briefcase brief read my-feature                         # Read a brief as JSON
+./briefcase brief write my-feature --problem "..." --goal "..." --change-summary "..."
+./briefcase brief write my-feature --file brief.md        # Import from markdown file
+./briefcase brief history my-feature                      # List stored brief revisions
+./briefcase brief revision my-feature <revision-id>       # Read one stored revision
+./briefcase brief restore my-feature <revision-id> --change-summary "..."
 ```
 
 ### Backlog
 
 ```bash
-./agent backlog list                                  # List all items
-./agent backlog list --type Feature                   # Filter by type
-./agent backlog upsert --title "Build login" --type Task --status to-do --priority High
+./briefcase backlog list                                  # List all items
+./briefcase backlog list --type Feature                   # Filter by type
+./briefcase backlog upsert --title "Build login" --type Task --status to-do --priority High
 ```
 
 ### Decisions
 
 ```bash
-./agent decision list                                 # List all decisions
-./agent decision add --id D-001 --title "Use Next.js" --date 2026-03-16 --why "SSR"
+./briefcase decision list                                 # List all decisions
+./briefcase decision add --id D-001 --title "Use Next.js" --date 2026-03-16 --why "SSR"
 ```
 
 ### Releases
 
 ```bash
-./agent release list                                  # List all releases
-./agent release read v0.4.0                           # Read a release note
-./agent release write --version v0.5.0 --notes "..."  # Write a release note
+./briefcase release list                                  # List all releases
+./briefcase release read v0.4.0                           # Read a release note
+./briefcase release write --version v0.5.0 --notes "..."  # Write a release note
 ```
 
 ### Sync (optional — for git snapshots or bulk import)
 
 ```bash
-./agent sync local                                    # Pull Notion → local markdown
-./agent sync notion                                   # Push local → Notion
+./briefcase sync local                                    # Pull Notion → local markdown
+./briefcase sync notion                                   # Push local → Notion
 ```
 
 ### Automation (Delivery Manager dispatch)
 
 ```bash
-./agent automate architect-review       # Dispatch features needing architect review
-./agent automate implementation-ready   # Dispatch features ready for implementation
-./agent automate review-ready           # Dispatch features ready for review
-./agent automate fix-cycle-dispatch     # Dispatch features back for fix cycle
-./agent automate ship-routing           # Route accepted features to ship path
-./agent automate ship-dispatch          # Execute ship dispatch for accepted features
+./briefcase automate architect-review       # Dispatch features needing architect review
+./briefcase automate implementation-ready   # Dispatch features ready for implementation
+./briefcase automate review-ready           # Dispatch features ready for review
+./briefcase automate fix-cycle-dispatch     # Dispatch features back for fix cycle
+./briefcase automate ship-routing           # Route accepted features to ship path
+./briefcase automate ship-dispatch          # Execute ship dispatch for accepted features
 ```
 
 ### Upgrade
 
 ```bash
-./agent upgrade                         # Upgrade .briefcase/ from upstream
-./agent upgrade --check                 # Dry-run: show what would change
+./briefcase upgrade                         # Upgrade .briefcase/ from upstream
+./briefcase upgrade --check                 # Dry-run: show what would change
 ```
 
 ---
@@ -191,7 +189,7 @@ Key rules:
 - **Gitignored.** The install script reproduces it; `.briefcase/` is not consumer code.
 - **No files outside `.briefcase/`.** Consumer-owned folders (`src/`, `tests/`, `docs/`) are never touched.
 - **Path patching.** During install, skill path references are rewritten from `skills/` to `.briefcase/skills/` automatically.
-- **`sys.path` isolation.** The `./agent` entry point inserts `.briefcase/` into Python's module path, so `from src.cli.main import cli` resolves to `.briefcase/src/cli/main.py` — not the consumer's own `src/`.
+- **`sys.path` isolation.** The `./briefcase` entry point inserts `.briefcase/` into Python's module path, so `from src.cli.main import cli` resolves to `.briefcase/src/cli/main.py` — not the consumer's own `src/`.
 
 ---
 
@@ -233,7 +231,7 @@ Read .briefcase/skills/ideation/SKILL.md and follow it for this task.
 - **PLAYBOOK.md** defines who owns what, when to hand off, and where files live.
 - **AGENTS.md** is the project entrypoint that points to `PLAYBOOK.md`.
 
-All planning artifact operations go through the `agent` CLI, which routes to the active backend. Agents never read or write storage directly.
+All planning artifact operations go through the `briefcase` CLI, which routes to the active backend. Agents never read or write storage directly.
 
 ---
 
@@ -287,7 +285,7 @@ Future backends (Linear, GitHub Projects, etc.) can be added by implementing the
 │   ├── decisions.md
 │   └── storage.yaml               ← backend config (local or notion)
 │
-├── docs/plan/                     ← agent working space
+├── docs/plan/                     ← briefcase working space
 │   ├── _inbox.md                  ← raw ideas; append-only
 │   ├── _shared/backlog.md
 │   ├── _releases/v{version}/release-notes.md
