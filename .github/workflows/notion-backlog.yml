@@ -1,0 +1,45 @@
+name: Notion Backlog
+
+on:
+  workflow_dispatch:
+    inputs:
+      command:
+        description: "Briefcase command to run"
+        required: true
+        default: "backlog list"
+        type: choice
+        options:
+          - "backlog list"
+          - "backlog list --type Feature"
+          - "backlog list --type Task"
+          - "backlog list --type Idea"
+          - "backlog list --today"
+          - "brief list"
+          - "inbox list"
+  schedule:
+    # Daily snapshot at 8am UTC (midnight PST)
+    - cron: "0 8 * * *"
+
+permissions:
+  contents: read
+
+jobs:
+  notion-query:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -e .
+
+      - name: Run briefcase command
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+        run: |
+          COMMAND="${{ github.event.inputs.command || 'backlog list' }}"
+          echo "Running: briefcase ${COMMAND}"
+          python3 -m src.cli.main ${COMMAND}
