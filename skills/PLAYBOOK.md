@@ -209,6 +209,18 @@ Feature lifecycle is tracked on separate axes — do not collapse into one field
 
 ---
 
+## Feedback Forwarding
+
+When `--type feedback` is used with `briefcase inbox add`, entries are:
+1. Stored in the local project inbox (same as any other entry type).
+2. Forwarded to the upstream framework repo as a GitHub issue, if `upstream.feedback_repo` is configured in `storage.yaml`.
+
+The `install.sh` script auto-detects the framework's GitHub origin and seeds `upstream.feedback_repo` in `.briefcase/storage.yaml`. Forwarding requires the `gh` CLI to be installed and authenticated (`gh auth status`).
+
+If upstream forwarding is not configured or fails, the CLI output includes an `upstream_warning` field explaining the situation.
+
+---
+
 ## Backend Protocol
 
 > **Read `_project/storage.yaml` before touching any artifact.**
@@ -224,6 +236,7 @@ All planning artifacts are accessed through CLI commands. The CLI routes to the 
 |---|---|
 | List inbox | `briefcase inbox list` |
 | Add idea | `briefcase inbox add --type idea --text "Short title" --notes "Description"` |
+| Submit feedback | `briefcase inbox add --type feedback --text "Short title" --notes "Description"` |
 | Read brief | `briefcase brief read {feature-name}` |
 | Write brief head | `briefcase brief write {feature-name} --status draft --problem "..." --goal "..." --change-summary "..."` |
 | List brief revisions | `briefcase brief history {feature-name}` |

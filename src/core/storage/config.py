@@ -30,17 +30,32 @@ class NotionConfig:
 
 
 @dataclass
+class UpstreamConfig:
+    """Upstream feedback routing configuration.
+
+    When present, ``briefcase inbox add --type feedback`` forwards the
+    entry to the framework author's repo as a GitHub issue.
+    """
+
+    feedback_repo: str = ""  # e.g. "owner/repo"
+
+
+@dataclass
 class StorageConfig:
     """Top-level storage configuration."""
 
     backend: str = DEFAULT_BACKEND
     notion: NotionConfig | None = None
+    upstream: UpstreamConfig | None = None
 
     def is_notion(self) -> bool:
         return self.backend == "notion"
 
     def is_local(self) -> bool:
         return self.backend == "local"
+
+    def has_upstream_feedback(self) -> bool:
+        return self.upstream is not None and bool(self.upstream.feedback_repo)
 
 
 def _find_project_dir(start: str | Path | None = None) -> Path:
@@ -129,7 +144,16 @@ def load_config(project_dir: str | Path | None = None) -> StorageConfig:
             ),
         )
 
-    return StorageConfig(backend=backend, notion=notion_config)
+    upstream_config = None
+    if "upstream" in raw:
+        upstream_raw = raw["upstream"]
+        upstream_config = UpstreamConfig(
+            feedback_repo=upstream_raw.get("feedback_repo", ""),
+        )
+
+    return StorageConfig(
+        backend=backend, notion=notion_config, upstream=upstream_config
+    )
 
 
 def save_config(config: StorageConfig, project_dir: str | Path) -> Path:
@@ -149,6 +173,11 @@ def save_config(config: StorageConfig, project_dir: str | Path) -> Path:
             "parent_page_url": config.notion.parent_page_url,
             "databases": config.notion.databases,
             "seeded_template_versions": config.notion.seeded_template_versions,
+        }
+
+    if config.upstream is not None and config.upstream.feedback_repo:
+        data["upstream"] = {
+            "feedback_repo": config.upstream.feedback_repo,
         }
 
     with open(config_path, "w") as f:

@@ -7,6 +7,7 @@ from pathlib import Path
 from src.core.storage.config import (
     StorageConfig,
     NotionConfig,
+    UpstreamConfig,
     load_config,
     save_config,
     _find_config_dir,
@@ -227,3 +228,62 @@ def test_load_config_auto_resolves_briefcase(tmp_path, monkeypatch):
     config = load_config()
     assert config.is_notion()
     assert config.notion.parent_page_id == "abc"
+
+
+# --- Upstream config tests ---
+
+
+def test_load_config_reads_upstream_section(project_dir):
+    data = {
+        "backend": "local",
+        "upstream": {"feedback_repo": "owner/repo"},
+    }
+    (project_dir / STORAGE_CONFIG_FILENAME).write_text(yaml.dump(data))
+    config = load_config(project_dir)
+    assert config.upstream is not None
+    assert config.upstream.feedback_repo == "owner/repo"
+    assert config.has_upstream_feedback()
+
+
+def test_load_config_no_upstream_by_default(project_dir):
+    (project_dir / STORAGE_CONFIG_FILENAME).write_text("backend: local\n")
+    config = load_config(project_dir)
+    assert config.upstream is None
+    assert not config.has_upstream_feedback()
+
+
+def test_has_upstream_feedback_false_when_empty_repo(project_dir):
+    data = {"backend": "local", "upstream": {"feedback_repo": ""}}
+    (project_dir / STORAGE_CONFIG_FILENAME).write_text(yaml.dump(data))
+    config = load_config(project_dir)
+    assert not config.has_upstream_feedback()
+
+
+def test_save_config_with_upstream(project_dir):
+    config = StorageConfig(
+        backend="local",
+        upstream=UpstreamConfig(feedback_repo="owner/repo"),
+    )
+    path = save_config(config, project_dir)
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert data["upstream"]["feedback_repo"] == "owner/repo"
+
+
+def test_save_config_without_upstream_omits_key(project_dir):
+    config = StorageConfig(backend="local")
+    path = save_config(config, project_dir)
+    with open(path) as f:
+        data = yaml.safe_load(f)
+    assert "upstream" not in data
+
+
+def test_upstream_roundtrip(project_dir):
+    original = StorageConfig(
+        backend="local",
+        upstream=UpstreamConfig(feedback_repo="org/framework"),
+    )
+    save_config(original, project_dir)
+    loaded = load_config(project_dir)
+    assert loaded.upstream is not None
+    assert loaded.upstream.feedback_repo == "org/framework"
