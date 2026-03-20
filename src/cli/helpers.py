@@ -12,7 +12,7 @@ from pathlib import Path
 
 import click
 
-from src.core.storage.config import load_config, resolve_config_dir
+from src.core.storage.config import StorageConfig, load_config, resolve_config_dir
 from src.core.storage.factory import get_store
 from src.core.storage.protocol import ArtifactStore
 
@@ -29,6 +29,13 @@ def get_store_from_dir(project_dir: str = ".") -> ArtifactStore:
     config = load_config(config_dir)
 
     return get_store(config, str(root))
+
+
+def load_config_from_dir(project_dir: str = ".") -> StorageConfig:
+    """Load StorageConfig using the same resolution as get_store_from_dir."""
+    root = Path(project_dir).resolve()
+    config_dir = resolve_config_dir(root)
+    return load_config(config_dir)
 
 
 def output_json(data: dict | list, success: bool = True) -> None:

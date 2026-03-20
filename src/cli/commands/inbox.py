@@ -6,7 +6,8 @@ from datetime import date, datetime
 
 import click
 
-from src.cli.helpers import get_store_from_dir, output_json, output_error, project_dir_option
+from src.cli.helpers import get_store_from_dir, load_config_from_dir, output_json, output_error, project_dir_option
+from src.core.feedback import forward_feedback
 
 
 def _resolve_since(since: str | None, today: bool) -> str | None:
@@ -83,6 +84,38 @@ def inbox_add(
         if notes:
             entry["notes"] = notes
         store.append_inbox(entry)
-        output_json({"added": text, "type": entry_type, "priority": entry["priority"]})
+
+        result: dict = {
+            "added": text,
+            "type": entry_type,
+            "priority": entry["priority"],
+            "stored": "local-project",
+        }
+
+        # Forward feedback entries to upstream repo when configured
+        if entry_type == "feedback":
+            config = load_config_from_dir(project_dir)
+            if config.has_upstream_feedback():
+                fwd = forward_feedback(
+                    repo=config.upstream.feedback_repo,  # type: ignore[union-attr]
+                    text=text,
+                    notes=notes,
+                    priority=entry["priority"],
+                )
+                result["upstream"] = fwd
+                if fwd["forwarded"]:
+                    result["stored"] = "local-project + upstream"
+                else:
+                    result["upstream_warning"] = (
+                        f"Saved locally but upstream forwarding failed: {fwd['error']}"
+                    )
+            else:
+                result["upstream_warning"] = (
+                    "Feedback saved to local project inbox only. "
+                    "No upstream.feedback_repo configured in storage.yaml — "
+                    "the framework author will not see this automatically."
+                )
+
+        output_json(result)
     except Exception as e:
         output_error(str(e))

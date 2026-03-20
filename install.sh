@@ -85,12 +85,32 @@ echo "        src/, skills/, template/ copied."
 
 # --- 2. Create .briefcase/storage.yaml (if not present) ---
 STORAGE_YAML="$BRIEFCASE/storage.yaml"
+
+# Detect upstream repo from the framework's git origin for feedback routing
+UPSTREAM_REPO=""
+if command -v git >/dev/null 2>&1 && [ -d "$FRAMEWORK_DIR/.git" ]; then
+    _origin_url="$(git -C "$FRAMEWORK_DIR" remote get-url origin 2>/dev/null || true)"
+    # Extract owner/repo from SSH or HTTPS URL
+    if [ -n "$_origin_url" ]; then
+        UPSTREAM_REPO="$(echo "$_origin_url" | sed -E 's#.*[:/]([^/]+/[^/]+?)(\.git)?$#\1#')"
+    fi
+fi
+
 if [ ! -f "$STORAGE_YAML" ]; then
     echo "  [2/$TOTAL_STEPS] Creating .briefcase/storage.yaml (backend: local)..."
-    cat > "$STORAGE_YAML" << 'EOF'
+    cat > "$STORAGE_YAML" << EOF
 backend: local
 EOF
-    echo "        Default backend: local."
+    # Append upstream feedback config if we detected the repo
+    if [ -n "$UPSTREAM_REPO" ]; then
+        cat >> "$STORAGE_YAML" << EOF
+upstream:
+  feedback_repo: $UPSTREAM_REPO
+EOF
+        echo "        Default backend: local. Upstream feedback: $UPSTREAM_REPO"
+    else
+        echo "        Default backend: local. (No upstream repo detected for feedback routing.)"
+    fi
 else
     echo "  [2/$TOTAL_STEPS] .briefcase/storage.yaml already exists — skipped."
 fi
@@ -299,4 +319,8 @@ echo "  ./briefcase inbox add       — Capture a new idea"
 echo ""
 echo "Feedback:"
 echo "  Found a bug or have a feature request? Submit it via:"
-echo "  ./briefcase inbox add --type idea --text \"Bug: description\" --notes \"Details\""
+echo "  ./briefcase inbox add --type feedback --text \"Bug: description\" --notes \"Details\""
+if [ -n "$UPSTREAM_REPO" ]; then
+    echo "  (Feedback entries are forwarded to $UPSTREAM_REPO via GitHub Issues.)"
+    echo "  Requires: gh CLI authenticated — run 'gh auth status' to verify."
+fi
