@@ -3,9 +3,8 @@
 Reads/writes planning artifacts directly to Notion databases via the API.
 When Notion is the active backend, this is the source of truth.
 
-v3: Unified Backlog (Idea/Feature/Task) + Decisions database +
-brief pages stored in the dedicated Briefs container + Templates as child
-pages.
+v4: Unified Backlog (Idea/Feature/Task) + Decisions database +
+Briefs database (v4) or legacy Briefs container page (v3).
 """
 
 from __future__ import annotations
@@ -63,6 +62,17 @@ class NotionBackend:
                 yield
             finally:
                 fcntl.flock(lock_file.fileno(), fcntl.LOCK_UN)
+
+    def _has_briefs_db(self) -> bool:
+        """Check if briefs are stored in a database (v4) vs container page (v3)."""
+        return bool(self._dbs.get("briefs_db"))
+
+    def _briefs_db_id(self) -> str:
+        """Return the Briefs database ID."""
+        db_id = self._dbs.get("briefs_db")
+        if not db_id:
+            raise ValueError("Briefs database not provisioned. Run briefcase brief migrate.")
+        return db_id
 
     def _briefs_page_id(self) -> str:
         """Return the Briefs container page ID, falling back to parent page."""
@@ -194,9 +204,139 @@ class NotionBackend:
         props["Priority"] = self._select_prop(entry.get("priority", "Medium"))
         self._client.create_database_page(self._db("backlog"), props)
 
-    # -- Briefs (standalone pages under project root) --
+    # -- Briefs (database v4 or legacy container page v3) --
 
     def read_brief(self, brief_name: str) -> dict:
+        if self._has_briefs_db():
+            return self._read_brief_db(brief_name)
+        return self._read_brief_page(brief_name)
+
+    def write_brief(self, brief_name: str, data: dict) -> None:
+        if self._has_briefs_db():
+            return self._write_brief_db(brief_name, data)
+        return self._write_brief_page(brief_name, data)
+
+    def list_briefs(self) -> list[dict]:
+        if self._has_briefs_db():
+            return self._list_briefs_db()
+        return self._list_briefs_page()
+
+    # -- Briefs: database (v4) implementation --
+
+    def _find_brief_in_db(self, brief_name: str) -> dict | None:
+        """Find a brief row in the database by Slug."""
+        results = self._client.query_database(
+            self._briefs_db_id(),
+            filter={
+                "property": "Slug",
+                "rich_text": {"equals": brief_name},
+            },
+        )
+        return results[0] if results else None
+
+    def _read_brief_db(self, brief_name: str) -> dict:
+        row = self._find_brief_in_db(brief_name)
+        if not row:
+            raise KeyError(f"Brief not found: {brief_name}")
+
+        props = row.get("properties", {})
+        page_id = row["id"]
+        blocks = self._client.get_block_children(page_id)
+        body_text = self._blocks_to_markdown(blocks)
+
+        title = self._get_title(props, "Name")
+        data = {
+            "name": brief_name,
+            "title": title or brief_name,
+            "raw": body_text,
+            "notion_id": page_id,
+            "notion_url": row.get("url", ""),
+        }
+
+        # Status from database property (preferred) or body text (fallback)
+        db_status = self._get_select(props, "Status")
+        data["status"] = db_status or extract_brief_status(body_text)
+
+        # Parse sections from body
+        data.update(parse_brief_sections(body_text))
+
+        return data
+
+    def _write_brief_db(self, brief_name: str, data: dict) -> None:
+        from src.integrations.notion.provisioner import NotionProvisioner
+
+        existing = self._find_brief_in_db(brief_name)
+        status = data.get("status") or extract_brief_status(
+            data.get("raw", "")
+        )
+
+        if existing:
+            current = self._read_brief_db(brief_name)
+            merged_data = dict(current)
+            merged_data.update(data)
+            body = self._render_brief_body(brief_name, merged_data)
+            blocks = NotionProvisioner._markdown_to_blocks(body)
+            self._store_brief_revision(
+                brief_name,
+                current,
+                actor=data.get("_actor", ""),
+                change_summary=data.get("_change_summary", ""),
+            )
+            # Update database properties
+            props: dict[str, Any] = {
+                "Name": self._title_prop(merged_data.get("title", brief_name)),
+            }
+            if status:
+                props["Status"] = self._select_prop(status)
+            merged_status = merged_data.get("status", status)
+            if merged_status:
+                props["Status"] = self._select_prop(merged_status)
+            self._client.update_database_page(existing["id"], props)
+            self._replace_page_body(existing["id"], blocks)
+        else:
+            body = self._render_brief_body(brief_name, data)
+            blocks = NotionProvisioner._markdown_to_blocks(body)
+            props = {
+                "Name": self._title_prop(data.get("title", brief_name)),
+                "Slug": self._rich_text_prop(brief_name),
+            }
+            if status:
+                props["Status"] = self._select_prop(status)
+            self._client.create_database_page(
+                self._briefs_db_id(),
+                props,
+                children=blocks[:100],
+            )
+
+    def _list_briefs_db(self) -> list[dict]:
+        """List briefs from the Briefs database."""
+        rows = self._client.query_database(
+            self._briefs_db_id(),
+            sorts=[{"property": "Date", "direction": "descending"}],
+        )
+        briefs = []
+        for row in rows:
+            props = row.get("properties", {})
+            title = self._get_title(props, "Name")
+            slug = self._get_rich_text(props, "Slug")
+            name = slug or self._title_to_brief_name(title)
+            status = self._get_select(props, "Status") or "draft"
+            date_val = self._get_date(props, "Date")
+            if not date_val:
+                edited_at = row.get("last_edited_time", "")
+                date_val = edited_at[:10] if edited_at else ""
+            briefs.append({
+                "name": name,
+                "status": status,
+                "title": title,
+                "date": date_val,
+                "notion_id": row["id"],
+            })
+        return briefs
+
+    # -- Briefs: legacy container page (v3) implementation --
+
+    def _read_brief_page(self, brief_name: str) -> dict:
         page_id = self._find_brief_page(brief_name)
         if not page_id:
             raise KeyError(f"Brief not found: {brief_name}")
@@ -226,9 +366,7 @@ class NotionBackend:
 
         return data
 
-    def write_brief(self, brief_name: str, data: dict) -> None:
-        from datetime import date as _date
-
+    def _write_brief_page(self, brief_name: str, data: dict) -> None:
         from src.integrations.notion.provisioner import NotionProvisioner
 
         existing_id = self._find_brief_page(brief_name)
@@ -267,12 +405,8 @@ class NotionBackend:
             )
         self._refresh_briefs_index()
 
-    def list_briefs(self) -> list[dict]:
-        """List brief pages under the Briefs container page.
-
-        Only briefs created in the dedicated Briefs container are supported.
-        Legacy root-level brief pages are intentionally out of scope.
-        """
+    def _list_briefs_page(self) -> list[dict]:
+        """List brief pages under the Briefs container page (legacy v3)."""
         briefs = []
         briefs_page = self._briefs_page_id()
         children = self._client.get_block_children(briefs_page)
@@ -379,15 +513,23 @@ class NotionBackend:
         return self.read_brief(brief_name)
 
     def _find_brief_page(self, brief_name: str) -> str | None:
-        """Find a supported brief page by name under the Briefs container."""
-        briefs_page = self._briefs_page_id()
-        children = self._client.get_block_children(briefs_page)
-        for child in children:
-            if child.get("type") != "child_page":
-                continue
-            title = child.get("child_page", {}).get("title", "")
-            if self._title_to_brief_name(title) == brief_name:
-                return child["id"]
+        """Find a brief page by name. Checks database first, then legacy page."""
+        if self._has_briefs_db():
+            row = self._find_brief_in_db(brief_name)
+            if row:
+                return row["id"]
+        # Legacy: scan children of Briefs container page
+        try:
+            briefs_page = self._briefs_page_id()
+            children = self._client.get_block_children(briefs_page)
+            for child in children:
+                if child.get("type") != "child_page":
+                    continue
+                title = child.get("child_page", {}).get("title", "")
+                if self._title_to_brief_name(title) == brief_name:
+                    return child["id"]
+        except Exception:
+            pass
         return None
 
     def _refresh_briefs_index(self) -> None:
@@ -594,6 +736,7 @@ class NotionBackend:
                 "priority": self._get_select(r["properties"], "Priority"),
                 "review_verdict": self._get_select(r["properties"], "Review Verdict"),
                 "route_state": self._get_select(r["properties"], "Route State"),
+                "lane": self._get_select(r["properties"], "Lane"),
                 "brief_link": self._get_url(r["properties"], "Brief Link"),
                 "release_note_link": self._get_url(r["properties"], "Release Note Link"),
                 "notes": self._get_rich_text(r["properties"], "Notes"),
@@ -627,6 +770,8 @@ class NotionBackend:
             props["Review Verdict"] = self._select_prop(row["review_verdict"])
         if row.get("route_state"):
             props["Route State"] = self._select_prop(row["route_state"])
+        if row.get("lane"):
+            props["Lane"] = self._select_prop(row["lane"])
         if row.get("parent_ids"):
             props["Parent"] = self._relation_prop(row["parent_ids"])
 
@@ -670,6 +815,7 @@ class NotionBackend:
                 "priority": self._get_select(r["properties"], "Priority"),
                 "review_verdict": self._get_select(r["properties"], "Review Verdict"),
                 "route_state": self._get_select(r["properties"], "Route State"),
+                "lane": self._get_select(r["properties"], "Lane"),
                 "brief_link": self._get_url(r["properties"], "Brief Link"),
                 "release_note_link": self._get_url(r["properties"], "Release Note Link"),
                 "notes": self._get_rich_text(r["properties"], "Notes"),
@@ -756,12 +902,29 @@ class NotionBackend:
     _RELEASE_NOTE_TITLE_SUFFIX = " Release Notes"
 
     def _replace_page_body(self, page_id: str, blocks: list[dict]) -> None:
-        """Replace all top-level page blocks with the provided blocks."""
+        """Replace all top-level page blocks with the provided blocks.
+
+        Gracefully skips blocks that are already archived or trashed,
+        including blocks that become archived between the list and delete
+        calls (race condition with concurrent edits or prior failed writes).
+        """
+        from notion_client.errors import APIResponseError
+
         old_blocks = self._client.get_block_children(page_id)
         for block in old_blocks:
             if block.get("archived") or block.get("in_trash"):
                 continue
-            self._client.delete_block(block["id"])
+            try:
+                self._client.delete_block(block["id"])
+            except APIResponseError as exc:
+                # Notion returns 409 Conflict when trying to edit an
+                # archived block.  This can happen if the block was
+                # archived between the list call and this delete, or if
+                # a previous failed write left stale archived blocks
+                # that Notion still surfaces in the children list.
+                if "archived" in str(exc).lower() or getattr(exc, "status", None) == 409:
+                    continue
+                raise
         if blocks:
             self._client.append_block_children(page_id, blocks[:100])
 

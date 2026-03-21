@@ -14,9 +14,9 @@ from src.integrations.notion.provisioner import NotionProvisioner
 # --- Schema tests ---
 
 
-def test_registry_has_two_databases():
-    assert len(DATABASE_REGISTRY) == 2
-    assert set(DATABASE_REGISTRY.keys()) == {"backlog", "decisions"}
+def test_registry_has_three_databases():
+    assert len(DATABASE_REGISTRY) == 3
+    assert set(DATABASE_REGISTRY.keys()) == {"backlog", "decisions", "briefs_db"}
 
 
 def test_backlog_schema_has_required_properties():
@@ -72,6 +72,7 @@ def test_decisions_schema_has_required_properties():
 @pytest.fixture
 def mock_client():
     client = MagicMock()
+    client.get_page.return_value = {"id": "parent-page-id", "object": "page"}
     client.get_block_children.return_value = []
     db_counter = iter(range(1, 100))
     client.create_database.side_effect = (
@@ -95,15 +96,15 @@ def test_provision_creates_databases_and_pages(provisioner, mock_client):
 
     assert "backlog" in resource_ids
     assert "decisions" in resource_ids
+    assert "briefs_db" in resource_ids
     assert "readme" in resource_ids
     assert "templates" in resource_ids
-    assert "briefs" in resource_ids
     assert "release_notes" in resource_ids
-    assert mock_client.create_database.call_count == 2
-    assert mock_client.create_page.call_count == 4  # README + Templates + Briefs + Release Notes
+    assert mock_client.create_database.call_count == 3  # Backlog + Decisions + Briefs
+    assert mock_client.create_page.call_count == 3  # README + Templates + Release Notes
     assert result.success
-    assert len(result.databases_created) == 2
-    assert len(result.pages_created) == 4
+    assert len(result.databases_created) == 3
+    assert len(result.pages_created) == 3
     # Section labels added on fresh provision
     assert mock_client.append_block_children.call_count == 3  # "Backlog", spacer, "Documentations"
 
@@ -172,7 +173,7 @@ def test_provision_is_idempotent(provisioner, mock_client):
     assert resource_ids["decisions"] == "ex-db-2"
     assert resource_ids["readme"] == "ex-p-1"
     assert resource_ids["templates"] == "ex-p-2"
-    assert resource_ids["briefs"] == "ex-p-3"
+    assert resource_ids["briefs"] == "ex-p-3"  # Legacy page kept
     assert resource_ids["release_notes"] == "ex-p-4"
     assert mock_client.create_database.call_count == 0
     assert mock_client.create_page.call_count == 0
@@ -190,9 +191,9 @@ def test_provision_creates_only_missing(provisioner, mock_client):
     resource_ids, result = provisioner.provision("parent-page-id")
 
     assert resource_ids["backlog"] == "ex-1"
-    assert mock_client.create_database.call_count == 1  # decisions only
+    assert mock_client.create_database.call_count == 2  # decisions + briefs_db
     assert len(result.databases_found) == 1
-    assert len(result.databases_created) == 1
+    assert len(result.databases_created) == 2
 
 
 def test_provision_seeds_templates(provisioner, mock_client, tmp_path):
@@ -234,3 +235,60 @@ def test_markdown_to_blocks():
     assert blocks[6]["to_do"]["checked"] is True
     assert blocks[8]["type"] == "divider"
     assert blocks[10]["type"] == "paragraph"
+
+
+# --- Preflight check tests ---
+
+
+def test_preflight_check_passes_on_valid_page(provisioner, mock_client):
+    """Preflight should not raise when the page is accessible."""
+    provisioner.preflight_check("parent-page-id")
+    mock_client.get_page.assert_called_once_with("parent-page-id")
+
+
+def test_preflight_check_raises_lookup_error_on_404(provisioner, mock_client):
+    mock_client.get_page.side_effect = Exception("Could not find page with ID: abc123")
+    with pytest.raises(LookupError, match="Parent page not found"):
+        provisioner.preflight_check("abc123")
+
+
+def test_preflight_check_raises_permission_error_on_403(provisioner, mock_client):
+    mock_client.get_page.side_effect = Exception("403: restricted_resource")
+    with pytest.raises(PermissionError, match="No access to parent page"):
+        provisioner.preflight_check("restricted-page")
+
+
+def test_preflight_check_raises_runtime_error_on_other_failure(provisioner, mock_client):
+    mock_client.get_page.side_effect = Exception("Connection timeout")
+    with pytest.raises(RuntimeError, match="Failed to validate parent page"):
+        provisioner.preflight_check("some-page")
+
+
+def test_provision_calls_preflight_before_provisioning(provisioner, mock_client):
+    """provision() should call preflight_check and fail early on bad page."""
+    mock_client.get_page.side_effect = Exception("Could not find page")
+    with pytest.raises(LookupError):
+        provisioner.provision("bad-page-id")
+    # Should not proceed to create anything
+    mock_client.create_database.assert_not_called()
+    mock_client.create_page.assert_not_called()
+
+
+# --- README emoji test ---
+
+
+def test_readme_page_uses_correct_briefs_emoji(provisioner, mock_client):
+    """The Briefs bullet should use the clipboard emoji, not a replacement char."""
+    page = provisioner._create_readme_page("parent-page-id")
+    # Find the Briefs bullet (4th bulleted_list_item, index 5 in the blocks list)
+    create_call = mock_client.create_page.call_args
+    children = create_call[1]["children"]
+    briefs_bullets = [
+        b for b in children
+        if b.get("type") == "bulleted_list_item"
+        and "Briefs" in b["bulleted_list_item"]["rich_text"][0]["text"]["content"]
+    ]
+    assert len(briefs_bullets) == 1
+    text = briefs_bullets[0]["bulleted_list_item"]["rich_text"][0]["text"]["content"]
+    assert text.startswith("\U0001f4cb")  # 📋 clipboard emoji
+    assert "\ufffd" not in text  # no replacement character

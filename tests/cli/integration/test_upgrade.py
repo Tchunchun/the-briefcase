@@ -29,6 +29,7 @@ def notion_project(tmp_path):
             databases={
                 "backlog": "db-backlog",
                 "decisions": "db-decisions",
+                "briefs_db": "db-briefs",
                 "readme": "page-readme",
                 "templates": "page-templates",
             },
@@ -66,6 +67,7 @@ FULL_BACKLOG_PROPS = {
     "Priority": _make_select_prop(["High", "Medium", "Low"]),
     "Review Verdict": _make_select_prop(["pending", "accepted", "changes-requested"]),
     "Route State": _make_select_prop(["routed", "returned", "blocked"]),
+    "Lane": _make_select_prop(["quick-fix", "small", "feature"]),
     "Brief Link": {"type": "url", "url": {}},
     "Release Note Link": {"type": "url", "url": {}},
     "Notes": {"type": "rich_text", "rich_text": {}},
@@ -85,12 +87,23 @@ FULL_DECISIONS_PROPS = {
 }
 
 
+FULL_BRIEFS_PROPS = {
+    "Name": {"type": "title", "title": {}},
+    "Slug": {"type": "rich_text", "rich_text": {}},
+    "Status": _make_select_prop(["draft", "implementation-ready"]),
+    "Date": {"type": "date", "date": {}},
+    "Linked Feature": {"type": "url", "url": {}},
+    "Author": {"type": "rich_text", "rich_text": {}},
+}
+
+
 def _mock_healthy_client() -> MagicMock:
     client = MagicMock()
     client.get_page.return_value = {"id": "parent-abc"}
     client.get_database.side_effect = [
         {"id": "db-backlog", "properties": FULL_BACKLOG_PROPS},
         {"id": "db-decisions", "properties": FULL_DECISIONS_PROPS},
+        {"id": "db-briefs", "properties": FULL_BRIEFS_PROPS},
     ]
     return client
 

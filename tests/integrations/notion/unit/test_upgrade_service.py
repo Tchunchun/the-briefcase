@@ -27,6 +27,7 @@ def healthy_config() -> StorageConfig:
             databases={
                 "backlog": "db-backlog",
                 "decisions": "db-decisions",
+                "briefs_db": "db-briefs",
                 "readme": "page-readme",
                 "templates": "page-templates",
             },
@@ -88,6 +89,7 @@ FULL_BACKLOG_PROPS = {
     "Priority": _make_select_prop(["High", "Medium", "Low"]),
     "Review Verdict": _make_select_prop(["pending", "accepted", "changes-requested"]),
     "Route State": _make_select_prop(["routed", "returned", "blocked"]),
+    "Lane": _make_select_prop(["quick-fix", "small", "feature"]),
     "Brief Link": {"type": "url", "url": {}},
     "Release Note Link": {"type": "url", "url": {}},
     "Notes": {"type": "rich_text", "rich_text": {}},
@@ -106,6 +108,15 @@ FULL_DECISIONS_PROPS = {
     "ADR Link": {"type": "url", "url": {}},
 }
 
+FULL_BRIEFS_PROPS = {
+    "Name": {"type": "title", "title": {}},
+    "Slug": {"type": "rich_text", "rich_text": {}},
+    "Status": _make_select_prop(["draft", "implementation-ready"]),
+    "Date": {"type": "date", "date": {}},
+    "Linked Feature": {"type": "url", "url": {}},
+    "Author": {"type": "rich_text", "rich_text": {}},
+}
+
 
 # -- Tests: healthy workspace (no-op) --
 
@@ -118,6 +129,7 @@ class TestHealthyWorkspace:
         mock_client.get_database.side_effect = [
             _db_response(FULL_BACKLOG_PROPS),
             _db_response(FULL_DECISIONS_PROPS),
+            _db_response(FULL_BRIEFS_PROPS),
         ]
 
         service = NotionUpgradeService(mock_client, healthy_config)
@@ -134,6 +146,7 @@ class TestHealthyWorkspace:
         mock_client.get_database.side_effect = [
             _db_response(FULL_BACKLOG_PROPS),
             _db_response(FULL_DECISIONS_PROPS),
+            _db_response(FULL_BRIEFS_PROPS),
         ]
 
         service = NotionUpgradeService(mock_client, healthy_config)
@@ -156,6 +169,7 @@ class TestMissingProperties:
         mock_client.get_database.side_effect = [
             _db_response(partial_backlog),
             _db_response(FULL_DECISIONS_PROPS),
+            _db_response(FULL_BRIEFS_PROPS),
         ]
 
         service = NotionUpgradeService(mock_client, healthy_config)
@@ -178,6 +192,7 @@ class TestMissingProperties:
         mock_client.get_database.side_effect = [
             _db_response(partial_backlog),
             _db_response(FULL_DECISIONS_PROPS),
+            _db_response(FULL_BRIEFS_PROPS),
         ]
         mock_client.update_database.return_value = {}
 
@@ -207,6 +222,7 @@ class TestMissingSelectOptions:
         mock_client.get_database.side_effect = [
             _db_response(partial_backlog),
             _db_response(FULL_DECISIONS_PROPS),
+            _db_response(FULL_BRIEFS_PROPS),
         ]
 
         service = NotionUpgradeService(mock_client, healthy_config)
@@ -227,6 +243,7 @@ class TestMissingSelectOptions:
         mock_client.get_database.side_effect = [
             _db_response(partial_backlog),
             _db_response(FULL_DECISIONS_PROPS),
+            _db_response(FULL_BRIEFS_PROPS),
         ]
         mock_client.update_database.return_value = {}
 
@@ -255,6 +272,7 @@ class TestMissingPageIds:
         mock_client.get_database.side_effect = [
             _db_response(FULL_BACKLOG_PROPS),
             _db_response(FULL_DECISIONS_PROPS),
+            _db_response(FULL_BRIEFS_PROPS),
         ]
         # Parent has README page child
         mock_client.get_block_children.return_value = [
@@ -281,6 +299,7 @@ class TestMissingPageIds:
         mock_client.get_database.side_effect = [
             _db_response(FULL_BACKLOG_PROPS),
             _db_response(FULL_DECISIONS_PROPS),
+            _db_response(FULL_BRIEFS_PROPS),
         ]
         mock_client.get_block_children.return_value = [
             {"type": "child_page", "child_page": {"title": "README"}, "id": "page-readme-found"},
@@ -309,6 +328,7 @@ class TestMissingPageIds:
         mock_client.get_database.side_effect = [
             _db_response(FULL_BACKLOG_PROPS),
             _db_response(FULL_DECISIONS_PROPS),
+            _db_response(FULL_BRIEFS_PROPS),
         ]
         mock_client.get_block_children.return_value = []  # No child pages
 
@@ -374,6 +394,7 @@ class TestTitlePropertyHandling:
         mock_client.get_database.side_effect = [
             _db_response(props),
             _db_response(FULL_DECISIONS_PROPS),
+            _db_response(FULL_BRIEFS_PROPS),
         ]
 
         service = NotionUpgradeService(mock_client, healthy_config)
@@ -453,6 +474,7 @@ class TestConfigPersistenceBoundary:
         mock_client.get_database.side_effect = [
             _db_response(FULL_BACKLOG_PROPS),
             _db_response(FULL_DECISIONS_PROPS),
+            _db_response(FULL_BRIEFS_PROPS),
         ]
         mock_client.get_block_children.return_value = [
             {"type": "child_page", "child_page": {"title": "README"}, "id": "page-readme-found"},
@@ -480,6 +502,7 @@ class TestConfigPersistenceBoundary:
         mock_client.get_database.side_effect = [
             _db_response(FULL_BACKLOG_PROPS),
             _db_response(FULL_DECISIONS_PROPS),
+            _db_response(FULL_BRIEFS_PROPS),
         ]
 
         service = NotionUpgradeService(mock_client, healthy_config)
