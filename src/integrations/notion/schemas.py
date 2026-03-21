@@ -3,8 +3,8 @@
 Defines the property schemas used when provisioning databases and
 validates that existing databases match the expected schema.
 
-v2: Unified Backlog (Idea/Feature/Task) + Decisions. Templates and
-briefs are standalone pages, not databases.
+v3: Unified Backlog (Idea/Feature/Task) + Decisions + Briefs database.
+Templates and release notes are standalone pages, not databases.
 """
 
 from __future__ import annotations
@@ -31,6 +31,7 @@ BACKLOG_SCHEMA: dict[str, dict] = {
     "Priority": _select_options(["High", "Medium", "Low"]),
     "Review Verdict": _select_options(["pending", "accepted", "changes-requested"]),
     "Route State": _select_options(["routed", "returned", "blocked"]),
+    "Lane": _select_options(["quick-fix", "small", "feature"]),
     "Brief Link": {"url": {}},
     "Release Note Link": {"url": {}},
     "Notes": {"rich_text": {}},
@@ -51,9 +52,20 @@ DECISIONS_SCHEMA: dict[str, dict] = {
 }
 
 
+BRIEFS_SCHEMA: dict[str, dict] = {
+    "Name": {"title": {}},
+    "Slug": {"rich_text": {}},
+    "Status": _select_options(["draft", "implementation-ready"]),
+    "Date": {"date": {}},
+    "Linked Feature": {"url": {}},
+    "Author": {"rich_text": {}},
+}
+
+
 # -- Registry: name → (schema, icon, display title) --
 
 DATABASE_REGISTRY: dict[str, tuple[dict[str, dict], str, str]] = {
     "backlog": (BACKLOG_SCHEMA, "📊", "Backlog"),
     "decisions": (DECISIONS_SCHEMA, "⚖️", "Decisions"),
+    "briefs_db": (BRIEFS_SCHEMA, "📋", "Briefs"),
 }
