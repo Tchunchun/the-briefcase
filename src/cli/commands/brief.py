@@ -1,4 +1,4 @@
-"""CLI commands: agent brief list, agent brief read, agent brief write."""
+"""CLI commands: agent brief list, agent brief read, agent brief write, agent brief migrate."""
 
 from __future__ import annotations
 
@@ -396,5 +396,74 @@ def brief_restore(
         )
     except KeyError:
         output_error(f"Brief revision not found: {name}@{revision_id}")
+    except Exception as e:
+        output_error(str(e))
+
+
+@brief.command(name="migrate")
+@click.option("--dry-run", is_flag=True, default=False, help="Report what would happen without making changes.")
+@project_dir_option
+def brief_migrate(dry_run: bool, project_dir: str) -> None:
+    """Migrate briefs from legacy container page to a Notion database."""
+    from pathlib import Path
+
+    from src.core.storage.config import load_config, resolve_config_dir, save_config
+    from src.integrations.notion.client import NotionClient
+    from src.integrations.notion.schemas import DATABASE_REGISTRY
+    from src.migrations.briefs_to_database import migrate_briefs_to_database
+
+    try:
+        root = Path(project_dir).resolve()
+        config_dir = resolve_config_dir(root)
+        config = load_config(config_dir)
+
+        if not config.is_notion() or config.notion is None:
+            output_error("Brief migration requires the Notion backend. Current backend: local.")
+            return
+
+        dbs = config.notion.databases
+        briefs_page_id = dbs.get("briefs", "")
+        briefs_db_id = dbs.get("briefs_db", "")
+
+        if not briefs_page_id and not briefs_db_id:
+            output_error(
+                "No briefs page or briefs_db found in config. "
+                "Run `briefcase setup --backend notion` first."
+            )
+            return
+
+        if briefs_db_id and not briefs_page_id:
+            output_error("Already using briefs database — nothing to migrate.")
+            return
+
+        client = NotionClient()
+
+        # Provision briefs database if it doesn't exist yet
+        if not briefs_db_id:
+            if dry_run:
+                click.echo("Would create Briefs database and migrate briefs.")
+                briefs_db_id = "<dry-run-placeholder>"
+            else:
+                schema = DATABASE_REGISTRY["briefs_db"]
+                new_db = client.create_database(
+                    config.notion.parent_page_id,
+                    "Briefs",
+                    schema["properties"],
+                    icon=schema.get("icon", "📋"),
+                )
+                briefs_db_id = new_db["id"]
+                click.echo(f"Created Briefs database: {briefs_db_id}")
+
+        result = migrate_briefs_to_database(
+            client, briefs_page_id, briefs_db_id, dry_run=dry_run,
+        )
+
+        # Persist briefs_db to config after successful migration
+        if not dry_run and result["migrated"] and not dbs.get("briefs_db"):
+            config.notion.databases["briefs_db"] = briefs_db_id
+            save_config(config, config_dir)
+            click.echo(f"Updated storage config with briefs_db: {briefs_db_id}")
+
+        output_json(result)
     except Exception as e:
         output_error(str(e))
