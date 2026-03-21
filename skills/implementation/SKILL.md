@@ -29,6 +29,18 @@ Before writing any code, verify:
 2. Open `_project/tech-stack.md` (local file, always safe to read directly) — never introduce unlisted technology without logging a decision.
 3. Open `_project/testing-strategy.md` (local file, always safe to read directly) — this tells you what types of tests to write and what "relevant test scope" means.
 
+## Pre-Build Validation
+
+Before writing any code for a feature, restate the plan and confirm intent with the user:
+
+1. Read the brief's **Expected Experience** section (the before/after examples).
+2. In plain language, restate what you will build — focus on what the user will see, not internal implementation details.
+3. Show a mock of the expected output that matches the brief's Expected Experience examples.
+4. **For features (blocking):** STOP and ask the user to confirm the plan before proceeding. Do not write code until the user confirms.
+5. **For bug fixes and tech debt (advisory):** Show the plan and continue unless the user objects.
+
+If the brief has no Expected Experience section (legacy briefs), skip this step.
+
 ## Required Workflow
 
 1. Run `briefcase backlog list` to see current backlog state.
