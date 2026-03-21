@@ -22,6 +22,7 @@ from src.cli.commands.release import release
 from src.cli.commands.automate import automate
 from src.cli.commands.upgrade import upgrade
 from src.cli.commands.update import update
+from src.cli.commands.ship import ship
 
 
 @click.group()
@@ -40,6 +41,7 @@ cli.add_command(release)
 cli.add_command(automate)
 cli.add_command(upgrade)
 cli.add_command(update)
+cli.add_command(ship)
 
 
 if __name__ == "__main__":
