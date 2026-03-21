@@ -286,8 +286,6 @@ class NotionBackend:
             props: dict[str, Any] = {
                 "Name": self._title_prop(merged_data.get("title", brief_name)),
             }
-            if status:
-                props["Status"] = self._select_prop(status)
             merged_status = merged_data.get("status", status)
             if merged_status:
                 props["Status"] = self._select_prop(merged_status)

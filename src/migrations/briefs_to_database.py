@@ -47,7 +47,8 @@ def migrate_briefs_to_database(
         props = row.get("properties", {})
         slug_items = props.get("Slug", {}).get("rich_text", [])
         if slug_items:
-            existing_slugs.add(slug_items[0].get("plain_text", ""))
+            full_slug = "".join(item.get("plain_text", "") for item in slug_items)
+            existing_slugs.add(full_slug)
 
     # Scan legacy container page for brief child pages
     children = client.get_block_children(briefs_page_id)
