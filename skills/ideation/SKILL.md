@@ -43,8 +43,9 @@ You are responsible for **clarity**, not delivery. Your job is to turn rough ide
    - Desired behavior — what the user wants, including any concrete examples they gave
    - Motivation — why this matters
    - Scope clarity — what changes and where (e.g. CLI, skill, Notion page, etc.)
+   - Expected experience — concrete before/after examples of what the user will see
    If any of these are thin or missing, enrich the `--notes` before stopping.
-7. **Context completeness gate (hard gate for briefs):** Before writing the brief, run the Context Completeness Check. All four dimensions must be present — if any is missing, ask the user before proceeding. Do not create the brief until all four are covered.
+7. **Context completeness gate (hard gate for briefs):** Before writing the brief, run the Context Completeness Check. All five dimensions must be present — if any is missing, ask the user before proceeding. Do not create the brief until all five are covered.
 8. When the idea is ready, create or update the brief head with a human change note and link it to the source Idea in one step:
    `briefcase brief write {feature-name} --status draft --problem "..." --goal "..." --change-summary "Initial scope draft" --link-idea-id "<idea-notion-id>"`
    (Use `--link-idea-title "<exact-existing-title>"` only when you do not have the idea id.)
@@ -92,6 +93,7 @@ Fill in these sections of `brief.md`:
 - **Goal** — what success looks like for the user or system
 - **Acceptance Criteria** — observable, testable conditions that define success (use checkboxes)
 - **Non-Functional Requirements** — fill in what is known for: expected load/scale, latency, availability, cost constraints, compliance, other constraints. Write "not yet known" for anything genuinely unclear — the architect will flag these as Open Questions.
+- **Expected Experience** — concrete before/after examples of what the user will see when the feature is complete. For CLI features, include literal terminal output. For UI changes, describe what the user sees. For API changes, show request/response pairs. If the feature has multiple user-facing touchpoints, include an example for each. These examples are the primary reference for implementation fidelity and review intent-checking.
 - **Out of Scope** — what this feature will NOT include (be explicit)
 - **Open Questions** — unresolved technical decisions for the architect to resolve
 
@@ -112,12 +114,13 @@ When the user's idea is early-stage:
 
 ## Context Completeness Check
 
-After every inbox capture or before writing a brief, verify the captured context covers these four dimensions:
+After every inbox capture or before writing a brief, verify the captured context covers these five dimensions:
 
 1. **Current behavior / pain point** — what is broken or missing today
 2. **Desired behavior + examples** — what the user wants, including any concrete examples they gave
 3. **Motivation** — why this matters, who benefits
 4. **Scope clarity** — what changes, which files/layers/surfaces (e.g. CLI, skill, Notion page), any independent sub-changes
+5. **Expected experience** — concrete before/after examples of what the user will see (literal terminal output for CLI, visual description for UI, request/response for API)
 
 ### For inbox add (advisory)
 
@@ -125,7 +128,7 @@ Run the check after capture. If any dimension is thin or missing, note the gaps 
 
 ### For brief write (hard gate)
 
-Run the check **before** writing the brief. If any dimension is missing, ask the user before proceeding. Do not create the brief until all four dimensions are covered.
+Run the check **before** writing the brief. If any dimension is missing, ask the user before proceeding. Do not create the brief until all five dimensions are covered.
 
 ## Decision Rules
 
@@ -136,7 +139,7 @@ Run the check **before** writing the brief. If any dimension is missing, ask the
 - If the codebase already solves the problem → note the overlap and confirm intent before creating a new brief.
 - **Title matching is exact.** The backlog upsert matches on `title + type`. If you paraphrase, shorten, or reword an existing Idea's title, the upsert will create a duplicate row instead of updating the original. Always run `briefcase backlog list --type Idea` first, find the original row, and copy its title exactly.
 - A brief is ready for architect review when problem, goal, acceptance criteria, and out-of-scope items are clear enough that the architect can assess the technical approach without asking basic scope questions.
-- **Context completeness gate:** Before writing any brief, all four context dimensions (current behavior, desired behavior + examples, motivation, scope clarity) must be present. See the Context Completeness Check section.
+- **Context completeness gate:** Before writing any brief, all five context dimensions (current behavior, desired behavior + examples, motivation, scope clarity, expected experience) must be present. See the Context Completeness Check section.
 
 ## Phase Splitting
 
