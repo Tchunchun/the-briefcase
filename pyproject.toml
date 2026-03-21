@@ -1,6 +1,6 @@
 [project]
 name = "the-briefcase"
-version = "0.8.0"
+version = "0.9.3"
 description = "0-to-1 Agent Skills framework — CLI for planning artifacts"
 requires-python = ">=3.11"
 dependencies = [
