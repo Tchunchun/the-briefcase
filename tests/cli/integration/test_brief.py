@@ -400,10 +400,7 @@ def test_brief_list_returns_grouped_output(runner, project):
         ],
     )
     assert result.exit_code == 0, result.output
-    payload = json.loads(result.output)
-    assert payload["success"] is True
-    groups = payload["data"]["groups"]
-    assert isinstance(groups, list)
-    assert groups
-    assert "date" in groups[0]
-    assert "briefs" in groups[0]
+    # Output is human-readable, not JSON
+    assert "──" in result.output  # date section header
+    assert "grouping-check" in result.output  # brief name appears
+    assert "draft" in result.output  # status appears

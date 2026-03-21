@@ -149,14 +149,36 @@ def _group_briefs_by_date(briefs: list[dict]) -> list[dict]:
     ]
 
 
+def _format_briefs_human(groups: list[dict]) -> str:
+    """Format brief groups as human-readable terminal output."""
+    lines: list[str] = []
+    # Find max name length for alignment
+    max_name = 0
+    for group in groups:
+        for b in group["briefs"]:
+            max_name = max(max_name, len(b.get("name", "")))
+    col_width = max(max_name + 4, 30)
+
+    for group in groups:
+        date_str = group["date"]
+        lines.append(f"── {date_str} " + "─" * max(0, 48 - len(date_str)))
+        for b in group["briefs"]:
+            name = b.get("name", "")
+            status = b.get("status", "")
+            lines.append(f"  {name:<{col_width}}{status}")
+        lines.append("")  # blank line between groups
+    return "\n".join(lines).rstrip()
+
+
 @brief.command(name="list")
 @project_dir_option
 def brief_list(project_dir: str) -> None:
-    """List all briefs as JSON."""
+    """List all briefs grouped by date."""
     try:
         store = get_store_from_dir(project_dir)
         data = store.list_briefs()
-        output_json({"groups": _group_briefs_by_date(data)})
+        groups = _group_briefs_by_date(data)
+        click.echo(_format_briefs_human(groups))
     except Exception as e:
         output_error(str(e))
 
