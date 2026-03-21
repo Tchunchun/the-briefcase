@@ -3,8 +3,8 @@
 Creates the page tree and databases for a project. Idempotent — re-running
 against the same parent page does not duplicate pages or databases.
 
-v3: Unified Backlog (Idea/Feature/Task) + Decisions database +
-Briefs page + Release Notes page + Templates page + README page.
+v4: Unified Backlog (Idea/Feature/Task) + Decisions database +
+Briefs database + Release Notes page + Templates page + README page.
 Section-label paragraphs organize the visual layout.
 
 Provisioned layout:
@@ -13,7 +13,7 @@ Provisioned layout:
   ├── 📊 Backlog (database)
   ├── PARA ""
   ├── PARA "Documentations"
-  ├── 📋 Briefs (page)
+  ├── 📋 Briefs (database)
   ├── ⚖️ Decisions (database)
   ├── 🚀 Release Notes (page)
   ├── 📄 Templates (page)
@@ -61,6 +61,32 @@ class NotionProvisioner:
     def __init__(self, client: NotionClient) -> None:
         self._client = client
 
+    def preflight_check(self, parent_page_id: str) -> None:
+        """Validate that the parent page exists and is accessible.
+
+        Raises:
+            PermissionError: If the token lacks access to the page (403).
+            LookupError: If the page does not exist (404).
+            RuntimeError: For other API failures.
+        """
+        try:
+            self._client.get_page(parent_page_id)
+        except Exception as e:
+            msg = str(e)
+            if "404" in msg or "not_found" in msg.lower() or "Could not find" in msg:
+                raise LookupError(
+                    f"Parent page not found: {parent_page_id}. "
+                    "Check that the page ID is correct."
+                ) from e
+            if "403" in msg or "unauthorized" in msg.lower() or "restricted" in msg.lower():
+                raise PermissionError(
+                    f"No access to parent page: {parent_page_id}. "
+                    "Ensure the Notion integration has been shared with this page."
+                ) from e
+            raise RuntimeError(
+                f"Failed to validate parent page {parent_page_id}: {e}"
+            ) from e
+
     def provision(
         self,
         parent_page_id: str,
@@ -76,6 +102,9 @@ class NotionProvisioner:
             (resource_ids, result) where resource_ids maps
             name → Notion ID (databases and pages), and result has details.
         """
+        # Preflight: verify parent page is accessible before provisioning
+        self.preflight_check(parent_page_id)
+
         result = ProvisionResult()
         resource_ids: dict[str, str] = {}
 
@@ -108,11 +137,19 @@ class NotionProvisioner:
             self._append_paragraph(parent_page_id, "")
             self._append_paragraph(parent_page_id, "Documentations")
 
-        # -- Briefs page --
-        self._provision_page(
-            "briefs", "Briefs", "📋",
-            parent_page_id, existing_pages, resource_ids, result,
-        )
+        # -- Briefs database (v4) or legacy page --
+        # If existing project has a briefs page (not database), keep it.
+        # Migration to database is handled by `briefcase brief migrate`.
+        if "briefs" in existing_pages and "briefs_db" not in existing_dbs:
+            # Legacy briefs page exists, no database yet — keep page reference
+            resource_ids["briefs"] = existing_pages["briefs"]
+            result.pages_found = getattr(result, "pages_found", [])
+            result.pages_found.append("briefs")
+        else:
+            # New project or already migrated — provision briefs database
+            self._provision_database(
+                "briefs_db", parent_page_id, existing_dbs, resource_ids, result
+            )
 
         # -- Decisions database --
         self._provision_database(
@@ -303,7 +340,7 @@ class NotionProvisioner:
                         {
                             "text": {
                                 "content": (
-                                    "� Briefs — feature briefs "
+                                    "📋 Briefs — feature briefs "
                                     "(one sub-page per feature)"
                                 )
                             }
