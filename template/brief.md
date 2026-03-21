@@ -12,6 +12,22 @@ What problem does this solve? Keep this to 1 to 3 sentences.
 *Owned by ideation agent.*
 What does success look like for the user or system?
 
+## Expected Experience
+*Owned by ideation agent.*
+Show concrete before/after examples of what the user will see when this feature is complete. These examples are the primary reference for implementation fidelity and review intent-checking.
+
+**Before** (current behavior):
+```
+<paste or describe what the user sees today>
+```
+
+**After** (desired behavior):
+```
+<paste or describe what the user should see after the feature ships>
+```
+
+*For CLI features, include literal terminal output. For UI changes, describe what the user sees. For API changes, show request/response pairs. If the feature has multiple user-facing touchpoints, include an example for each.*
+
 ## Acceptance Criteria
 *Owned by ideation agent.*
 - [ ] Criterion 1
@@ -43,7 +59,7 @@ Describe the chosen architecture, patterns, libraries, and any constraints from 
 
 ## Notes
 
-- Ideation agent fills everything above Technical Approach, then flags open questions.
+- Ideation agent fills everything above Technical Approach (including Expected Experience), then flags open questions.
 - During ideation handoff, the brief stays `draft` while the Feature backlog row moves to `architect-review`; these are not the same field.
 - Architect agent fills Technical Approach, resolves open questions, and sets Status to `implementation-ready`.
 - Implementation agent treats this entire file as read-only.
