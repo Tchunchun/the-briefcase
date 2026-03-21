@@ -129,20 +129,28 @@ if command -v git >/dev/null 2>&1 && [ -d "$FRAMEWORK_DIR/.git" ]; then
     fi
 fi
 
+PROJECT_STORAGE="$TARGET_DIR/_project/storage.yaml"
 if [ ! -f "$STORAGE_YAML" ]; then
-    echo "  [2/$TOTAL_STEPS] Creating .briefcase/storage.yaml (backend: local)..."
-    cat > "$STORAGE_YAML" << EOF
+    if [ -f "$PROJECT_STORAGE" ]; then
+        # Reinstall: sync from canonical _project/storage.yaml to avoid config mismatch
+        echo "  [2/$TOTAL_STEPS] Syncing .briefcase/storage.yaml from _project/storage.yaml..."
+        cp "$PROJECT_STORAGE" "$STORAGE_YAML"
+        echo "        Copied canonical config to .briefcase/storage.yaml."
+    else
+        echo "  [2/$TOTAL_STEPS] Creating .briefcase/storage.yaml (backend: local)..."
+        cat > "$STORAGE_YAML" << EOF
 backend: local
 EOF
-    # Append upstream feedback config if we detected the repo
-    if [ -n "$UPSTREAM_REPO" ]; then
-        cat >> "$STORAGE_YAML" << EOF
+        # Append upstream feedback config if we detected the repo
+        if [ -n "$UPSTREAM_REPO" ]; then
+            cat >> "$STORAGE_YAML" << EOF
 upstream:
   feedback_repo: $UPSTREAM_REPO
 EOF
-        echo "        Default backend: local. Upstream feedback: $UPSTREAM_REPO"
-    else
-        echo "        Default backend: local. (No upstream repo detected for feedback routing.)"
+            echo "        Default backend: local. Upstream feedback: $UPSTREAM_REPO"
+        else
+            echo "        Default backend: local. (No upstream repo detected for feedback routing.)"
+        fi
     fi
 else
     echo "  [2/$TOTAL_STEPS] .briefcase/storage.yaml already exists — skipped."
@@ -204,14 +212,13 @@ echo "        ./briefcase created and made executable."
 
 # --- 4. Create Python venv and install dependencies ---
 echo "  [4/$TOTAL_STEPS] Creating Python venv and installing dependencies..."
+_VENV_LOG="$(mktemp)"
+_VENV_CREATED="false"
 if [ ! -d "$BRIEFCASE/.venv" ]; then
-    _VENV_LOG="$(mktemp)"
-    if python3 -m venv "$BRIEFCASE/.venv" 2>"$_VENV_LOG" && \
-       "$BRIEFCASE/.venv/bin/python" -m pip install -q --upgrade pip 2>>"$_VENV_LOG" && \
-       "$BRIEFCASE/.venv/bin/python" -m pip install -q -e "$BRIEFCASE/" 2>>"$_VENV_LOG"; then
-        echo "        .venv created and dependencies installed."
+    if python3 -m venv "$BRIEFCASE/.venv" 2>"$_VENV_LOG"; then
+        _VENV_CREATED="true"
     else
-        echo "        ⚠ venv/pip setup failed. Error output:" >&2
+        echo "        ⚠ venv creation failed. Error output:" >&2
         cat "$_VENV_LOG" >&2
         if [ "$NON_INTERACTIVE" = "true" ]; then
             rm -f "$_VENV_LOG"
@@ -219,10 +226,25 @@ if [ ! -d "$BRIEFCASE/.venv" ]; then
         fi
         echo "        CLI will fall back to system python3."
     fi
-    rm -f "$_VENV_LOG"
 else
-    echo "        .venv already exists — skipped."
+    _VENV_CREATED="true"
 fi
+# Always install/upgrade deps when venv exists (deps may be missing from a prior partial install)
+if [ "$_VENV_CREATED" = "true" ]; then
+    if "$BRIEFCASE/.venv/bin/python" -m pip install -q --upgrade pip 2>>"$_VENV_LOG" && \
+       "$BRIEFCASE/.venv/bin/python" -m pip install -q -e "$BRIEFCASE/" 2>>"$_VENV_LOG"; then
+        echo "        .venv ready and dependencies installed."
+    else
+        echo "        ⚠ pip install failed. Error output:" >&2
+        cat "$_VENV_LOG" >&2
+        if [ "$NON_INTERACTIVE" = "true" ]; then
+            rm -f "$_VENV_LOG"
+            exit 1
+        fi
+        echo "        CLI will fall back to system python3."
+    fi
+fi
+rm -f "$_VENV_LOG"
 
 # --- 5. Create docs/plan/ directory structure (local backend only) ---
 # Read backend from storage.yaml; default to "local" if not found.

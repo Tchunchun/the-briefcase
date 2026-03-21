@@ -288,6 +288,51 @@ class TestInstallerHardening:
         assert (consumer_dir / "briefcase").exists()
 
 
+class TestReinstallBugFixes:
+    def test_reinstall_runs_pip_even_when_venv_exists(self, consumer_dir):
+        """Bug fix: installer must run pip install even if .venv/ already exists."""
+        run_install(consumer_dir)
+        # Verify venv exists
+        assert (consumer_dir / ".briefcase" / ".venv").is_dir()
+        # Re-install should still succeed (pip runs again)
+        result = run_install(consumer_dir)
+        assert result.returncode == 0
+        assert "dependencies installed" in result.stdout
+
+    def test_reinstall_syncs_from_project_storage_yaml(self, consumer_dir):
+        """Bug fix: if _project/storage.yaml exists and .briefcase/storage.yaml
+        is missing (e.g. after rm -rf .briefcase), installer should copy from
+        _project/storage.yaml instead of creating a bare default."""
+        run_install(consumer_dir)
+        # Simulate user running setup which creates _project/storage.yaml
+        project_dir = consumer_dir / "_project"
+        project_dir.mkdir(exist_ok=True)
+        project_yaml = project_dir / "storage.yaml"
+        project_yaml.write_text(
+            "backend: notion\nnotion:\n  parent_page_id: abc123\n"
+            "  databases:\n    backlog: db-1\n"
+        )
+        # Simulate rm -rf .briefcase (consumer reinstall)
+        import shutil
+        shutil.rmtree(consumer_dir / ".briefcase")
+
+        result = run_install(consumer_dir)
+        assert result.returncode == 0
+        briefcase_yaml = consumer_dir / ".briefcase" / "storage.yaml"
+        content = briefcase_yaml.read_text()
+        assert "parent_page_id: abc123" in content
+        assert "Syncing" in result.stdout or "canonical" in result.stdout
+
+    def test_spaces_in_folder_name(self, tmp_path):
+        """Bug fix: installer should handle spaces in project folder name."""
+        target = tmp_path / "briefcase demo project"
+        target.mkdir()
+        result = run_install(target)
+        assert result.returncode == 0, f"stderr: {result.stderr}"
+        assert (target / ".briefcase" / "src").is_dir()
+        assert (target / "briefcase").exists()
+
+
 class TestSafetyGuards:
     def test_self_install_guard_blocks_framework_repo_target(self):
         env = os.environ.copy()
