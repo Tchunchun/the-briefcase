@@ -17,6 +17,7 @@ from src.core.automation.implementation_ready import ImplementationReadyAutomati
 from src.core.automation.review_ready import ReviewReadyAutomationService
 from src.core.automation.ship_routing import ShipRoutingAutomationService
 from src.core.automation.ship_dispatch import ShipDispatchAutomationService
+from src.core.automation.idea_close import IdeaCloseAutomationService
 
 
 @click.group()
@@ -538,6 +539,42 @@ def automate_ship_dispatch(
             phase="ship-dispatch",
         )
         service = ShipDispatchAutomationService(store, dispatcher=dispatcher)
+        output_json(service.scan(apply=not dry_run))
+    except Exception as e:
+        output_error(str(e))
+
+
+@automate.command(name="idea-close")
+@click.option("--dry-run", is_flag=True, help="Compute dispatches without writing trace notes.")
+@click.option("--notes-only", is_flag=True, help="Write trace notes without executing a shell command.")
+@click.option(
+    "--dispatch-command",
+    default="",
+    help=(
+        "Shell command template for the delivery-manager idea close. "
+        "Supports placeholders like {parent_idea_title}, {feature_title}, and {dispatch_token}. "
+        "Defaults to AGENT_IDEA_CLOSE_COMMAND."
+    ),
+)
+@project_dir_option
+def automate_idea_close(
+    dry_run: bool,
+    notes_only: bool,
+    dispatch_command: str,
+    project_dir: str,
+) -> None:
+    """Detect done features and dispatch the delivery-manager idea close."""
+    try:
+        store = get_store_from_dir(project_dir)
+        command_template = dispatch_command or os.environ.get("AGENT_IDEA_CLOSE_COMMAND", "")
+        dispatcher = None if notes_only else _build_dispatcher(
+            command_template,
+            project_dir,
+            "Idea-close",
+            store=store,
+            phase="idea-close",
+        )
+        service = IdeaCloseAutomationService(store, dispatcher=dispatcher)
         output_json(service.scan(apply=not dry_run))
     except Exception as e:
         output_error(str(e))
