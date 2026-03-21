@@ -133,6 +133,7 @@ Dispatch rule:
 - Review verdict is `accepted`
 - Feature Status is `review-accepted`
 - No blocking findings remain
+- Working directory is clean (`git status` shows no uncommitted changes unrelated to the feature being shipped)
 - Release notes readiness is confirmed for implementation handoff
 - Run `briefcase backlog children --parent-id <idea-notion-id>` and verify all child Features are `done` before marking the parent Idea as `shipped`
 - If child Features are mixed (some done, some not), block the shipped transition and record which Feature titles are still not done
