@@ -1,4 +1,4 @@
-"""CLI command: agent setup — initialize project with backend selection."""
+"""CLI command: briefcase setup — initialize project with backend selection."""
 
 from __future__ import annotations
 
@@ -75,6 +75,12 @@ def setup(backend: str | None, project_dir: str) -> None:
         provisioner = NotionProvisioner(client)
 
         template_dir = root / "template"
+        # Preflight: validate parent page access before provisioning
+        try:
+            provisioner.preflight_check(parent_page_id)
+        except (LookupError, PermissionError, RuntimeError) as e:
+            raise click.ClickException(str(e))
+
         db_ids, result = provisioner.provision(
             parent_page_id,
             template_dir=template_dir if template_dir.exists() else None,
@@ -134,8 +140,8 @@ def setup(backend: str | None, project_dir: str) -> None:
         click.echo("     - Idea Board: filter Type=Idea, grouped by Idea Status")
         click.echo("     - Feature Board: filter Type=Feature, grouped by Feature Status")
         click.echo("     - Task Board: filter Type=Task, grouped by Task Status")
-        click.echo("  2. Run `agent sync local` to pull Notion → local before working")
-        click.echo("  3. Run `agent sync notion` to push local → Notion after working")
+        click.echo("  2. Run `./briefcase sync local` to pull Notion → local before working")
+        click.echo("  3. Run `./briefcase sync notion` to push local → Notion after working")
 
 
 def _save_env_token(project_root: Path, token: str) -> None:

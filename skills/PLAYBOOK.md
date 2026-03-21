@@ -94,6 +94,69 @@ Do not use for: writing scope, architecture decisions, coding, or acceptance dec
 
 ---
 
+## Processing Lanes
+
+Not all work requires the same ceremony. The ideation agent assigns a **lane** during triage that determines how much process the work goes through.
+
+### Lane Definitions
+
+| Lane | When to use | Artifacts created | Pipeline |
+|------|------------|-------------------|----------|
+| **quick-fix** | Root cause is known AND fix is a single-file change AND no design ambiguity | Task row only (no Idea, no brief) | Inbox → Task → Implementation (self-review) → Done |
+| **small** | Scope is clear AND touches ≤2 files AND no architectural questions | Lite brief (Problem + Goal + AC only) + Feature row | Inbox → Lite brief → Implementation → Review → Done |
+| **feature** | Everything else — ambiguous scope, multiple files, cross-cutting concerns, architectural unknowns | Full brief + Idea + Feature rows | Full pipeline (current flow) |
+
+### Lane Assignment
+
+The ideation agent assigns the lane using this decision tree during triage:
+
+```
+1. Is the root cause known AND the fix is a single-file change?
+   → YES: quick-fix
+   → NO: continue
+
+2. Is the scope clear AND touches ≤2 files AND no architectural questions?
+   → YES: small
+   → NO: feature
+```
+
+The user can override the lane by passing `--lane quick-fix|small|feature` on `briefcase inbox add`. If passed, the override is final — the ideation agent does not re-triage.
+
+### Lane-Specific Handoff Rules
+
+**Quick-fix lane:**
+1. Ideation agent creates a Task row directly: `briefcase backlog upsert --title "..." --type Task --status to-do --lane quick-fix --notes "Root cause: ..."`
+2. Implementation agent picks up the Task, implements the fix, writes tests.
+3. Implementation agent self-reviews (per "Review Requirements by Type" — bugs and tech debt allow self-review).
+4. Implementation agent marks Task `done` with a ship note.
+5. No Idea row, no brief, no architect review, no separate review agent.
+
+**Small lane:**
+1. Ideation agent creates a lite brief with Problem, Goal, and Acceptance Criteria only (no NFRs, no open questions, no architect review needed).
+2. Ideation agent creates a Feature row with `--lane small` and sets it to `implementation-ready` (skipping `architect-review`).
+3. Implementation agent picks up the Feature, implements, writes tests.
+4. Review agent validates against the lite brief's AC.
+5. Standard ship flow after review acceptance.
+
+**Feature lane:**
+- Unchanged. Uses the current full pipeline: Ideation → Architect → Implementation → Review → Ship.
+
+### Lane Escalation
+
+If the implementation agent discovers that a quick-fix or small item is more complex than expected:
+
+1. **Quick-fix → small:** Create a lite brief, convert the Task to a Feature row, route to review after implementation.
+2. **Quick-fix → feature:** Create a full brief, convert the Task to a Feature row, route to architect review.
+3. **Small → feature:** Add NFRs and open questions to the existing brief, route to architect review.
+
+Record the escalation in the Feature/Task notes: `[lane-escalation] <date> Escalated from <old-lane> to <new-lane>: <reason>`
+
+### Backlog Schema
+
+The `Lane` field is a select property on backlog rows with options: `quick-fix`, `small`, `feature`. Default: `feature` (backward compatible — all existing rows without a Lane value are treated as feature lane).
+
+---
+
 ## Reverse-Flow Escalation Protocol
 
 Normal fix cycles (`changes-requested` → implementation) stay inside the forward model.

@@ -195,6 +195,99 @@ class TestNotionTokenDetection:
         assert "No API key" in result.stdout or "NOTION_API_KEY" in result.stdout
 
 
+class TestConditionalDocsPlan:
+    def test_local_backend_creates_docs_plan(self, consumer_dir):
+        """Default install (local backend) creates docs/plan/ directory."""
+        run_install(consumer_dir)
+        assert (consumer_dir / "docs" / "plan" / "_shared").is_dir()
+        assert (consumer_dir / "docs" / "plan" / "_reference" / "adr").is_dir()
+
+    def test_notion_backend_skips_docs_plan(self, consumer_dir):
+        """When storage.yaml is notion, docs/plan/ should NOT be created."""
+        # First install to create .briefcase/
+        run_install(consumer_dir)
+
+        # Switch backend to notion
+        yaml_path = consumer_dir / ".briefcase" / "storage.yaml"
+        yaml_path.write_text("backend: notion\n")
+
+        # Remove docs/plan/ to verify it's not re-created
+        docs_plan = consumer_dir / "docs" / "plan"
+        if docs_plan.exists():
+            import shutil
+            shutil.rmtree(docs_plan)
+
+        # Re-install — should skip docs/plan/
+        result = run_install(consumer_dir)
+        assert result.returncode == 0
+        assert not (consumer_dir / "docs" / "plan").exists()
+        assert "Skipping docs/plan/" in result.stdout
+
+
+class TestInstallerHardening:
+    def test_pip_uses_python_m_pip(self, consumer_dir):
+        """All pip invocations should use .venv/bin/python -m pip."""
+        install_sh = Path(FRAMEWORK_DIR) / "install.sh"
+        content = install_sh.read_text()
+        # Should NOT have direct .venv/bin/pip calls
+        assert ".venv/bin/pip" not in content
+        # Should have python -m pip
+        assert "python\" -m pip" in content or "python -m pip" in content
+
+    def test_no_swallowed_stderr_in_venv_block(self, consumer_dir):
+        """venv/pip block should not redirect stderr to /dev/null."""
+        install_sh = Path(FRAMEWORK_DIR) / "install.sh"
+        content = install_sh.read_text()
+        # Find the venv section (step 4)
+        venv_section_start = content.find("Create Python venv")
+        venv_section_end = content.find("--- 5.", venv_section_start)
+        venv_section = content[venv_section_start:venv_section_end]
+        assert "2>/dev/null" not in venv_section
+
+    def test_no_agent_command_references_in_messages(self, consumer_dir):
+        """Post-install messages should reference './briefcase', not 'agent'."""
+        result = run_install(consumer_dir)
+        assert result.returncode == 0
+        stdout = result.stdout
+        # Check that CLI references use ./briefcase
+        assert "./briefcase --help" in stdout
+        assert "./briefcase setup" in stdout
+        # Should not have 'agent' as a CLI command reference (but 'Agent' in
+        # descriptions like "Agent workflow CLI" is fine)
+        for line in stdout.splitlines():
+            lower = line.lower().strip()
+            if lower.startswith("./briefcase") or "agent workflow" in lower:
+                continue
+            # Lines like "  agent sync local" should not exist
+            assert "`agent " not in line
+
+    def test_non_interactive_flag_succeeds(self, consumer_dir):
+        """--non-interactive should complete successfully."""
+        env = os.environ.copy()
+        env["FRAMEWORK_DIR"] = FRAMEWORK_DIR
+        env["TARGET_DIR"] = str(consumer_dir)
+
+        result = subprocess.run(
+            ["bash", os.path.join(FRAMEWORK_DIR, "install.sh"), "--non-interactive"],
+            capture_output=True, text=True, env=env, timeout=30,
+        )
+        assert result.returncode == 0
+        assert (consumer_dir / ".briefcase").is_dir()
+
+    def test_non_interactive_env_var(self, consumer_dir):
+        """BRIEFCASE_NON_INTERACTIVE=true should work like --non-interactive."""
+        result = run_install(consumer_dir, {"BRIEFCASE_NON_INTERACTIVE": "true"})
+        assert result.returncode == 0
+        assert (consumer_dir / ".briefcase").is_dir()
+
+    def test_interactive_mode_unchanged(self, consumer_dir):
+        """Without --non-interactive, install still works normally."""
+        result = run_install(consumer_dir)
+        assert result.returncode == 0
+        assert (consumer_dir / ".briefcase").is_dir()
+        assert (consumer_dir / "briefcase").exists()
+
+
 class TestSafetyGuards:
     def test_self_install_guard_blocks_framework_repo_target(self):
         env = os.environ.copy()

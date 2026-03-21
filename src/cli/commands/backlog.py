@@ -112,6 +112,7 @@ def backlog_children(parent_id: str, project_dir: str) -> None:
 @click.option("--release-note-link", default="", help="URL to release note page (done Features after ship wrap-up).")
 @click.option("--review-verdict", default="", type=click.Choice(["", "pending", "accepted", "changes-requested"], case_sensitive=False), help="Review verdict (Features only).")
 @click.option("--route-state", default="", type=click.Choice(["", "routed", "returned", "blocked"], case_sensitive=False), help="Route state set by delivery-manager.")
+@click.option("--lane", default="", type=click.Choice(["", "quick-fix", "small", "feature"], case_sensitive=False), help="Processing lane: quick-fix, small, or feature.")
 @click.option("--parent-id", default=None, help="Notion page ID of parent item (for Task→Feature or Feature→Idea linking).")
 @click.option("--id", "item_id", default="", help="Local ID (e.g., T-027). Used by local backend.")
 @click.option("--feature", default="", help="Feature name. Used by local backend for the Feature column.")
@@ -127,6 +128,7 @@ def backlog_upsert(
     release_note_link: str,
     review_verdict: str,
     route_state: str,
+    lane: str,
     parent_id: str | None,
     item_id: str,
     feature: str,
@@ -151,6 +153,8 @@ def backlog_upsert(
             row["review_verdict"] = review_verdict
         if route_state:
             row["route_state"] = route_state
+        if lane:
+            row["lane"] = lane
         if parent_id:
             row["parent_ids"] = [parent_id]
         # Local backend fields

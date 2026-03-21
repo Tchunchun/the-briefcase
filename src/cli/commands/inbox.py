@@ -73,9 +73,15 @@ def inbox_list(
     type=click.Choice(["High", "Medium", "Low"], case_sensitive=False),
     help="Priority (default: Medium).",
 )
+@click.option(
+    "--lane",
+    default="",
+    type=click.Choice(["", "quick-fix", "small", "feature"], case_sensitive=False),
+    help="Processing lane override: quick-fix, small, or feature.",
+)
 @project_dir_option
 def inbox_add(
-    text: str, notes: str, entry_type: str, priority: str, project_dir: str
+    text: str, notes: str, entry_type: str, priority: str, lane: str, project_dir: str
 ) -> None:
     """Add an idea to the inbox."""
     try:
@@ -83,6 +89,11 @@ def inbox_add(
         entry = {"text": text, "type": entry_type, "priority": priority.title()}
         if notes:
             entry["notes"] = notes
+        if lane:
+            entry["lane"] = lane
+            # Prepend lane to notes so it's visible during triage
+            lane_tag = f"[lane: {lane}]"
+            entry["notes"] = f"{lane_tag} {entry.get('notes', '')}".strip()
         store.append_inbox(entry)
 
         result: dict = {
@@ -91,6 +102,8 @@ def inbox_add(
             "priority": entry["priority"],
             "stored": "local-project",
         }
+        if lane:
+            result["lane"] = lane
 
         # Forward feedback entries to upstream repo when configured
         if entry_type == "feedback":

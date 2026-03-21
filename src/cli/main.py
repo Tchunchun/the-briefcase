@@ -2,7 +2,15 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import click
+from dotenv import load_dotenv
+
+# Auto-load .env from project root so callers don't need to export manually.
+_env_path = Path(__file__).resolve().parents[2] / ".env"
+if _env_path.exists():
+    load_dotenv(_env_path)
 
 from src.cli.commands.setup import setup
 from src.cli.commands.sync import sync
@@ -13,6 +21,7 @@ from src.cli.commands.backlog import backlog
 from src.cli.commands.release import release
 from src.cli.commands.automate import automate
 from src.cli.commands.upgrade import upgrade
+from src.cli.commands.update import update
 
 
 @click.group()
@@ -30,6 +39,7 @@ cli.add_command(backlog)
 cli.add_command(release)
 cli.add_command(automate)
 cli.add_command(upgrade)
+cli.add_command(update)
 
 
 if __name__ == "__main__":

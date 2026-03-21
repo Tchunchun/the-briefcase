@@ -20,7 +20,16 @@
 
 set -euo pipefail
 
-INSTALLER_VERSION="0.5.2"
+INSTALLER_VERSION="0.6.0"
+
+# --- Non-interactive mode ---
+# Accept --non-interactive as first argument or BRIEFCASE_NON_INTERACTIVE env var.
+NON_INTERACTIVE="${BRIEFCASE_NON_INTERACTIVE:-false}"
+if [ "${1:-}" = "--non-interactive" ]; then
+    NON_INTERACTIVE="true"
+    shift
+fi
+export BRIEFCASE_NON_INTERACTIVE="$NON_INTERACTIVE"
 
 # --- Resolve framework source directory ---
 # When run from a local clone, SCRIPT_DIR is the framework repo root.
@@ -82,6 +91,30 @@ find "$BRIEFCASE/skills" -name '*.md' -exec sed -i '' 's|skills/|.briefcase/skil
 find "$BRIEFCASE/skills" -name '*.md' -exec sed -i 's|skills/|.briefcase/skills/|g' {} +
 
 echo "        src/, skills/, template/ copied."
+
+# Write VERSION file from pyproject.toml
+_FW_VERSION=""
+if [ -f "$FRAMEWORK_DIR/pyproject.toml" ]; then
+    _FW_VERSION="$(grep -E '^version\s*=' "$FRAMEWORK_DIR/pyproject.toml" | sed 's/.*"\(.*\)".*/\1/' || true)"
+fi
+if [ -n "$_FW_VERSION" ]; then
+    echo "$_FW_VERSION" > "$BRIEFCASE/VERSION"
+    echo "        VERSION $_FW_VERSION written."
+fi
+
+# Write manifest.json (file hashes for customization detection)
+if command -v python3 >/dev/null 2>&1; then
+    PYTHONPATH="$BRIEFCASE" python3 -c "
+import sys, os
+sys.path.insert(0, '$BRIEFCASE')
+from src.core.manifest import build_manifest, write_manifest
+from pathlib import Path
+briefcase = Path('$BRIEFCASE')
+version = '$_FW_VERSION' or '0.0.0'
+manifest = build_manifest(briefcase, version)
+write_manifest(briefcase, manifest)
+" 2>/dev/null && echo "        manifest.json written." || true
+fi
 
 # --- 2. Create .briefcase/storage.yaml (if not present) ---
 STORAGE_YAML="$BRIEFCASE/storage.yaml"
@@ -172,27 +205,46 @@ echo "        ./briefcase created and made executable."
 # --- 4. Create Python venv and install dependencies ---
 echo "  [4/$TOTAL_STEPS] Creating Python venv and installing dependencies..."
 if [ ! -d "$BRIEFCASE/.venv" ]; then
-    python3 -m venv "$BRIEFCASE/.venv" 2>/dev/null && \
-        "$BRIEFCASE/.venv/bin/pip" install -q --upgrade pip 2>/dev/null && \
-        "$BRIEFCASE/.venv/bin/pip" install -q -e "$BRIEFCASE/" 2>/dev/null && \
-        echo "        .venv created and dependencies installed." || {
-            echo "        ⚠ Could not create venv (non-fatal). CLI will use system python3."
-        }
+    _VENV_LOG="$(mktemp)"
+    if python3 -m venv "$BRIEFCASE/.venv" 2>"$_VENV_LOG" && \
+       "$BRIEFCASE/.venv/bin/python" -m pip install -q --upgrade pip 2>>"$_VENV_LOG" && \
+       "$BRIEFCASE/.venv/bin/python" -m pip install -q -e "$BRIEFCASE/" 2>>"$_VENV_LOG"; then
+        echo "        .venv created and dependencies installed."
+    else
+        echo "        ⚠ venv/pip setup failed. Error output:" >&2
+        cat "$_VENV_LOG" >&2
+        if [ "$NON_INTERACTIVE" = "true" ]; then
+            rm -f "$_VENV_LOG"
+            exit 1
+        fi
+        echo "        CLI will fall back to system python3."
+    fi
+    rm -f "$_VENV_LOG"
 else
     echo "        .venv already exists — skipped."
 fi
 
-# --- 5. Create docs/plan/ directory structure for local backend ---
-echo "  [5/$TOTAL_STEPS] Creating docs/plan/ directory structure..."
-mkdir -p "$TARGET_DIR/docs/plan/_shared" "$TARGET_DIR/docs/plan/_reference/adr"
-# Copy template files if they don't exist yet (idempotent)
-if [ ! -f "$TARGET_DIR/docs/plan/_inbox.md" ] && [ -f "$BRIEFCASE/template/_inbox.md" ]; then
-    cp "$BRIEFCASE/template/_inbox.md" "$TARGET_DIR/docs/plan/_inbox.md"
+# --- 5. Create docs/plan/ directory structure (local backend only) ---
+# Read backend from storage.yaml; default to "local" if not found.
+_BACKEND="local"
+if [ -f "$STORAGE_YAML" ]; then
+    _BACKEND="$(grep -E '^backend:' "$STORAGE_YAML" | awk '{print $2}' || echo "local")"
 fi
-if [ ! -f "$TARGET_DIR/docs/plan/_shared/backlog.md" ] && [ -f "$BRIEFCASE/template/backlog.md" ]; then
-    cp "$BRIEFCASE/template/backlog.md" "$TARGET_DIR/docs/plan/_shared/backlog.md"
+
+if [ "$_BACKEND" = "local" ]; then
+    echo "  [5/$TOTAL_STEPS] Creating docs/plan/ directory structure..."
+    mkdir -p "$TARGET_DIR/docs/plan/_shared" "$TARGET_DIR/docs/plan/_reference/adr"
+    # Copy template files if they don't exist yet (idempotent)
+    if [ ! -f "$TARGET_DIR/docs/plan/_inbox.md" ] && [ -f "$BRIEFCASE/template/_inbox.md" ]; then
+        cp "$BRIEFCASE/template/_inbox.md" "$TARGET_DIR/docs/plan/_inbox.md"
+    fi
+    if [ ! -f "$TARGET_DIR/docs/plan/_shared/backlog.md" ] && [ -f "$BRIEFCASE/template/backlog.md" ]; then
+        cp "$BRIEFCASE/template/backlog.md" "$TARGET_DIR/docs/plan/_shared/backlog.md"
+    fi
+    echo "        docs/plan/ structure ready."
+else
+    echo "  [5/$TOTAL_STEPS] Skipping docs/plan/ (backend=$_BACKEND — artifacts live in Notion)."
 fi
-echo "        docs/plan/ structure ready."
 
 # --- 6. Copy AGENTS.md, CLAUDE.md, and _project/ templates ---
 echo "  [6/$TOTAL_STEPS] Copying project entrypoint files..."
@@ -295,7 +347,9 @@ echo "    ./briefcase            — CLI entry point"
 echo "    AGENTS.md             — Agent entrypoint"
 echo "    CLAUDE.md             — Claude Code entrypoint"
 echo "    _project/             — Project constants (tech-stack, DoD, tests)"
-echo "    docs/plan/            — Local planning artifacts"
+if [ "$_BACKEND" = "local" ]; then
+    echo "    docs/plan/            — Local planning artifacts"
+fi
 echo ""
 
 # --- Notion token check ---

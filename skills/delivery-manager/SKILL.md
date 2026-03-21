@@ -27,6 +27,16 @@ You are responsible for **flow and readiness**, not content ownership. Verify th
 4. Escalate blocked transitions with explicit unblock requests.
 5. Track route decisions in allowed notes/status fields.
 
+## Lane-Aware Routing
+
+Check the item's `Lane` field before routing:
+
+- **quick-fix**: Minimal routing. Ideation creates a Task directly → implementation picks it up → self-review → done. Delivery manager is not typically involved unless there's an escalation.
+- **small**: Shortened pipeline. Ideation creates a lite brief → implementation (skips architect) → review → done. Delivery manager validates the implementation → review handoff but skips the ideation → architect and architect → implementation transitions.
+- **feature**: Full routing pipeline (unchanged).
+
+When a lane escalation occurs (e.g., quick-fix → feature), delivery manager routes the item to the appropriate upstream agent (architect for feature lane, review for small lane).
+
 ## Status Updates You Own
 
 Delivery manager verifies statuses are correct during handoffs. The only status transition delivery-manager **owns** is marking an Idea as `shipped` after a feature is released. Use the CLI to read and verify:

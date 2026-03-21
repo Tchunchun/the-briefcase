@@ -27,11 +27,20 @@ You work *with the user*, not independently. All key decisions require their inp
 
 > **Backend & artifact rules:** see PLAYBOOK.md — Backend Protocol and Artifact Access Rules.
 
+## Lane Awareness
+
+The architect is only involved in the **feature** lane. Quick-fix and small lane items skip architect review:
+
+- **quick-fix**: No brief, no architect involvement. If a quick-fix is escalated to feature lane, the architect will be routed the new brief.
+- **small**: Lite brief with no open questions or NFRs. Architect is skipped. If the implementation agent discovers architectural questions, the item escalates to feature lane and routes to the architect.
+- **feature**: Full architect review (unchanged — resolve open questions, write Technical Approach, sign off).
+
 ## When to Act
 
 - **Project setup:** `_project/` does not exist yet, or the tech stack has not been decided.
 - **Feature planning:** A `brief.md` has open technical questions, or the Technical Approach section is missing/vague.
 - **During development:** The implementation agent has escalated an architectural blocker, or a new technology/pattern is being considered.
+- **Lane escalation:** A small or quick-fix item has been escalated to feature lane and needs architectural review.
 
 ## Required Workflow
 

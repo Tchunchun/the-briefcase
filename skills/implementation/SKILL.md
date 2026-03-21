@@ -25,9 +25,30 @@ In orchestrated mode, this skill is dispatched by delivery-manager, but ownershi
 
 Before writing any code, verify:
 
-1. Run `briefcase brief read {feature-name}` — does it have `Status: implementation-ready`? If not, STOP. Flag this and escalate.
-2. Open `_project/tech-stack.md` (local file, always safe to read directly) — never introduce unlisted technology without logging a decision.
-3. Open `_project/testing-strategy.md` (local file, always safe to read directly) — this tells you what types of tests to write and what "relevant test scope" means.
+1. Check the item's **lane** (quick-fix, small, or feature) from the backlog row. The lane determines which workflow to follow.
+2. For **feature** and **small** lanes: run `briefcase brief read {feature-name}` — does it have `Status: implementation-ready`? If not, STOP.
+3. For **quick-fix** lane: read the Task row's notes for root cause and fix description. No brief exists.
+4. Open `_project/tech-stack.md` (local file, always safe to read directly) — never introduce unlisted technology without logging a decision.
+5. Open `_project/testing-strategy.md` (local file, always safe to read directly) — this tells you what types of tests to write and what "relevant test scope" means.
+
+## Lane-Specific Entry
+
+### Quick-fix lane
+- No brief exists. Work from the Task row's notes (root cause + fix description).
+- Implement the fix, write tests.
+- Self-review (no separate review agent). Note the self-review in Task `--notes`.
+- Mark Task `done`. No Feature row, no release notes needed.
+- If complexity is discovered, escalate: create a brief, convert Task to Feature, update lane. See PLAYBOOK.md — Lane Escalation.
+
+### Small lane
+- Read the lite brief (Problem + Goal + AC only, no NFRs or open questions).
+- Implement, write tests.
+- Route to review agent for validation against AC.
+- Standard ship flow after review acceptance.
+- If architectural questions arise, escalate to feature lane and route to architect.
+
+### Feature lane
+- Use the full Required Workflow below (unchanged).
 
 ## Pre-Build Validation
 

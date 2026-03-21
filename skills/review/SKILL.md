@@ -25,6 +25,14 @@ In orchestrated mode, this skill is dispatched by delivery-manager, but review a
 
 > **Backend & artifact rules:** see PLAYBOOK.md — Backend Protocol and Artifact Access Rules.
 
+## Lane Awareness
+
+Check the Feature's `Lane` field before starting review:
+
+- **quick-fix**: The review agent is **not invoked**. Quick-fix items use self-review by the implementation agent. If you are dispatched for a quick-fix item, skip review and note: "Quick-fix lane — self-review by implementation agent is sufficient."
+- **small**: Review against the lite brief's AC only. No NFRs, no architectural assessment, no Expected Experience check (lite briefs don't have these sections). Focus on: does the code fix the stated problem and pass the AC?
+- **feature**: Full review workflow below.
+
 ## Required Workflow
 
 1. Read `_project/tech-stack.md` — establish approved technologies.

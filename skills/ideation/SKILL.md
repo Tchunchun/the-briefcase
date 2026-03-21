@@ -29,6 +29,44 @@ You are responsible for **clarity**, not delivery. Your job is to turn rough ide
 4. Produce a `brief.md` with all required sections filled in.
 5. Hand off to the architect agent for technical review.
 6. Triage incoming feedback by classifying items as bug, feature request, or tech debt and setting an explicit priority.
+7. Assign a **processing lane** (quick-fix, small, or feature) to each item during triage.
+
+## Lane Triage
+
+Before entering the Required Workflow, determine the processing lane for the incoming work. Use this decision tree:
+
+```
+1. Is the root cause known AND the fix is a single-file change?
+   → YES: quick-fix lane
+   → NO: continue
+
+2. Is the scope clear AND touches ≤2 files AND no architectural questions?
+   → YES: small lane
+   → NO: feature lane
+```
+
+If the user passed `--lane` on `inbox add`, use that override — do not re-triage.
+
+### Quick-fix lane workflow
+
+Skip the full Required Workflow below. Instead:
+1. Create a Task row directly: `briefcase backlog upsert --title "..." --type Task --status to-do --lane quick-fix --notes "Root cause: ... Fix: ..."`
+2. Tell the user: *"This is a quick-fix. Routing directly to implementation with self-review."*
+3. Stop. The implementation agent takes over from here.
+
+### Small lane workflow
+
+Use a shortened version of the Required Workflow:
+1. Read `_project/tech-stack.md`.
+2. Write a lite brief with Problem, Goal, and Acceptance Criteria only (skip NFRs, open questions, and Expected Experience):
+   `briefcase brief write {feature-name} --status implementation-ready --problem "..." --goal "..." --acceptance-criteria "..." --change-summary "Lite brief for small lane"`
+3. Create a Feature row with lane set: `briefcase backlog upsert --title "..." --type Feature --status implementation-ready --lane small --brief-link "<brief-url>"`
+4. Tell the user: *"This is a small change. Skipping architect review, routing to implementation."*
+5. Stop. The implementation agent takes over from here (with review after implementation).
+
+### Feature lane workflow
+
+Use the full Required Workflow below (unchanged from current behavior).
 
 ## Required Workflow
 

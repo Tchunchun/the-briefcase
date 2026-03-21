@@ -307,6 +307,7 @@ class LocalBackend:
                             "release_note_link": cols[9],
                             "notes": cols[10],
                             "automation_trace": cols[11],
+                            "lane": cols[12] if len(cols) >= 13 else "",
                             "created_at": created_at,
                             "updated_at": updated_at,
                         }
@@ -326,6 +327,7 @@ class LocalBackend:
                             "release_note_link": "",
                             "notes": cols[7],
                             "automation_trace": cols[8] if len(cols) >= 9 else "",
+                            "lane": "",
                             "created_at": created_at,
                             "updated_at": updated_at,
                         }
@@ -349,7 +351,8 @@ class LocalBackend:
             f"| {row.get('feature', '—')} | {row_title} | {row.get('priority', 'Medium')} "
             f"| {row.get('status', 'to-do')} | {row.get('review_verdict', '—') or '—'} "
             f"| {row.get('route_state', '—') or '—'} | {row.get('release_note_link', '—') or '—'} "
-            f"| {row.get('notes', '—')} | {row.get('automation_trace', '')} |"
+            f"| {row.get('notes', '—')} | {row.get('automation_trace', '')} "
+            f"| {row.get('lane', '—') or '—'} |"
         )
         lines = content.splitlines()
         updated = False
