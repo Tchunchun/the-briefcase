@@ -33,9 +33,10 @@ In orchestrated mode, this skill is dispatched by delivery-manager, but review a
 4. Run `briefcase backlog list` to check related backlog state.
 5. Inspect the implementation under `src/` and tests under `tests/`.
 6. Compare actual behavior to the brief's acceptance criteria.
-7. Check all dependencies and libraries against `_project/tech-stack.md`.
-8. **Regression check:** Verify that previously passing tests in `tests/` (outside the current feature folder) still pass. If any unrelated test now fails, raise a Blocking finding — do not accept the feature until the regression is resolved.
-9. Record findings before anything is marked accepted.
+7. **Intent check:** If the brief has an Expected Experience section, run the feature and compare actual behavior against the before/after examples. Flag an Intent-Mismatch finding if the actual user experience diverges from what the brief describes, even if acceptance criteria are technically met. Skip this step for legacy briefs without an Expected Experience section.
+8. Check all dependencies and libraries against `_project/tech-stack.md`.
+9. **Regression check:** Verify that previously passing tests in `tests/` (outside the current feature folder) still pass. If any unrelated test now fails, raise a Blocking finding — do not accept the feature until the regression is resolved.
+10. Record findings before anything is marked accepted.
 
 ## Review Checklist
 
@@ -46,6 +47,7 @@ In orchestrated mode, this skill is dispatched by delivery-manager, but review a
 - Are completed Task backlog rows supported by real implementation?
 - Are relevant tests present under `tests/` and aligned with changed behavior?
 - Do backlog statuses and notes reflect reality?
+- Does the actual user experience match the Expected Experience examples in the brief? (skip for legacy briefs without this section)
 - Has the work been tested end-to-end in the target environment?
 - Are all technologies used in `src/` present in `_project/tech-stack.md`?
 - Do previously passing tests outside the current feature folder still pass? (regression check)
@@ -65,6 +67,7 @@ Raise a finding when:
 - There is unapproved scope expansion.
 - A technology/library/dependency is used that is not in `_project/tech-stack.md`.
 - Missing tests create material uncertainty about correctness.
+- **Intent-Mismatch** — actual user experience diverges from the Expected Experience examples in the brief, even if acceptance criteria are technically satisfied. Default severity: **Blocking**. This catches cases where the spec was met literally but the user's intent was not.
 
 Prefer concrete evidence tied to specific files, behavior, or task items.
 
