@@ -365,6 +365,8 @@ class NotionBackend:
         return data
 
     def _write_brief_page(self, brief_name: str, data: dict) -> None:
+        from datetime import date as _date
+
         from src.integrations.notion.provisioner import NotionProvisioner
 
         existing_id = self._find_brief_page(brief_name)

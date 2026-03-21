@@ -238,7 +238,8 @@ def test_write_brief_updates_existing_body(backend):
     backend._mock_client.update_page.assert_called_once()
     backend._mock_client.delete_block.assert_any_call("blk-1")
     backend._mock_client.delete_block.assert_any_call("blk-2")
-    backend._mock_client.append_block_children.assert_called_once()
+    # Called twice: once to replace brief body, once to refresh briefs index
+    assert backend._mock_client.append_block_children.call_count == 2
     assert backend._mock_client.create_page.call_count == 2
 
 
@@ -292,7 +293,8 @@ def test_write_brief_skips_archived_existing_blocks(backend):
     )
 
     backend._mock_client.delete_block.assert_called_once_with("blk-active")
-    backend._mock_client.append_block_children.assert_called_once()
+    # Called twice: once to replace brief body, once to refresh briefs index
+    assert backend._mock_client.append_block_children.call_count == 2
 
 
 def test_read_brief_returns_updated_sections(backend):

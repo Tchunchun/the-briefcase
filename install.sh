@@ -125,7 +125,7 @@ if command -v git >/dev/null 2>&1 && [ -d "$FRAMEWORK_DIR/.git" ]; then
     _origin_url="$(git -C "$FRAMEWORK_DIR" remote get-url origin 2>/dev/null || true)"
     # Extract owner/repo from SSH or HTTPS URL
     if [ -n "$_origin_url" ]; then
-        UPSTREAM_REPO="$(echo "$_origin_url" | sed -E 's#.*[:/]([^/]+/[^/]+?)(\.git)?$#\1#')"
+        UPSTREAM_REPO="$(echo "$_origin_url" | sed -E 's#.*[:/]([^/]+/[^/]+)(\.git)?$#\1#')"
     fi
 fi
 
