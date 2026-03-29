@@ -41,12 +41,20 @@ class UpstreamConfig:
 
 
 @dataclass
+class ProjectConfig:
+    """Project-scoped metadata used by artifact creation flows."""
+
+    name: str = ""
+
+
+@dataclass
 class StorageConfig:
     """Top-level storage configuration."""
 
     backend: str = DEFAULT_BACKEND
     notion: NotionConfig | None = None
     upstream: UpstreamConfig | None = None
+    project: ProjectConfig | None = None
 
     def is_notion(self) -> bool:
         return self.backend == "notion"
@@ -56,6 +64,9 @@ class StorageConfig:
 
     def has_upstream_feedback(self) -> bool:
         return self.upstream is not None and bool(self.upstream.feedback_repo)
+
+    def default_project_name(self) -> str:
+        return self.project.name if self.project is not None else ""
 
 
 def _find_project_dir(start: str | Path | None = None) -> Path:
@@ -165,8 +176,18 @@ def load_config(project_dir: str | Path | None = None) -> StorageConfig:
             feedback_repo=upstream_raw.get("feedback_repo", ""),
         )
 
+    project_config = None
+    if "project" in raw:
+        project_raw = raw["project"] or {}
+        project_config = ProjectConfig(
+            name=project_raw.get("name", ""),
+        )
+
     return StorageConfig(
-        backend=backend, notion=notion_config, upstream=upstream_config
+        backend=backend,
+        notion=notion_config,
+        upstream=upstream_config,
+        project=project_config,
     )
 
 
@@ -236,6 +257,11 @@ def save_config(config: StorageConfig, project_dir: str | Path) -> Path:
     if config.upstream is not None and config.upstream.feedback_repo:
         data["upstream"] = {
             "feedback_repo": config.upstream.feedback_repo,
+        }
+
+    if config.project is not None and config.project.name:
+        data["project"] = {
+            "name": config.project.name,
         }
 
     with open(config_path, "w") as f:

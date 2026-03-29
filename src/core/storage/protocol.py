@@ -47,7 +47,7 @@ class ArtifactStore(Protocol):
         """Return structured brief data for a given brief.
 
         Returns a dict with keys matching brief.md sections:
-        {name, status, problem, goal, acceptance_criteria,
+        {name, status, project, problem, goal, acceptance_criteria,
          non_functional_requirements, out_of_scope, open_questions,
          technical_approach}.
         Raises KeyError if brief_name does not exist.
@@ -58,6 +58,7 @@ class ArtifactStore(Protocol):
         """Create or update a brief.
 
         data must include at least: {status, problem, goal, acceptance_criteria}.
+        Optional: {project} for structured project metadata.
 
         Optional revision-tracking keys (consumed by backends, not stored
         in the brief body):
@@ -128,7 +129,7 @@ class ArtifactStore(Protocol):
         """Create or update a backlog row.
 
         row must include at least: {title, type, status}.
-        Optional: {id, feature, use_case, priority, notes, brief_link,
+        Optional: {id, feature, use_case, priority, project, notes, brief_link,
         release_note_link, review_verdict, route_state, parent_ids}.
 
         Lookup precedence: by id if present, then by title + type.

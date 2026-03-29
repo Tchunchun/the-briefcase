@@ -9,7 +9,11 @@ from __future__ import annotations
 import re
 from pathlib import Path
 
-from src.core.storage.briefs import extract_brief_status, parse_brief_sections
+from src.core.storage.briefs import (
+    extract_brief_project,
+    extract_brief_status,
+    parse_brief_sections,
+)
 from src.core.storage.config import load_config
 from src.core.storage.factory import get_store
 from src.core.storage.protocol import ArtifactStore
@@ -140,9 +144,10 @@ def _push_briefs(
 
         # Extract status
         status = extract_brief_status(content)
+        project = extract_brief_project(content)
 
         # Parse sections
-        data = {"title": title, "status": status}
+        data = {"title": title, "status": status, "project": project}
         data.update(parse_brief_sections(content))
 
         if dry_run:

@@ -301,7 +301,7 @@ All planning artifacts are accessed through CLI commands. The CLI routes to the 
 | Add idea | `briefcase inbox add --type idea --text "Short title" --notes "Description"` |
 | Submit feedback | `briefcase inbox add --type feedback --text "Short title" --notes "Description"` |
 | Read brief | `briefcase brief read {feature-name}` |
-| Write brief head | `briefcase brief write {feature-name} --status draft --problem "..." --goal "..." --change-summary "..."` |
+| Write brief head | `briefcase brief write {feature-name} --status draft --problem "..." --goal "..." --change-summary "..."` (prefer `--file` for multi-line content) |
 | List brief revisions | `briefcase brief history {feature-name}` |
 | Read one revision | `briefcase brief revision {feature-name} <revision-id>` |
 | Restore a revision | `briefcase brief restore {feature-name} <revision-id> --change-summary "..."` |
@@ -389,6 +389,33 @@ A task is Done only when ALL are true:
 - **Tech Debt / Bug:** Self-review by the implementation agent is sufficient. Note the self-review in backlog `--notes`.
 
 Delivery manager orchestration never replaces review acceptance requirements.
+
+---
+
+## Shell Escaping
+
+zsh treats `!`, `$`, and backticks as special characters inside **double quotes**. This affects any CLI flag value that contains those characters (e.g. `--problem "Fix !bug"` → `zsh: event not found`).
+
+**Rules for agents and scripts:**
+
+1. **Use single quotes** for flag values that may contain `!`, `$`, or backticks:
+   ```
+   briefcase brief write my-feat --problem 'Fix !bug in parser'
+   ```
+2. **Use `--file`** for complex multi-line content (available on `brief write`):
+   ```
+   briefcase brief write my-feat --file path/to/brief.md
+   ```
+3. **Use `\\n`** for inline newlines within single-quoted values:
+   ```
+   briefcase brief write my-feat --acceptance-criteria '- [ ] First line\\n- [ ] Second line'
+   ```
+4. **Avoid heredocs** for CLI flag values — they are unreliable across shell implementations. Write content to a temporary `.md` file and use `--file` instead.
+
+**NFR sub-sections:** All non-functional requirements (load/scale, latency, availability, cost, compliance) are passed as a single block via `--non-functional-requirements`. There are no individual sub-flags like `--expected-load`. Expected Experience has its own dedicated flag: `--expected-experience`. Example:
+```
+briefcase brief write my-feat --expected-experience 'Smooth onboarding in under 2 minutes' --non-functional-requirements '- **Expected load / scale:** ~50 req/day\\n- **Latency:** <2s'
+```
 
 ---
 

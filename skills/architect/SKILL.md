@@ -93,7 +93,7 @@ All planning artifacts are accessed through CLI commands. The CLI routes to the 
 - List inbox: `briefcase inbox list`
 - Add idea: `briefcase inbox add --type idea --text "Short title" --notes "Description"`
 - Read brief: `briefcase brief read {feature-name}`
-- Write brief head: `briefcase brief write {feature-name} --status draft --problem "..." --goal "..." --change-summary "..."`
+- Write brief head: `briefcase brief write {feature-name} --status draft --problem "..." --goal "..." --change-summary "..."` (**Prefer `--file` over inline args** for multi-line or special-character content — see PLAYBOOK.md § Shell Escaping)
 - List brief revisions: `briefcase brief history {feature-name}`
 - Read one revision: `briefcase brief revision {feature-name} <revision-id>`
 - Restore a revision into the head brief: `briefcase brief restore {feature-name} <revision-id> --change-summary "..."`

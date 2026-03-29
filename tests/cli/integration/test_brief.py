@@ -9,7 +9,7 @@ from click.testing import CliRunner
 
 import src.cli.commands.brief as brief_module
 from src.cli.main import cli
-from src.core.storage.config import StorageConfig, save_config
+from src.core.storage.config import ProjectConfig, StorageConfig, save_config
 
 
 @pytest.fixture
@@ -209,6 +209,213 @@ def test_brief_write_roundtrips_nfr_and_inline_newlines(runner, project):
     )
 
 
+def test_brief_write_roundtrips_expected_experience(runner, project):
+    result = runner.invoke(
+        cli,
+        [
+            "brief",
+            "write",
+            "ee-roundtrip",
+            "--title",
+            "EE Roundtrip Brief",
+            "--problem",
+            "Users cannot express UX intent separately.",
+            "--expected-experience",
+            "Smooth onboarding in under 2 minutes",
+            "--project-dir",
+            str(project),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    result = runner.invoke(
+        cli,
+        ["brief", "read", "ee-roundtrip", "--project-dir", str(project)],
+    )
+    assert result.exit_code == 0, result.output
+    brief = json.loads(result.output)["data"]
+    assert brief["expected_experience"] == "Smooth onboarding in under 2 minutes"
+    assert brief["problem"] == "Users cannot express UX intent separately."
+
+    # Update only status — expected_experience should be preserved
+    result = runner.invoke(
+        cli,
+        [
+            "brief",
+            "write",
+            "ee-roundtrip",
+            "--status",
+            "implementation-ready",
+            "--project-dir",
+            str(project),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    result = runner.invoke(
+        cli,
+        ["brief", "read", "ee-roundtrip", "--project-dir", str(project)],
+    )
+    assert result.exit_code == 0, result.output
+    brief = json.loads(result.output)["data"]
+    assert brief["status"] == "implementation-ready"
+    assert brief["expected_experience"] == "Smooth onboarding in under 2 minutes"
+    assert brief["problem"] == "Users cannot express UX intent separately."
+
+
+def test_brief_write_defaults_project_from_config(runner, project):
+    save_config(
+        StorageConfig(backend="local", project=ProjectConfig(name="Briefcase")),
+        project / "_project",
+    )
+
+    result = runner.invoke(
+        cli,
+        [
+            "brief",
+            "write",
+            "project-aware-brief",
+            "--title",
+            "Project Aware Brief",
+            "--problem",
+            "Need a default project field.",
+            "--project-dir",
+            str(project),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    result = runner.invoke(
+        cli,
+        ["brief", "read", "project-aware-brief", "--project-dir", str(project)],
+    )
+    assert result.exit_code == 0, result.output
+    brief = json.loads(result.output)["data"]
+    assert brief["project"] == "Briefcase"
+
+
+def test_brief_write_project_flag_overrides_config_default(runner, project):
+    save_config(
+        StorageConfig(backend="local", project=ProjectConfig(name="Briefcase")),
+        project / "_project",
+    )
+
+    result = runner.invoke(
+        cli,
+        [
+            "brief",
+            "write",
+            "project-aware-brief",
+            "--title",
+            "Project Aware Brief",
+            "--problem",
+            "Need an override.",
+            "--project",
+            "Skunkworks",
+            "--project-dir",
+            str(project),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    result = runner.invoke(
+        cli,
+        ["brief", "read", "project-aware-brief", "--project-dir", str(project)],
+    )
+    assert result.exit_code == 0, result.output
+    brief = json.loads(result.output)["data"]
+    assert brief["project"] == "Skunkworks"
+
+
+def test_brief_write_file_defaults_project_from_config(runner, project, tmp_path):
+    save_config(
+        StorageConfig(backend="local", project=ProjectConfig(name="Briefcase")),
+        project / "_project",
+    )
+    source = tmp_path / "brief.md"
+    source.write_text(
+        "# File Imported Brief\n\n"
+        "**Status: draft**\n\n"
+        "---\n\n"
+        "## Problem\nImported from markdown.\n"
+    )
+
+    result = runner.invoke(
+        cli,
+        [
+            "brief",
+            "write",
+            "file-imported-brief",
+            "--file",
+            str(source),
+            "--project-dir",
+            str(project),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    result = runner.invoke(
+        cli,
+        ["brief", "read", "file-imported-brief", "--project-dir", str(project)],
+    )
+    assert result.exit_code == 0, result.output
+    brief = json.loads(result.output)["data"]
+    assert brief["project"] == "Briefcase"
+
+
+def test_brief_write_file_preserves_existing_project_without_override(
+    runner, project, tmp_path
+):
+    first = runner.invoke(
+        cli,
+        [
+            "brief",
+            "write",
+            "file-preserve-brief",
+            "--title",
+            "File Preserve Brief",
+            "--project",
+            "Skunkworks",
+            "--problem",
+            "Seed existing project.",
+            "--project-dir",
+            str(project),
+        ],
+    )
+    assert first.exit_code == 0, first.output
+
+    source = tmp_path / "brief.md"
+    source.write_text(
+        "# File Preserve Brief\n\n"
+        "**Status: implementation-ready**\n\n"
+        "---\n\n"
+        "## Problem\nUpdated from markdown.\n"
+    )
+
+    second = runner.invoke(
+        cli,
+        [
+            "brief",
+            "write",
+            "file-preserve-brief",
+            "--file",
+            str(source),
+            "--project-dir",
+            str(project),
+        ],
+    )
+    assert second.exit_code == 0, second.output
+
+    result = runner.invoke(
+        cli,
+        ["brief", "read", "file-preserve-brief", "--project-dir", str(project)],
+    )
+    assert result.exit_code == 0, result.output
+    brief = json.loads(result.output)["data"]
+    assert brief["project"] == "Skunkworks"
+    assert brief["status"] == "implementation-ready"
+
+
 def test_brief_history_and_restore_commands(runner, project):
     result = runner.invoke(
         cli,
@@ -404,3 +611,92 @@ def test_brief_list_returns_grouped_output(runner, project):
     assert "──" in result.output  # date section header
     assert "grouping-check" in result.output  # brief name appears
     assert "draft" in result.output  # status appears
+
+
+# ---- Destructive-upsert regression tests ----
+
+
+def test_brief_write_partial_inline_preserves_unset_fields(runner, project):
+    """Writing with only --ta must not wipe problem, goal, or other fields."""
+    runner.invoke(
+        cli,
+        [
+            "brief", "write", "merge-test",
+            "--problem", "Original problem.",
+            "--goal", "Original goal.",
+            "--acceptance-criteria", "- [ ] AC1",
+            "--non-functional-requirements", "- **Latency:** <2s",
+            "--out-of-scope", "- Nothing extra",
+            "--open-questions", "- Q1",
+            "--project-dir", str(project),
+        ],
+    )
+
+    # Update only --technical-approach
+    result = runner.invoke(
+        cli,
+        [
+            "brief", "write", "merge-test",
+            "--technical-approach", "Use React.",
+            "--project-dir", str(project),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    result = runner.invoke(
+        cli, ["brief", "read", "merge-test", "--project-dir", str(project)],
+    )
+    brief = json.loads(result.output)["data"]
+    assert brief["problem"] == "Original problem."
+    assert brief["goal"] == "Original goal."
+    assert brief["acceptance_criteria"] == "- [ ] AC1"
+    assert brief["non_functional_requirements"] == "- **Latency:** <2s"
+    assert brief["out_of_scope"] == "- Nothing extra"
+    assert brief["open_questions"] == "- Q1"
+    assert brief["technical_approach"] == "Use React."
+
+
+def test_brief_write_file_preserves_existing_sections_not_in_file(
+    runner, project, tmp_path
+):
+    """A --file containing only ## Problem must not wipe goal, AC, etc."""
+    runner.invoke(
+        cli,
+        [
+            "brief", "write", "file-merge-test",
+            "--problem", "Original problem.",
+            "--goal", "Original goal.",
+            "--acceptance-criteria", "- [ ] AC1",
+            "--out-of-scope", "- Original OOS",
+            "--project-dir", str(project),
+        ],
+    )
+
+    source = tmp_path / "partial.md"
+    source.write_text(
+        "# File Merge Test\n\n"
+        "**Status: implementation-ready**\n\n"
+        "---\n\n"
+        "## Problem\nUpdated problem from file.\n"
+    )
+
+    result = runner.invoke(
+        cli,
+        [
+            "brief", "write", "file-merge-test",
+            "--file", str(source),
+            "--project-dir", str(project),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    result = runner.invoke(
+        cli, ["brief", "read", "file-merge-test", "--project-dir", str(project)],
+    )
+    brief = json.loads(result.output)["data"]
+    assert brief["status"] == "implementation-ready"
+    assert brief["problem"] == "Updated problem from file."
+    # Fields NOT in the file must survive
+    assert brief["goal"] == "Original goal."
+    assert brief["acceptance_criteria"] == "- [ ] AC1"
+    assert brief["out_of_scope"] == "- Original OOS"

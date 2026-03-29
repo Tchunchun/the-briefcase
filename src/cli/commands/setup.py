@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import click
@@ -49,11 +50,22 @@ def setup(backend: str | None, project_dir: str) -> None:
     config = StorageConfig(backend=backend)
 
     if backend == "notion":
+        # Inline checklist: guide first-time users through Notion prerequisites
+        click.echo("\n  Before you begin, make sure you have:")
+        click.echo("  1. Created a Notion integration at https://www.notion.so/my-integrations")
+        click.echo("  2. A dedicated Notion page to use as the project parent")
+        click.echo('  3. Shared that page with your integration (page ⋯ menu → Connect to)\n')
+
         token = click.prompt(
-            "Notion API token",
+            "Notion API token (from https://www.notion.so/my-integrations)",
             hide_input=True,
         )
-        parent_page_id = click.prompt("Notion parent page ID")
+
+        # Sharing reminder before parent page prompt
+        click.echo("\n  Reminder: the parent page must be shared with your integration")
+        click.echo('  (open the page → click ⋯ → Connect to → select your integration)\n')
+        raw_page_input = click.prompt("Notion parent page ID or URL")
+        parent_page_id = _parse_page_id(raw_page_input)
 
         # Save token to .env (not to storage.yaml)
         _save_env_token(root, token)
@@ -173,3 +185,22 @@ def _save_env_token(project_root: Path, token: str) -> None:
     else:
         with open(env_path, "a") as f:
             f.write(f"NOTION_API_KEY={token}\n")
+
+
+def _parse_page_id(value: str) -> str:
+    """Extract a 32-char hex Notion page ID from a raw ID or full URL.
+
+    Accepts:
+      - Raw 32-char hex ID (with or without hyphens)
+      - Full Notion URL containing the ID
+    Raises click.BadParameter if no valid ID can be extracted.
+    """
+    value = value.strip()
+    # Try to find a 32-char hex string (possibly with hyphens)
+    match = re.search(r"[0-9a-f]{8}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{4}-?[0-9a-f]{12}", value, re.IGNORECASE)
+    if match:
+        return match.group(0).replace("-", "")
+    raise click.BadParameter(
+        f"Could not extract a valid Notion page ID from: {value}\n"
+        "Expected a 32-character hex ID or a Notion URL containing one."
+    )

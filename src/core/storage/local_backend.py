@@ -18,6 +18,7 @@ from pathlib import Path
 from src.core.storage.briefs import (
     build_revision_id,
     extract_brief_created,
+    extract_brief_project,
     extract_brief_status,
     parse_brief_sections,
     parse_revision_markdown,
@@ -136,15 +137,22 @@ class LocalBackend:
         path = brief_dir / "brief.md"
         if path.exists():
             current = self.read_brief(brief_name)
+            # Merge: start from current, overlay only keys present in data.
+            merged = dict(current)
+            merged.update({k: v for k, v in data.items() if not k.startswith("_")})
             # Preserve original created date
-            if not data.get("created"):
-                data["created"] = current.get("created", "")
+            if not merged.get("created"):
+                merged["created"] = current.get("created", "")
+            # Carry internal metadata through for revision storage.
+            merged["_actor"] = data.get("_actor", "")
+            merged["_change_summary"] = data.get("_change_summary", "")
             self._store_brief_revision(
                 brief_name,
                 current,
-                actor=data.get("_actor", ""),
-                change_summary=data.get("_change_summary", ""),
+                actor=merged.get("_actor", ""),
+                change_summary=merged.get("_change_summary", ""),
             )
+            data = merged
         else:
             # Auto-set creation date for new briefs
             if not data.get("created"):
@@ -305,9 +313,10 @@ class LocalBackend:
                             "review_verdict": cols[7],
                             "route_state": cols[8],
                             "release_note_link": cols[9],
-                            "notes": cols[10],
-                            "automation_trace": cols[11],
-                            "lane": cols[12] if len(cols) >= 13 else "",
+                            "project": cols[10] if len(cols) >= 14 else "",
+                            "notes": cols[11] if len(cols) >= 14 else cols[10],
+                            "automation_trace": cols[12] if len(cols) >= 14 else cols[11],
+                            "lane": cols[13] if len(cols) >= 14 else (cols[12] if len(cols) >= 13 else ""),
                             "created_at": created_at,
                             "updated_at": updated_at,
                         }
@@ -325,6 +334,7 @@ class LocalBackend:
                             "review_verdict": "",
                             "route_state": "",
                             "release_note_link": "",
+                            "project": "",
                             "notes": cols[7],
                             "automation_trace": cols[8] if len(cols) >= 9 else "",
                             "lane": "",
@@ -351,7 +361,7 @@ class LocalBackend:
             f"| {row.get('feature', '—')} | {row_title} | {row.get('priority', 'Medium')} "
             f"| {row.get('status', 'to-do')} | {row.get('review_verdict', '—') or '—'} "
             f"| {row.get('route_state', '—') or '—'} | {row.get('release_note_link', '—') or '—'} "
-            f"| {row.get('notes', '—')} | {row.get('automation_trace', '')} "
+            f"| {row.get('project', '—') or '—'} | {row.get('notes', '—')} | {row.get('automation_trace', '')} "
             f"| {row.get('lane', '—') or '—'} |"
         )
         lines = content.splitlines()
@@ -475,6 +485,7 @@ class LocalBackend:
 
         data["status"] = extract_brief_status(content)
         data["created"] = extract_brief_created(content)
+        data["project"] = extract_brief_project(content)
         data.update(parse_brief_sections(content))
 
         return data

@@ -29,6 +29,7 @@ BACKLOG_SCHEMA: dict[str, dict] = {
     ),
     "Task Status": _select_options(["to-do", "in-progress", "blocked", "done"]),
     "Priority": _select_options(["High", "Medium", "Low"]),
+    "Project": {"select": {"options": []}},
     "Review Verdict": _select_options(["pending", "accepted", "changes-requested"]),
     "Route State": _select_options(["routed", "returned", "blocked"]),
     "Lane": _select_options(["quick-fix", "small", "feature"]),

@@ -9,7 +9,7 @@ from click.testing import CliRunner
 
 import src.cli.commands.backlog as backlog_module
 from src.cli.main import cli
-from src.core.storage.config import StorageConfig, save_config
+from src.core.storage.config import ProjectConfig, StorageConfig, save_config
 
 
 @pytest.fixture
@@ -148,3 +148,208 @@ def test_backlog_children_returns_summary(runner, project, monkeypatch):
     assert payload["data"]["summary"]["in_progress"] == 1
     assert payload["data"]["summary"]["ship_ready"] is False
     assert payload["data"]["summary"]["readiness"] == "partially done"
+
+
+def test_backlog_upsert_defaults_project_from_config(runner, project):
+    save_config(
+        StorageConfig(backend="local", project=ProjectConfig(name="Briefcase")),
+        project / "_project",
+    )
+
+    result = runner.invoke(
+        cli,
+        [
+            "backlog",
+            "upsert",
+            "--title",
+            "Project-tagged task",
+            "--type",
+            "Task",
+            "--status",
+            "to-do",
+            "--project-dir",
+            str(project),
+        ],
+    )
+
+    assert result.exit_code == 0, result.output
+
+    result = runner.invoke(
+        cli,
+        ["backlog", "list", "--project-dir", str(project)],
+    )
+    payload = json.loads(result.output)
+    rows = [row for row in payload["data"] if row["title"] == "Project-tagged task"]
+    assert rows
+    assert rows[0]["project"] == "Briefcase"
+
+
+def test_backlog_upsert_preserves_existing_project_without_override(runner, project):
+    first = runner.invoke(
+        cli,
+        [
+            "backlog",
+            "upsert",
+            "--title",
+            "Existing project task",
+            "--type",
+            "Task",
+            "--status",
+            "to-do",
+            "--project",
+            "Skunkworks",
+            "--project-dir",
+            str(project),
+        ],
+    )
+    assert first.exit_code == 0, first.output
+
+    second = runner.invoke(
+        cli,
+        [
+            "backlog",
+            "upsert",
+            "--title",
+            "Existing project task",
+            "--type",
+            "Task",
+            "--status",
+            "in-progress",
+            "--project-dir",
+            str(project),
+        ],
+    )
+    assert second.exit_code == 0, second.output
+
+    result = runner.invoke(
+        cli,
+        ["backlog", "list", "--project-dir", str(project)],
+    )
+    payload = json.loads(result.output)
+    rows = [row for row in payload["data"] if row["title"] == "Existing project task"]
+    assert rows
+    assert rows[0]["project"] == "Skunkworks"
+    assert rows[0]["status"] == "in-progress"
+
+
+def test_backlog_upsert_accepts_bug_type(runner, project):
+    result = runner.invoke(
+        cli,
+        [
+            "backlog",
+            "upsert",
+            "--title",
+            "Fix crash on empty input",
+            "--type",
+            "Bug",
+            "--status",
+            "to-do",
+            "--project-dir",
+            str(project),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    payload = json.loads(result.output)
+    assert payload["data"]["type"] == "Bug"
+
+    listing = runner.invoke(
+        cli, ["backlog", "list", "--project-dir", str(project)]
+    )
+    rows = json.loads(listing.output)["data"]
+    bug_rows = [r for r in rows if r["title"] == "Fix crash on empty input"]
+    assert bug_rows
+    assert bug_rows[0]["type"] == "Bug"
+
+
+def test_backlog_upsert_append_notes_concatenates(runner, project):
+    runner.invoke(
+        cli,
+        [
+            "backlog",
+            "upsert",
+            "--title",
+            "Append test item",
+            "--type",
+            "Task",
+            "--status",
+            "to-do",
+            "--notes",
+            "Initial note.",
+            "--project-dir",
+            str(project),
+        ],
+    )
+
+    result = runner.invoke(
+        cli,
+        [
+            "backlog",
+            "upsert",
+            "--title",
+            "Append test item",
+            "--type",
+            "Task",
+            "--status",
+            "in-progress",
+            "--append-notes",
+            "Second note.",
+            "--project-dir",
+            str(project),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    listing = runner.invoke(
+        cli, ["backlog", "list", "--project-dir", str(project)]
+    )
+    rows = json.loads(listing.output)["data"]
+    item = [r for r in rows if r["title"] == "Append test item"][0]
+    assert "Initial note." in item["notes"]
+    assert "Second note." in item["notes"]
+    assert " · " in item["notes"]
+
+
+def test_backlog_upsert_preserves_parent_ids_on_update(runner, project, monkeypatch):
+    class StoreDouble:
+        def __init__(self):
+            self._rows = [
+                {
+                    "title": "Child feature",
+                    "type": "Feature",
+                    "status": "draft",
+                    "parent_ids": ["parent-abc"],
+                    "notes": "",
+                    "project": "TestProj",
+                }
+            ]
+            self.last_written = None
+
+        def read_backlog(self, since=None):
+            return list(self._rows)
+
+        def write_backlog_row(self, row):
+            self.last_written = row
+            self._rows = [row]
+
+    store = StoreDouble()
+    monkeypatch.setattr(
+        backlog_module, "get_store_from_dir", lambda _: store
+    )
+
+    result = runner.invoke(
+        cli,
+        [
+            "backlog",
+            "upsert",
+            "--title",
+            "Child feature",
+            "--type",
+            "Feature",
+            "--status",
+            "in-progress",
+            "--project-dir",
+            str(project),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    assert store.last_written["parent_ids"] == ["parent-abc"]

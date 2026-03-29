@@ -6,6 +6,7 @@ import yaml
 from src.core.storage.config import (
     StorageConfig,
     NotionConfig,
+    ProjectConfig,
     UpstreamConfig,
     load_config,
     save_config,
@@ -72,6 +73,20 @@ def test_load_config_reads_notion_backend(project_dir):
     assert config.notion.seeded_template_versions["brief"] == "v3"
 
 
+def test_load_config_reads_project_name(project_dir):
+    data = {
+        "backend": "local",
+        "project": {"name": "Briefcase"},
+    }
+    (project_dir / STORAGE_CONFIG_FILENAME).write_text(yaml.dump(data))
+
+    config = load_config(project_dir)
+
+    assert config.project is not None
+    assert config.project.name == "Briefcase"
+    assert config.default_project_name() == "Briefcase"
+
+
 def test_load_config_raises_on_unknown_backend(project_dir):
     (project_dir / STORAGE_CONFIG_FILENAME).write_text("backend: airtable\n")
     with pytest.raises(ValueError, match="Unknown backend 'airtable'"):
@@ -120,6 +135,20 @@ def test_save_config_notion_creates_file_with_all_fields(project_dir):
     assert data["notion"]["seeded_template_versions"]["brief"] == "v3"
 
 
+def test_save_config_writes_project_name(project_dir):
+    config = StorageConfig(
+        backend="local",
+        project=ProjectConfig(name="Briefcase"),
+    )
+
+    path = save_config(config, project_dir)
+
+    with open(path) as f:
+        data = yaml.safe_load(f)
+
+    assert data["project"]["name"] == "Briefcase"
+
+
 def test_save_config_creates_directory_if_missing(tmp_path):
     new_dir = tmp_path / "_project"
     config = StorageConfig(backend="local")
@@ -135,6 +164,7 @@ def test_save_config_creates_directory_if_missing(tmp_path):
 def test_save_then_load_roundtrip(project_dir):
     original = StorageConfig(
         backend="notion",
+        project=ProjectConfig(name="Briefcase"),
         notion=NotionConfig(
             parent_page_id="xyz",
             parent_page_url="https://notion.so/xyz",
@@ -153,6 +183,8 @@ def test_save_then_load_roundtrip(project_dir):
         loaded.notion.seeded_template_versions
         == original.notion.seeded_template_versions
     )
+    assert loaded.project is not None
+    assert loaded.project.name == "Briefcase"
 
 
 # --- _find_config_dir dual-mode tests (D-036) ---

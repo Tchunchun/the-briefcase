@@ -139,6 +139,12 @@ Dispatch rule:
 - If child Features are mixed (some done, some not), block the shipped transition and record which Feature titles are still not done
 - After ship is confirmed, set Idea status to `shipped`
 - **Propagate Release Note Link to parent Idea:** When marking an Idea as `shipped`, read the child Feature's `release_note_link` and set it on the Idea row: `briefcase backlog upsert --title "<Idea title>" --type Idea --status shipped --release-note-link "<release-note-url>" --notes "Shipped in vX.Y.Z on YYYY-MM-DD HH:MM PST/PDT"`. If multiple Features share a parent Idea, use the most recent release note link.
+- **Publish GitHub release:** After `briefcase release write --version vX.Y.Z`, push a version tag to trigger the release-publish workflow:
+  ```
+  git tag vX.Y.Z
+  git push origin vX.Y.Z
+  ```
+  Confirm the GitHub Actions `release-publish` workflow completes successfully. This enables `briefcase update --check` for consumers.
 
 ## Handoff Packet Contract (Required)
 

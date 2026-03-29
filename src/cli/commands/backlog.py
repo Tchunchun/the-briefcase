@@ -6,7 +6,13 @@ from datetime import date, datetime
 
 import click
 
-from src.cli.helpers import get_store_from_dir, output_json, output_error, project_dir_option
+from src.cli.helpers import (
+    default_project_name_from_dir,
+    get_store_from_dir,
+    output_json,
+    output_error,
+    project_dir_option,
+)
 
 
 def _resolve_since(since: str | None, today: bool) -> str | None:
@@ -50,6 +56,27 @@ def _build_children_summary(children: list[dict]) -> dict:
         "ship_ready": total > 0 and done == total,
         "readiness": readiness,
     }
+
+
+def _find_existing_row(
+    rows: list[dict],
+    *,
+    item_id: str,
+    title: str,
+    item_type: str,
+) -> dict | None:
+    if item_id:
+        for row in rows:
+            candidate_id = row.get("notion_id") or row.get("id") or ""
+            if candidate_id == item_id:
+                return row
+    for row in rows:
+        if (
+            row.get("type", "").lower() == item_type.lower()
+            and row.get("title", "") == title
+        ):
+            return row
+    return None
 
 
 @click.group()
@@ -104,10 +131,12 @@ def backlog_children(parent_id: str, project_dir: str) -> None:
 
 @backlog.command(name="upsert")
 @click.option("--title", required=True, help="Item title.")
-@click.option("--type", "item_type", required=True, type=click.Choice(["Idea", "Feature", "Task"], case_sensitive=False), help="Item type.")
+@click.option("--type", "item_type", required=True, type=click.Choice(["Idea", "Feature", "Task", "Bug"], case_sensitive=False), help="Item type.")
 @click.option("--status", required=True, help="Status value (e.g., to-do, draft, new).")
 @click.option("--priority", default="Medium", type=click.Choice(["High", "Medium", "Low"], case_sensitive=False), help="Priority.")
+@click.option("--project", default=None, help="Project name override.")
 @click.option("--notes", default="", help="Notes or context.")
+@click.option("--append-notes", default="", help="Text to append to existing notes (preserves current content).")
 @click.option("--brief-link", default="", help="URL to brief page (Features only).")
 @click.option("--release-note-link", default="", help="URL to release note page (done Features after ship wrap-up).")
 @click.option("--review-verdict", default="", type=click.Choice(["", "pending", "accepted", "changes-requested"], case_sensitive=False), help="Review verdict (Features only).")
@@ -123,7 +152,9 @@ def backlog_upsert(
     item_type: str,
     status: str,
     priority: str,
+    project: str | None,
     notes: str,
+    append_notes: str,
     brief_link: str,
     release_note_link: str,
     review_verdict: str,
@@ -138,12 +169,33 @@ def backlog_upsert(
     """Create or update a backlog item."""
     try:
         store = get_store_from_dir(project_dir)
+        existing_row = _find_existing_row(
+            store.read_backlog(),
+            item_id=item_id,
+            title=title,
+            item_type=item_type,
+        )
+        default_project = default_project_name_from_dir(project_dir)
+        effective_notes = notes
+        if append_notes and existing_row:
+            prev = (existing_row.get("notes") or "").rstrip()
+            if prev and prev != "—":
+                effective_notes = f"{prev} · {append_notes}"
+            else:
+                effective_notes = append_notes
+        elif append_notes:
+            effective_notes = append_notes
         row = {
             "title": title,
             "type": item_type.capitalize(),
             "status": status,
             "priority": priority.capitalize(),
-            "notes": notes,
+            "notes": effective_notes,
+            "project": (
+                project
+                if project is not None
+                else (existing_row or {}).get("project", "") or default_project
+            ),
         }
         if brief_link:
             row["brief_link"] = brief_link
@@ -157,6 +209,8 @@ def backlog_upsert(
             row["lane"] = lane
         if parent_id:
             row["parent_ids"] = [parent_id]
+        elif existing_row and existing_row.get("parent_ids"):
+            row["parent_ids"] = existing_row["parent_ids"]
         # Local backend fields
         if item_id:
             row["id"] = item_id

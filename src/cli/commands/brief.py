@@ -2,12 +2,20 @@
 
 from __future__ import annotations
 
-import os
 import re
+import os
 import click
 
-from src.cli.helpers import get_store_from_dir, output_json, output_error, project_dir_option
+from src.cli.helpers import (
+    default_project_name_from_dir,
+    get_store_from_dir,
+    output_json,
+    output_error,
+    project_dir_option,
+)
 from src.core.storage.briefs import (
+    BRIEF_SECTIONS,
+    extract_brief_project,
     extract_brief_status,
     normalize_inline_brief_value,
     parse_brief_sections,
@@ -202,14 +210,16 @@ def brief_read(name: str, project_dir: str) -> None:
 @click.argument("name")
 @click.option("--title", default=None, help="Brief title.")
 @click.option("--status", default=None, help="Brief status.")
+@click.option("--project", default=None, help="Project name override.")
 @click.option("--problem", default=None, help="Problem statement.")
 @click.option("--goal", default=None, help="Goal statement.")
 @click.option("--acceptance-criteria", "ac", default=None, help="Acceptance criteria.")
+@click.option("--expected-experience", "ee", default=None, help="Expected user experience (what the user should feel or observe). Use \\n for line breaks.")
 @click.option(
     "--non-functional-requirements",
     "nfr",
     default=None,
-    help="Non-functional requirements.",
+    help="Non-functional requirements (load/scale, latency, availability, cost, compliance). Use \\n for line breaks.",
 )
 @click.option("--out-of-scope", "oos", default=None, help="Out of scope.")
 @click.option("--open-questions", "oq", default=None, help="Open questions.")
@@ -223,9 +233,11 @@ def brief_write(
     name: str,
     title: str | None,
     status: str | None,
+    project: str | None,
     problem: str | None,
     goal: str | None,
     ac: str | None,
+    ee: str | None,
     nfr: str | None,
     oos: str | None,
     oq: str | None,
@@ -242,64 +254,72 @@ def brief_write(
             raise ValueError("Use only one of --link-idea-id or --link-idea-title.")
 
         store = get_store_from_dir(project_dir)
+        try:
+            existing = store.read_brief(name)
+        except KeyError:
+            existing = {}
+        default_project = default_project_name_from_dir(project_dir)
 
         if file_path:
-            # Parse brief from markdown file
-            content = open(file_path).read()
-            data = {"title": title or name, "status": status or "draft"}
-            data.update(parse_brief_sections(content))
+            # Parse brief from markdown file — only sections found in the
+            # file are included; missing sections are left for the storage
+            # backend to preserve from the existing brief.
+            with open(file_path) as fh:
+                content = fh.read()
+            data = {
+                "title": title or name,
+                "status": status or "draft",
+                "project": (
+                    project
+                    if project is not None
+                    else existing.get("project", "") or default_project
+                ),
+            }
+            file_sections = parse_brief_sections(content)
+            # Carry forward existing section values for sections not in the
+            # file, protecting against lossy Notion block round-trips.
+            for _heading, key in BRIEF_SECTIONS.items():
+                if key not in file_sections and key in existing:
+                    data[key] = existing[key]
+            data.update(file_sections)
             # Extract status from file if present
             data["status"] = extract_brief_status(content, data["status"])
+            data["project"] = extract_brief_project(content, data["project"])
             # Extract title from heading if not provided
             if not title:
                 title_match = re.match(r"^#\s+(.+)", content)
                 if title_match:
                     data["title"] = title_match.group(1).strip()
         else:
-            try:
-                existing = store.read_brief(name)
-            except KeyError:
-                existing = {}
-
+            # Only include fields the caller explicitly provided.
+            # Omitted keys signal "no change" to the storage backend.
             data = {
                 "title": title if title is not None else existing.get("title", name),
                 "status": status if status is not None else existing.get("status", "draft"),
-                "problem": (
-                    normalize_inline_brief_value(problem)
-                    if problem is not None
-                    else existing.get("problem", "")
-                ),
-                "goal": (
-                    normalize_inline_brief_value(goal)
-                    if goal is not None
-                    else existing.get("goal", "")
-                ),
-                "acceptance_criteria": (
-                    normalize_inline_brief_value(ac)
-                    if ac is not None
-                    else existing.get("acceptance_criteria", "")
-                ),
-                "non_functional_requirements": (
-                    normalize_inline_brief_value(nfr)
-                    if nfr is not None
-                    else existing.get("non_functional_requirements", "")
-                ),
-                "out_of_scope": (
-                    normalize_inline_brief_value(oos)
-                    if oos is not None
-                    else existing.get("out_of_scope", "")
-                ),
-                "open_questions": (
-                    normalize_inline_brief_value(oq)
-                    if oq is not None
-                    else existing.get("open_questions", "")
-                ),
-                "technical_approach": (
-                    normalize_inline_brief_value(ta)
-                    if ta is not None
-                    else existing.get("technical_approach", "")
+                "project": (
+                    project
+                    if project is not None
+                    else existing.get("project", "") or default_project
                 ),
             }
+            _inline_fields = [
+                ("problem", problem),
+                ("goal", goal),
+                ("acceptance_criteria", ac),
+                ("expected_experience", ee),
+                ("non_functional_requirements", nfr),
+                ("out_of_scope", oos),
+                ("open_questions", oq),
+                ("technical_approach", ta),
+            ]
+            for key, value in _inline_fields:
+                if value is not None:
+                    data[key] = normalize_inline_brief_value(value)
+                elif key in existing:
+                    # Carry forward existing value so the backend does not
+                    # need to re-read and re-parse the brief (which can be
+                    # lossy for Notion block round-trips).
+                    data[key] = existing[key]
 
         data["_actor"] = _default_actor()
         data["_change_summary"] = change_summary
@@ -308,6 +328,8 @@ def brief_write(
             "written": name,
             "status": data.get("status", status or "draft"),
         }
+        if data.get("project"):
+            output_data["project"] = data["project"]
         try:
             written_brief = store.read_brief(name)
             brief_title = written_brief.get("title", data.get("title", name))

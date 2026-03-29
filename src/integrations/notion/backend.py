@@ -19,6 +19,7 @@ from typing import Any
 from src.core.storage.briefs import (
     build_revision_id,
     extract_brief_created,
+    extract_brief_project,
     extract_brief_status,
     parse_brief_sections,
     parse_revision_markdown,
@@ -148,6 +149,7 @@ class NotionBackend:
             "Idea": "Idea Status",
             "Feature": "Feature Status",
             "Task": "Task Status",
+            "Bug": "Task Status",
         }
         return mapping.get(item_type, "Task Status")
 
@@ -358,6 +360,7 @@ class NotionBackend:
         # Parse status and created date from body text
         data["status"] = extract_brief_status(body_text)
         data["created"] = extract_brief_created(body_text)
+        data["project"] = extract_brief_project(body_text)
 
         # Parse sections from body
         data.update(parse_brief_sections(body_text))
@@ -373,7 +376,9 @@ class NotionBackend:
         if existing_id:
             current = self.read_brief(brief_name)
             merged_data = dict(current)
-            merged_data.update(data)
+            # Only overlay keys explicitly present in data (skip internal
+            # metadata prefixed with '_' — those are handled separately).
+            merged_data.update({k: v for k, v in data.items() if not k.startswith("_")})
             # Preserve original created date
             if not merged_data.get("created"):
                 merged_data["created"] = current.get("created", "")
@@ -535,35 +540,48 @@ class NotionBackend:
     def _refresh_briefs_index(self) -> None:
         """Rebuild the Briefs container page body with date-grouped index.
 
-        Renders a list grouped by creation date (newest first), e.g.:
-
-            ## 2026-03-20
-            - Brief Title A (draft)
-            - Brief Title B (approved)
-
-            ## 2026-03-19
-            - Older Brief (shipped)
+        Renders toggle headings grouped by creation date (newest first).
+        Each heading contains ``link_to_page`` blocks pointing to the actual
+        brief pages, so briefs are both grouped under their date AND linked.
         """
-        from src.integrations.notion.provisioner import NotionProvisioner
-
         briefs = self.list_briefs()
         grouped: dict[str, list[dict]] = {}
         for b in briefs:
             date_key = b.get("date", "") or "unknown"
             grouped.setdefault(date_key, []).append(b)
 
-        lines: list[str] = []
+        blocks: list[dict] = []
         for date_key in sorted(grouped.keys(), reverse=True):
-            lines.append(f"## {date_key}")
+            children: list[dict] = []
             for b in grouped[date_key]:
-                lines.append(f"- {b['title']} ({b['status']})")
-            lines.append("")
+                notion_id = b.get("notion_id")
+                if notion_id:
+                    children.append({
+                        "type": "link_to_page",
+                        "link_to_page": {
+                            "type": "page_id",
+                            "page_id": notion_id,
+                        },
+                    })
+                else:
+                    children.append({
+                        "type": "bulleted_list_item",
+                        "bulleted_list_item": {
+                            "rich_text": [{"type": "text", "text": {"content": b["title"]}}],
+                        },
+                    })
+            blocks.append({
+                "type": "heading_2",
+                "heading_2": {
+                    "rich_text": [{"text": {"content": date_key}}],
+                    "is_toggleable": True,
+                    "children": children,
+                },
+            })
 
-        if not lines:
+        if not blocks:
             return
 
-        md = "\n".join(lines)
-        blocks = NotionProvisioner._markdown_to_blocks(md)
         briefs_page = self._briefs_page_id()
 
         # Remove only non-child_page blocks (preserve the actual brief pages)
@@ -734,6 +752,7 @@ class NotionBackend:
                 "type": self._get_select(r["properties"], "Type"),
                 "status": self._get_status_for_row(r["properties"]),
                 "priority": self._get_select(r["properties"], "Priority"),
+                "project": self._get_select(r["properties"], "Project"),
                 "review_verdict": self._get_select(r["properties"], "Review Verdict"),
                 "route_state": self._get_select(r["properties"], "Route State"),
                 "lane": self._get_select(r["properties"], "Lane"),
@@ -762,6 +781,8 @@ class NotionBackend:
             "Notes": self._rich_text_prop(row.get("notes", "")),
             "Automation Trace": self._rich_text_prop(row.get("automation_trace", "")),
         }
+        if row.get("project"):
+            props["Project"] = self._select_prop(row["project"])
         if row.get("brief_link"):
             props["Brief Link"] = self._url_prop(row["brief_link"])
         if row.get("release_note_link"):
@@ -813,6 +834,7 @@ class NotionBackend:
                 "type": self._get_select(r["properties"], "Type"),
                 "status": self._get_status_for_row(r["properties"]),
                 "priority": self._get_select(r["properties"], "Priority"),
+                "project": self._get_select(r["properties"], "Project"),
                 "review_verdict": self._get_select(r["properties"], "Review Verdict"),
                 "route_state": self._get_select(r["properties"], "Route State"),
                 "lane": self._get_select(r["properties"], "Lane"),
@@ -1126,8 +1148,8 @@ class NotionBackend:
                     "# Backlog\n",
                     "\nCross-feature source of truth for task priority "
                     "and execution status.\n",
-                    "\n| Type | Title | Status | Priority | Notes |",
-                    "\n|---|---|---|---|---|",
+                    "\n| Type | Title | Status | Priority | Project | Notes |",
+                    "\n|---|---|---|---|---|---|",
                 ]
                 for r in rows:
                     props = r["properties"]
@@ -1135,10 +1157,11 @@ class NotionBackend:
                     title = self._get_title(props)
                     status = self._get_status_for_row(props)
                     priority = self._get_select(props, "Priority")
+                    project = self._get_select(props, "Project")
                     notes = self._get_rich_text(props, "Notes")
                     lines.append(
                         f"\n| {item_type} | {title} | {status} "
-                        f"| {priority} | {notes} |"
+                        f"| {priority} | {project} | {notes} |"
                     )
                 backlog_path.write_text("".join(lines) + "\n")
             summary["created"] += 1

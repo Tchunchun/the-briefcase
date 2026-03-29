@@ -1,0 +1,47 @@
+name: Publish GitHub Release
+
+# Triggers on version tags pushed to the repo (e.g. v0.9.4, v1.0.0).
+# Creates a GitHub release so that `briefcase update --check` can find the latest version.
+on:
+  push:
+    tags:
+      - "v[0-9]*.[0-9]*.[0-9]*"
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: pip install -e .
+
+      - name: Extract release notes for this version
+        id: notes
+        env:
+          NOTION_API_KEY: ${{ secrets.NOTION_API_KEY }}
+        run: |
+          VERSION="${{ github.ref_name }}"
+          echo "Publishing release for $VERSION"
+          NOTES=$(python3 -m src.cli.main release read --version "$VERSION" 2>/dev/null \
+            | python3 -c "import json,sys; d=json.load(sys.stdin); print(d['data']['content'])" 2>/dev/null \
+            || echo "Release $VERSION")
+          # Write to a temp file to handle multi-line safely
+          echo "$NOTES" > /tmp/release_notes.md
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ steps.notes.outputs.version }}
+          body_path: /tmp/release_notes.md
+          draft: false
+          prerelease: false

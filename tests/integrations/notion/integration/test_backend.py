@@ -166,6 +166,7 @@ def test_write_brief_creates_new_page_with_body(backend):
         {
             "title": "Agent Entry Point",
             "status": "draft",
+            "project": "Briefcase",
             "problem": "Old invocation is clunky.",
             "goal": "Use ./agent.",
             "acceptance_criteria": "- [ ] Works",
@@ -181,9 +182,13 @@ def test_write_brief_creates_new_page_with_body(backend):
     assert call_args[0][0] == "parent-1"
     assert call_args[0][1] == "Agent Entry Point"
     assert call_args[1]["children"]
-    first_block = call_args[1]["children"][0]
-    assert first_block["type"] == "paragraph"
-    assert first_block["paragraph"]["rich_text"][0]["text"]["content"] == "**Status: draft**"
+    text_blocks = [
+        block["paragraph"]["rich_text"][0]["text"]["content"]
+        for block in call_args[1]["children"]
+        if block["type"] == "paragraph" and block["paragraph"]["rich_text"]
+    ]
+    assert "**Status: draft**" in text_blocks
+    assert "**Project: Briefcase**" in text_blocks
 
 
 def test_render_brief_body_includes_status_line(backend):
@@ -302,6 +307,7 @@ def test_read_brief_returns_updated_sections(backend):
         [{"type": "child_page", "id": "brief-1", "child_page": {"title": "Agent Entry Point"}}],
         [
             {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Status: implementation-ready**"}]}},
+            {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Project: Briefcase**"}]}},
             {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Problem"}]}},
             {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "Old invocation is clunky."}]}},
             {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Goal"}]}},
@@ -331,6 +337,7 @@ def test_read_brief_returns_updated_sections(backend):
     brief = backend.read_brief("agent-entry-point")
 
     assert brief["status"] == "implementation-ready"
+    assert brief["project"] == "Briefcase"
     assert "No regressions" in brief["non_functional_requirements"]
     assert brief["technical_approach"] == "Use a generated wrapper."
     assert "Use ./agent." in brief["goal"]
@@ -359,6 +366,7 @@ def test_brief_write_read_roundtrip_preserves_all_fields(backend):
     write_data = {
         "title": "Test Feature Brief",
         "status": "implementation-ready",
+        "project": "Briefcase",
         "problem": "Something is broken.",
         "goal": "Fix it properly.",
         "acceptance_criteria": "- [ ] AC1\n- [ ] AC2",
@@ -377,6 +385,7 @@ def test_brief_write_read_roundtrip_preserves_all_fields(backend):
     # Simulate Notion API returning the content (blocks with plain_text)
     read_blocks = [
         {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Status: implementation-ready**"}]}},
+        {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "**Project: Briefcase**"}]}},
         {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Problem"}]}},
         {"type": "paragraph", "paragraph": {"rich_text": [{"plain_text": "Something is broken."}]}},
         {"type": "heading_2", "heading_2": {"rich_text": [{"plain_text": "Goal"}]}},
@@ -412,6 +421,7 @@ def test_brief_write_read_roundtrip_preserves_all_fields(backend):
     read_data = backend.read_brief("test-feature-brief")
 
     assert read_data["status"] == "implementation-ready"
+    assert read_data["project"] == "Briefcase"
     assert "Something is broken" in read_data["problem"]
     assert "Fix it properly" in read_data["goal"]
     assert "AC1" in read_data["acceptance_criteria"]
@@ -532,6 +542,7 @@ def test_backlog_row_with_review_verdict_and_route_state(backend):
                     "Type": {"select": {"name": "Feature"}},
                     "Feature Status": {"select": {"name": "review-ready"}},
                     "Priority": {"select": {"name": "High"}},
+                    "Project": {"select": {"name": "Briefcase"}},
                     "Review Verdict": {"select": {"name": "accepted"}},
                     "Route State": {"select": {"name": "routed"}},
                     "Brief Link": {"url": None},
@@ -550,6 +561,7 @@ def test_backlog_row_with_review_verdict_and_route_state(backend):
         "type": "Feature",
         "status": "review-ready",
         "priority": "High",
+        "project": "Briefcase",
         "review_verdict": "accepted",
         "route_state": "routed",
         "release_note_link": "https://notion.so/release-v1",
@@ -561,9 +573,11 @@ def test_backlog_row_with_review_verdict_and_route_state(backend):
     assert "Review Verdict" in props
     assert "Route State" in props
     assert "Release Note Link" in props
+    assert props["Project"]["select"]["name"] == "Briefcase"
 
     # Read and verify
     rows = backend.read_backlog()
+    assert rows[0]["project"] == "Briefcase"
     assert rows[0]["review_verdict"] == "accepted"
     assert rows[0]["route_state"] == "routed"
     assert rows[0]["release_note_link"] == "https://notion.so/release-v1"
@@ -622,6 +636,7 @@ def test_read_backlog(backend):
                 "Type": {"select": {"name": "Task"}},
                 "Task Status": {"select": {"name": "to-do"}},
                 "Priority": {"select": {"name": "High"}},
+                "Project": {"select": {"name": "Briefcase"}},
                 "Brief Link": {"url": None},
                 "Notes": {"rich_text": [{"plain_text": ""}]},
                 "Parent": {"relation": [{"id": "feature-1"}]},
@@ -634,6 +649,7 @@ def test_read_backlog(backend):
     assert len(rows) == 1
     assert rows[0]["type"] == "Task"
     assert rows[0]["status"] == "to-do"
+    assert rows[0]["project"] == "Briefcase"
     assert rows[0]["parent_ids"] == ["feature-1"]
     assert rows[0]["created_at"] == "2026-03-19T01:02:03.000Z"
     assert rows[0]["updated_at"] == "2026-03-20T04:05:06.000Z"
@@ -689,11 +705,13 @@ def test_write_backlog_row_creates_new(backend):
         "type": "Task",
         "status": "to-do",
         "priority": "Medium",
+        "project": "Briefcase",
     })
     call_args = backend._mock_client.create_database_page.call_args
     props = call_args[0][1]
     assert props["Type"]["select"]["name"] == "Task"
     assert "Task Status" in props
+    assert props["Project"]["select"]["name"] == "Briefcase"
 
 
 def test_write_backlog_row_updates_existing(backend):
@@ -814,6 +832,7 @@ def test_brief_block_roundtrip_preserves_all_sections():
         "problem": write_data["problem"],
         "goal": write_data["goal"],
         "acceptance_criteria": write_data["acceptance_criteria"],
+        "expected_experience": "",
         "non_functional_requirements": write_data["non_functional_requirements"],
         "out_of_scope": write_data["out_of_scope"],
         "open_questions": write_data["open_questions"],

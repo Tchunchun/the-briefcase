@@ -75,7 +75,7 @@ Use the full Required Workflow below (unchanged from current behavior).
 3. **Find the existing Idea row.** If this work originates from an existing Idea, run `briefcase backlog list --type Idea` and find its **exact title** and **`notion_id`**. Save both — the title is used for upserts and the `notion_id` is used for `--link-idea-id` when writing the brief. Do NOT paraphrase, shorten, or reword the title. Mismatched titles create duplicates instead of updating the original row.
 4. Set the Idea status to exploring: `briefcase backlog upsert --title "<exact-existing-title>" --type Idea --status exploring`
 5. Work with the user to define the problem, goal, and acceptance criteria.
-6. If the idea is still too rough to define acceptance criteria, capture it via `briefcase inbox add --type idea --text "Short title" --notes "Context"`.
+6. If the idea is still too rough to define acceptance criteria, capture it via `briefcase inbox add --type idea --text 'Short title' --notes 'Context'`.
    **Context completeness check — before moving on, verify the notes capture:**
    - Current behavior / pain point — what is broken or missing today
    - Desired behavior — what the user wants, including any concrete examples they gave
@@ -85,7 +85,7 @@ Use the full Required Workflow below (unchanged from current behavior).
    If any of these are thin or missing, enrich the `--notes` before stopping.
 7. **Context completeness gate (hard gate for briefs):** Before writing the brief, run the Context Completeness Check. All five dimensions must be present — if any is missing, ask the user before proceeding. Do not create the brief until all five are covered.
 8. When the idea is ready, create or update the brief head with a human change note and link it to the source Idea in one step:
-   `briefcase brief write {feature-name} --status draft --problem "..." --goal "..." --change-summary "Initial scope draft" --link-idea-id "<idea-notion-id>"`
+   `briefcase brief write {feature-name} --status draft --problem '...' --goal '...' --change-summary 'Initial scope draft' --link-idea-id '<idea-notion-id>'`
    (Use `--link-idea-title "<exact-existing-title>"` only when you do not have the idea id.)
 9. Verify the write response includes `"idea_linked": true`. If not, rerun with an explicit `--link-idea-id` or `--link-idea-title` before continuing.
 10. Create a Feature backlog row using the returned `notion_url` value as `--brief-link` and the source Idea id as `--parent-id`:
@@ -130,6 +130,7 @@ Fill in these sections of `brief.md`:
 - **Problem** — what is broken, missing, or worth improving (1–3 sentences)
 - **Goal** — what success looks like for the user or system
 - **Acceptance Criteria** — observable, testable conditions that define success (use checkboxes)
+- **Expected Experience** — what the user should feel, observe, or be able to do when this feature works correctly (UX intent, not implementation details)
 - **Non-Functional Requirements** — fill in what is known for: expected load/scale, latency, availability, cost constraints, compliance, other constraints. Write "not yet known" for anything genuinely unclear — the architect will flag these as Open Questions.
 - **Expected Experience** — concrete before/after examples of what the user will see when the feature is complete. For CLI features, include literal terminal output. For UI changes, describe what the user sees. For API changes, show request/response pairs. If the feature has multiple user-facing touchpoints, include an example for each. These examples are the primary reference for implementation fidelity and review intent-checking.
 - **Out of Scope** — what this feature will NOT include (be explicit)
@@ -231,7 +232,7 @@ You are responsible for updating these statuses in the backlog:
 
 **When capturing a new idea:**
 ```
-agent inbox add --type idea --text "Short title" --notes "Longer description"
+agent inbox add --type idea --text 'Short title' --notes 'Longer description'
 ```
 (Creates Idea with `Idea Status: new` automatically)
 
@@ -241,7 +242,7 @@ First, find the exact existing Idea title: `briefcase backlog list --type Idea` 
 ```
 agent backlog upsert --title "<exact-existing-title>" --type Idea --status exploring --brief-link "<brief-url>"
 agent backlog upsert --title "Short Title" --type Feature --status draft --parent-id "<idea-notion-id>" --brief-link "<brief-url>"
-agent brief write {feature-name} --status draft --problem "..." --goal "..." --change-summary "Initial ideation draft" --link-idea-id "<idea-notion-id>"
+agent brief write {feature-name} --status draft --problem '...' --goal '...' --change-summary 'Initial ideation draft' --link-idea-id '<idea-notion-id>'
 agent backlog upsert --title "Short Title" --type Feature --status architect-review
 agent automate architect-review --notes-only
 ```
@@ -258,7 +259,7 @@ agent backlog upsert --title "Short Title" --type Idea --status promoted
 
 **When marking an idea as rejected:**
 ```
-agent backlog upsert --title "Short Title" --type Idea --status rejected --notes "Reason"
+agent backlog upsert --title 'Short Title' --type Idea --status rejected --notes 'Reason'
 ```
 
 **When brief is ready for architect review:**
@@ -269,7 +270,7 @@ agent backlog upsert --title "Short Title" --type Feature --status architect-rev
 ## Artifact Rules
 
 - Inbox — managed via `briefcase inbox add`. The only place for raw ideas and side thoughts.
-- Briefs — managed via `briefcase brief write`. The only planning artifact you may create or update.
+- Briefs — managed via `briefcase brief write`. The only planning artifact you may create or update. **Prefer `--file` over inline args** for multi-line or special-character content (see PLAYBOOK.md — Shell Escaping).
 - Brief history is append-only. Update the head brief with `briefcase brief write`, inspect prior versions with `briefcase brief history` / `briefcase brief revision`, and use `briefcase brief restore` instead of rewriting old revisions by hand.
 - Backlog — managed via `briefcase backlog upsert`. You may create Idea and Feature rows and update Idea status.
 - Do NOT create Task backlog rows.
