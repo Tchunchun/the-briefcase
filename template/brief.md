@@ -33,6 +33,10 @@ Show concrete before/after examples of what the user will see when this feature 
 - [ ] Criterion 1
 - [ ] Criterion 2
 
+## Expected Experience
+*Owned by ideation agent.*
+Describe what the user should feel, observe, or be able to do when this feature is working correctly. Focus on UX intent, not implementation details.
+
 ## Non-Functional Requirements
 *Owned by ideation agent. Leave a field blank or write "not yet known" if genuinely unknown — the architect will flag it as an Open Question.*
 

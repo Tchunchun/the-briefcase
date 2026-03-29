@@ -49,6 +49,7 @@ def project(tmp_path):
     (brief_dir / "brief.md").write_text(
         "# Notifications (v1)\n\n"
         "**Status: draft**\n\n---\n\n"
+        "**Project: Briefcase**\n\n"
         "## Problem\nUsers miss updates.\n\n"
         "## Goal\nSend email alerts.\n\n"
         "## Acceptance Criteria\n- [ ] Email sent on event\n\n"
@@ -123,6 +124,7 @@ def test_read_brief(backend):
     brief = backend.read_brief("notifications")
     assert brief["name"] == "notifications"
     assert brief["status"] == "draft"
+    assert brief["project"] == "Briefcase"
     assert "Users miss updates" in brief["problem"]
     assert "Email sent on event" in brief["acceptance_criteria"]
     assert "Latency / response time" in brief["non_functional_requirements"]
@@ -139,6 +141,7 @@ def test_write_brief(backend, project):
         {
             "title": "New Feature",
             "status": "draft",
+            "project": "Skunkworks",
             "problem": "Something is missing.",
             "goal": "Fix it.",
             "acceptance_criteria": "- [ ] It works",
@@ -149,6 +152,7 @@ def test_write_brief(backend, project):
     )
     brief = backend.read_brief("new-feature")
     assert brief["status"] == "draft"
+    assert brief["project"] == "Skunkworks"
     assert "Something is missing" in brief["problem"]
     assert "Preserve body updates" in brief["non_functional_requirements"]
 
@@ -247,8 +251,28 @@ def test_read_backlog(backend):
     assert len(rows) == 1
     assert rows[0]["id"] == "T-001"
     assert rows[0]["status"] == "To Do"
+    assert rows[0]["project"] == ""
     assert "created_at" in rows[0]
     assert "updated_at" in rows[0]
+
+
+def test_write_backlog_persists_project_column(backend):
+    backend.write_backlog_row(
+        {
+            "id": "T-002",
+            "title": "Project-tagged task",
+            "type": "Task",
+            "status": "to-do",
+            "priority": "Medium",
+            "project": "Briefcase",
+            "notes": "",
+        }
+    )
+
+    rows = backend.read_backlog()
+    matching = [row for row in rows if row["id"] == "T-002"]
+    assert matching
+    assert matching[0]["project"] == "Briefcase"
 
 
 def test_read_inbox_since_filters_by_updated_at(backend, project):

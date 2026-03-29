@@ -38,6 +38,11 @@ def load_config_from_dir(project_dir: str = ".") -> StorageConfig:
     return load_config(config_dir)
 
 
+def default_project_name_from_dir(project_dir: str = ".") -> str:
+    """Return the configured default project name for the project, if any."""
+    return load_config_from_dir(project_dir).default_project_name()
+
+
 def output_json(data: dict | list, success: bool = True) -> None:
     """Print JSON result to stdout."""
     result = {"success": success, "data": data}

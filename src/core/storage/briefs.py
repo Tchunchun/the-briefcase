@@ -16,10 +16,16 @@ _CREATED_PATTERN = re.compile(
     re.MULTILINE,
 )
 
+_PROJECT_PATTERN = re.compile(
+    r"^\s*\*{0,2}Project:\s*([^*\n]+?)\*{0,2}\s*$",
+    re.MULTILINE,
+)
+
 BRIEF_SECTIONS = {
     "Problem": "problem",
     "Goal": "goal",
     "Acceptance Criteria": "acceptance_criteria",
+    "Expected Experience": "expected_experience",
     "Non-Functional Requirements": "non_functional_requirements",
     "Out of Scope": "out_of_scope",
     "Open Questions": "open_questions",
@@ -46,9 +52,20 @@ def extract_brief_created(content: str, default: str = "") -> str:
     return match.group(1).strip() if match else default
 
 
+def extract_brief_project(content: str, default: str = "") -> str:
+    """Extract a brief project name from markdown-like content."""
+    match = _PROJECT_PATTERN.search(content)
+    return match.group(1).strip() if match else default
+
+
 def parse_brief_sections(content: str) -> dict[str, str]:
-    """Extract known brief sections from markdown-like content."""
-    data: dict[str, str] = {key: "" for key in BRIEF_SECTIONS.values()}
+    """Extract known brief sections from markdown-like content.
+
+    Only sections that are actually present in *content* appear in the
+    returned dict.  Sections not found are **omitted** (not set to ""),
+    so callers can distinguish "absent" from "explicitly empty".
+    """
+    data: dict[str, str] = {}
     current_key: str | None = None
     current_lines: list[str] = []
 
@@ -114,6 +131,8 @@ def render_brief_markdown(
     lines.append(f"**Status: {status}**")
     if created:
         lines.append(f"**Created: {created}**")
+    if data.get("project"):
+        lines.append(f"**Project: {data['project']}**")
     lines.extend(
         [
             "",
@@ -127,6 +146,9 @@ def render_brief_markdown(
             "",
             "## Acceptance Criteria",
             data.get("acceptance_criteria", ""),
+            "",
+            "## Expected Experience",
+            data.get("expected_experience", ""),
             "",
             "## Non-Functional Requirements",
             data.get("non_functional_requirements", ""),
@@ -192,6 +214,7 @@ def parse_revision_markdown(content: str) -> dict[str, object]:
     title_match = re.match(r"^#\s+(.+)", brief_content)
     snapshot["title"] = title_match.group(1).strip() if title_match else ""
     snapshot["status"] = extract_brief_status(brief_content)
+    snapshot["project"] = extract_brief_project(brief_content)
     snapshot.update(parse_brief_sections(brief_content))
 
     return {

@@ -27,6 +27,7 @@ def test_backlog_schema_has_required_properties():
     assert "Task Status" in BACKLOG_SCHEMA
     assert "Priority" in BACKLOG_SCHEMA
     assert "Brief Link" in BACKLOG_SCHEMA
+    assert "Project" in BACKLOG_SCHEMA
     assert "Notes" in BACKLOG_SCHEMA
     assert "Automation Trace" in BACKLOG_SCHEMA
 
