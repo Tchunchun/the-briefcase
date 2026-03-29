@@ -322,14 +322,15 @@ All planning artifacts are accessed through CLI commands. The CLI routes to the 
 
 ### On Session Start
 1. Read this file fully.
-2. Determine the correct agent role for the current request.
-3. Read skills/{role}/SKILL.md for that role.
-4. If `_project/` does not exist, route to the architect agent for project setup before any implementation work.
-5. **Read `_project/storage.yaml` and identify the active backend (`local` or `notion`).** This determines where ALL planning artifacts live — do not read or write `docs/plan/` files directly if the backend is `notion`. When backend is `notion`, every artifact read and write MUST go through `briefcase` CLI commands.
-6. Read _project/tech-stack.md before touching any code.
-7. Read _project/testing-strategy.md before writing any test.
-8. Run `briefcase brief read {feature-name}` and `briefcase backlog list --type Task` before making changes.
-9. Do not start new work until you understand current state and artifact ownership.
+2. **Resolve the project root.** If `./briefcase` or `_project/storage.yaml` is not in the current directory, you may be in a git worktree or subdirectory. Run `git rev-parse --show-toplevel` and `cd` to the result before proceeding. A missing `./briefcase` script means you need to resolve the root — it does **not** mean the CLI is unavailable.
+3. Determine the correct agent role for the current request.
+4. Read skills/{role}/SKILL.md for that role.
+5. If `_project/` does not exist, route to the architect agent for project setup before any implementation work.
+6. **Read `_project/storage.yaml` and identify the active backend (`local` or `notion`).** This determines where ALL planning artifacts live — do not read or write `docs/plan/` files directly if the backend is `notion`. When backend is `notion`, every artifact read and write MUST go through `briefcase` CLI commands.
+7. Read _project/tech-stack.md before touching any code.
+8. Read _project/testing-strategy.md before writing any test.
+9. Run `briefcase brief read {feature-name}` and `briefcase backlog list --type Task` before making changes.
+10. Do not start new work until you understand current state and artifact ownership.
 
 ### On Session End
 1. Update all artifacts owned by your active agent role via CLI commands.

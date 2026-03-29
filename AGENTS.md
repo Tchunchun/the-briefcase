@@ -23,6 +23,20 @@ Load `.env` before CLI commands that hit Notion:
 export $(grep -v '^#' .env | xargs)
 ```
 
+## Project Root Resolution
+
+Always resolve the project root before running any `briefcase` command.
+If you are in a git worktree (e.g. `.claude/worktrees/<name>/`), a subdirectory, or any path where `./briefcase` does not exist, you are **not** missing the CLI — you are not at the project root.
+
+```bash
+PROJECT_ROOT="$(git rev-parse --show-toplevel)"
+cd "$PROJECT_ROOT"
+```
+
+Then run `briefcase` commands from the project root, or pass `--project-dir "$PROJECT_ROOT"` explicitly.
+
+> **Never treat a missing `./briefcase` as "CLI not available."** It means you need to resolve the project root first.
+
 ## Key Conventions
 
 - All folders use `kebab-case`
