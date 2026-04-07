@@ -29,5 +29,10 @@ __pycache__/
 agent
 .skills
 
+# Scratch / one-off project scripts
+_*.py
+_*.json
+_*.md
+
 # Plan artifacts — tracked in git when backend = git
 # docs/plan/
