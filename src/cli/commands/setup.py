@@ -9,6 +9,7 @@ import click
 
 from src.core.storage.config import (
     StorageConfig,
+    GitConfig,
     NotionConfig,
     save_config,
     VALID_BACKENDS,
@@ -49,7 +50,28 @@ def setup(backend: str | None, project_dir: str) -> None:
 
     config = StorageConfig(backend=backend)
 
-    if backend == "notion":
+    if backend == "git":
+        remote_url = click.prompt(
+            "Git remote URL (e.g. git@github.com:you/private-project.git)",
+        )
+        branch = click.prompt("Default branch", default="main")
+        remote_name = click.prompt("Remote name", default="origin")
+
+        config.git = GitConfig(
+            remote=remote_name,
+            remote_url=remote_url,
+            branch=branch,
+        )
+
+        # Warn if NOTION_API_KEY is still in .env — no longer needed
+        env_path = root / ".env"
+        if env_path.exists() and "NOTION_API_KEY=" in env_path.read_text():
+            click.echo(
+                "\n⚠️  Your .env contains NOTION_API_KEY, which is no longer needed\n"
+                "   for the git backend. Consider removing it to keep secrets minimal."
+            )
+
+    elif backend == "notion":
         # Inline checklist: guide first-time users through Notion prerequisites
         click.echo("\n  Before you begin, make sure you have:")
         click.echo("  1. Created a Notion integration at https://www.notion.so/my-integrations")
@@ -146,6 +168,10 @@ def setup(backend: str | None, project_dir: str) -> None:
     if backend == "local":
         click.echo("  No additional configuration needed.")
         click.echo("  Artifacts will be stored in local markdown files.")
+    elif backend == "git":
+        click.echo("\n  Next steps:")
+        click.echo("  1. Run `./briefcase sync push` to commit and push artifacts to git remote")
+        click.echo("  2. Run `./briefcase sync pull` to fetch and merge updates from remote")
     elif backend == "notion":
         click.echo("\n  Next steps:")
         click.echo("  1. Open the Notion project page and create three board views:")

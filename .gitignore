@@ -29,5 +29,5 @@ __pycache__/
 agent
 .skills
 
-# Plan artifacts (synced from Notion, not source-controlled)
-docs/plan/
+# Plan artifacts — tracked in git when backend = git
+# docs/plan/

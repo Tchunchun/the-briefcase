@@ -47,6 +47,8 @@ Before entering the Required Workflow, determine the processing lane for the inc
 
 If the user passed `--lane` on `inbox add`, use that override — do not re-triage.
 
+> **Mandatory gate:** Every triaged item MUST have a lane assigned before leaving ideation. If you reach the Required Workflow without having assigned a lane, STOP and assign one now. Include the lane in the Idea or Task backlog row via `--lane`.
+
 ### Quick-fix lane workflow
 
 Skip the full Required Workflow below. Instead:
@@ -130,9 +132,10 @@ Fill in these sections of `brief.md`:
 - **Problem** — what is broken, missing, or worth improving (1–3 sentences)
 - **Goal** — what success looks like for the user or system
 - **Acceptance Criteria** — observable, testable conditions that define success (use checkboxes)
-- **Expected Experience** — what the user should feel, observe, or be able to do when this feature works correctly (UX intent, not implementation details)
-- **Non-Functional Requirements** — fill in what is known for: expected load/scale, latency, availability, cost constraints, compliance, other constraints. Write "not yet known" for anything genuinely unclear — the architect will flag these as Open Questions.
 - **Expected Experience** — concrete before/after examples of what the user will see when the feature is complete. For CLI features, include literal terminal output. For UI changes, describe what the user sees. For API changes, show request/response pairs. If the feature has multiple user-facing touchpoints, include an example for each. These examples are the primary reference for implementation fidelity and review intent-checking.
+- **Experience Goals** — what the user should feel, observe, or be able to do when this feature works correctly (UX intent, not implementation details)
+- **Constraints & Invariants** — behavioral rules and guarantees the implementation must uphold: always/never/preserve constraints that must survive this change. Not future scope — hard constraints.
+- **Non-Functional Requirements** — fill in what is known for: expected load/scale, latency, availability, cost constraints, migration / backward compatibility, compliance, other constraints. Write "not yet known" for anything genuinely unclear — the architect will flag these as Open Questions.
 - **Out of Scope** — what this feature will NOT include (be explicit)
 - **Open Questions** — unresolved technical decisions for the architect to resolve
 

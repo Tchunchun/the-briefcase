@@ -1,4 +1,4 @@
-"""CLI commands: agent sync local, agent sync notion, agent sync templates."""
+"""CLI commands: sync local/notion (Notion backend) and sync push/pull (git backend)."""
 
 from __future__ import annotations
 
@@ -119,3 +119,85 @@ def sync_templates(dry_run: bool, project_dir: str) -> None:
     click.echo(f"  Updated:  {result['updated']}")
     click.echo(f"  Skipped:  {result['skipped']}")
     click.echo(f"  Failed:   {result['failed']}")
+
+
+@sync.command(name="push")
+@click.option("--dry-run", is_flag=True, help="Preview changes without committing or pushing.")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True, file_okay=False, resolve_path=True),
+    default=".",
+    help="Project root directory.",
+)
+def sync_push(dry_run: bool, project_dir: str) -> None:
+    """Stage and push artifacts to git remote (git backend only)."""
+    from pathlib import Path
+
+    from src.core.storage.config import load_config, resolve_config_dir
+    from src.sync.git_sync import GitSyncError, git_sync_from_config
+
+    config = load_config(resolve_config_dir(Path(project_dir)))
+    if not config.is_git():
+        raise click.ClickException(
+            "sync push is only available for the git backend. "
+            f"Current backend: '{config.backend}'."
+        )
+
+    syncer = git_sync_from_config(project_dir, config)
+
+    try:
+        result = syncer.push(dry_run=dry_run)
+    except GitSyncError as e:
+        raise click.ClickException(str(e))
+
+    if dry_run:
+        click.echo(f"[dry-run] {result['message']}")
+        if result.get("files"):
+            for f in result["files"]:
+                click.echo(f"  {f}")
+    else:
+        click.echo(result["message"])
+
+
+@sync.command(name="pull")
+@click.option("--dry-run", is_flag=True, help="Preview incoming changes without applying them.")
+@click.option(
+    "--project-dir",
+    type=click.Path(exists=True, file_okay=False, resolve_path=True),
+    default=".",
+    help="Project root directory.",
+)
+def sync_pull(dry_run: bool, project_dir: str) -> None:
+    """Fetch and merge artifacts from git remote (git backend only)."""
+    from pathlib import Path
+
+    from src.core.storage.config import load_config, resolve_config_dir
+    from src.sync.git_sync import GitSyncError, git_sync_from_config
+
+    config = load_config(resolve_config_dir(Path(project_dir)))
+    if not config.is_git():
+        raise click.ClickException(
+            "sync pull is only available for the git backend. "
+            f"Current backend: '{config.backend}'."
+        )
+
+    syncer = git_sync_from_config(project_dir, config)
+
+    try:
+        result = syncer.pull(dry_run=dry_run)
+    except GitSyncError as e:
+        raise click.ClickException(str(e))
+
+    if result["conflicts"]:
+        click.echo(f"⚠️  {result['message']}", err=True)
+        for f in result["conflicts"]:
+            click.echo(f"  conflict: {f}", err=True)
+        raise click.ClickException("Pull aborted due to conflicts.")
+
+    if dry_run:
+        click.echo(f"[dry-run] {result['message']}")
+        for f in result["incoming"]:
+            click.echo(f"  {f}")
+    else:
+        click.echo(result["message"])
+

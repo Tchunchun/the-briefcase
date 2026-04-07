@@ -16,7 +16,21 @@ import yaml
 
 STORAGE_CONFIG_FILENAME = "storage.yaml"
 DEFAULT_BACKEND = "local"
-VALID_BACKENDS = ("local", "notion")
+VALID_BACKENDS = ("local", "git", "notion")
+
+
+@dataclass
+class GitConfig:
+    """Git-specific sync configuration."""
+
+    remote: str = "origin"
+    remote_url: str = ""
+    branch: str = "main"
+    paths: list = None  # type: ignore[assignment]
+
+    def __post_init__(self) -> None:
+        if self.paths is None:
+            self.paths = ["docs/plan/", "_project/"]
 
 
 @dataclass
@@ -53,6 +67,7 @@ class StorageConfig:
 
     backend: str = DEFAULT_BACKEND
     notion: NotionConfig | None = None
+    git: GitConfig | None = None
     upstream: UpstreamConfig | None = None
     project: ProjectConfig | None = None
 
@@ -61,6 +76,9 @@ class StorageConfig:
 
     def is_local(self) -> bool:
         return self.backend == "local"
+
+    def is_git(self) -> bool:
+        return self.backend == "git"
 
     def has_upstream_feedback(self) -> bool:
         return self.upstream is not None and bool(self.upstream.feedback_repo)
@@ -169,6 +187,16 @@ def load_config(project_dir: str | Path | None = None) -> StorageConfig:
             ),
         )
 
+    git_config = None
+    if backend == "git" and "git" in raw:
+        git_raw = raw["git"]
+        git_config = GitConfig(
+            remote=git_raw.get("remote", "origin"),
+            remote_url=git_raw.get("remote_url", ""),
+            branch=git_raw.get("branch", "main"),
+            paths=git_raw.get("paths", ["docs/plan/", "_project/"]),
+        )
+
     upstream_config = None
     if "upstream" in raw:
         upstream_raw = raw["upstream"]
@@ -186,6 +214,7 @@ def load_config(project_dir: str | Path | None = None) -> StorageConfig:
     return StorageConfig(
         backend=backend,
         notion=notion_config,
+        git=git_config,
         upstream=upstream_config,
         project=project_config,
     )
@@ -245,6 +274,14 @@ def save_config(config: StorageConfig, project_dir: str | Path) -> Path:
     config_path = project_dir / STORAGE_CONFIG_FILENAME
 
     data: dict[str, Any] = {"backend": config.backend}
+
+    if config.git is not None:
+        data["git"] = {
+            "remote": config.git.remote,
+            "remote_url": config.git.remote_url,
+            "branch": config.git.branch,
+            "paths": config.git.paths,
+        }
 
     if config.notion is not None:
         data["notion"] = {

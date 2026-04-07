@@ -23,6 +23,7 @@ from src.cli.commands.automate import automate
 from src.cli.commands.upgrade import upgrade
 from src.cli.commands.update import update
 from src.cli.commands.ship import ship
+from src.cli.commands.migrate import migrate
 
 
 @click.group()
@@ -42,6 +43,7 @@ cli.add_command(automate)
 cli.add_command(upgrade)
 cli.add_command(update)
 cli.add_command(ship)
+cli.add_command(migrate)
 
 
 if __name__ == "__main__":

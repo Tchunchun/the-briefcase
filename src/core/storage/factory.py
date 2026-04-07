@@ -23,6 +23,11 @@ def get_store(config: StorageConfig, project_root: str) -> ArtifactStore:
     if config.is_local():
         return LocalBackend(project_root)
 
+    if config.is_git():
+        # Git backend: reads/writes are local markdown (same as local backend).
+        # Sync to/from remote is done explicitly via `briefcase sync push/pull`.
+        return LocalBackend(project_root)
+
     if config.is_notion():
         # Defer import to avoid requiring notion-client when using local backend
         try:
