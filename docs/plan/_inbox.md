@@ -1,0 +1,127 @@
+# Inbox
+
+Append-only capture for ideas, bugs, requests, and follow-ups.
+
+## Usage
+
+- Add one line per item.
+- Keep entries short.
+- Do not prioritize or expand here.
+- Mark an item `[-> architect review]` when the brief is created and ready for architect assessment.
+
+## Entries
+
+- [idea] Define escalation protocol: reverse-flow triggers for Review→Ideation (ambiguous criteria), Implementation→Architect (mid-build blocker), Review→Architect (unbuildable technical approach)
+- [idea] [shipped v0.1.0] Pluggable artifact storage with Local + Notion backends [-> architect review] → `docs/plan/artifact-storage/brief.md`
+- [idea] [shipped v0.2.0] Delivery-manager orchestrated mode (single user-facing agent delegating to implementation/review via existing framework) [-> architect review] → `docs/plan/delivery-manager-orchestrated-mode/brief.md`
+- [idea] [shipped v0.2.0] Redesign Notion project setup: unified Backlog (Idea/Feature/Task with per-type statuses, self-relation), standalone brief pages, Decisions with feature link, Templates page. Includes agent-reads-from-Notion architectural gap. [-> architect review] → `docs/plan/notion-project-setup/brief.md`
+- [idea] [shipped v0.3.0] Agent Artifact API: expose ArtifactStore as callable interface (CLI subcommands or lightweight API server) so agents can read/write artifacts directly without file-sync round-trips. Research MCP viability vs plain CLI/REST. [-> architect review] → `docs/plan/agent-artifact-api/brief.md`
+- [idea] [shipped v0.5.0] Slim AGENTS.md — cut to ≤60 lines; move repo tree, consumer setup, and changelog to README.md; add file-scoped commands and commit attribution [-> architect review] → `docs/plan/slim-agents-md/brief.md`
+- [idea] [lesson] Skill path references break on consumer install (.skills/ vs .briefcase/skills/). Fix: use path variable or standardize on .briefcase/skills/ everywhere, add install script that patches paths [shipped]
+- [idea] [lesson] Agent entry point is critical UX: ./agent at project root is the canonical invocation [shipped]
+- [idea] [lesson] Schema collision on existing Notion pages: provisioner finds old v1 DBs by title match but can't use them (missing properties). Fix: add ./agent upgrade command to detect and patch old schemas [rejected]
+- [idea] Ideation phase-splitting hygiene [shipped]
+- [idea] Review-ready feature workflow [shipped]
+- [idea] [tech-debt] Delegate provisioner schema check to upgrade service [shipped]
+- [idea] Workflow gap closure [shipped]
+- [idea] Skill loading efficiency [shipped]
+- [idea] [tech-debt] Remove dead save_config_if_changed [shipped]
+- [idea] CLI-first skill instructions [shipped]
+- [idea] [lesson] Skill path references break on consumer install (.skills/ vs .briefcase/skills/) [shipped]
+- [idea] [lesson] Notion API token naming: framework expects NOTION_API_TOKEN, Notion SDK uses NOTION_API_KEY [shipped]
+- [idea] Status-driven agent automation [shipped]
+- [idea] [lesson] Namespace collision: framework src/ overwrites consumer src/core/ [shipped]
+- [idea] [improvement] Install script needed: ./install.sh that copies .briefcase/, creates agent entry point, updates .gitignore, patches skill paths — one command to onboard a consumer project [shipped]
+- [idea] [tech-debt] Notion brief block replacement loses status parsing [shipped]
+- [idea] Architect-review automation [rejected]
+- [idea] [lesson] Notion API token naming: framework expects NOTION_API_TOKEN, consumer may use NOTION_API_KEY. Install/setup should detect existing tokens and document the expected env var clearly [shipped]
+- [idea] Agent upgrade command [shipped]
+- [idea] [improvement] Install script needed: ./install.sh that copies .briefcase/ [shipped]
+- [idea] Briefcase namespace isolation [shipped]
+- [idea] [improvement] ./agent upgrade command: detect old Notion schemas, add missing properties via PATCH, migrate data — support upgrading existing projects [rejected]
+- [idea] [lesson] gitignore must be deliberate: blanket docs/ was too aggressive. Install should append specific entries with comments, not overwrite. Each entry needs a reason: .briefcase/ (framework code), storage.yaml (secrets), .sync-manifest.json (transient) [shipped]
+- [idea] [lesson] Bidirectional sync has unsolved schema translation: local backlog.md format doesn't match Notion schema. CLI artifact API (./agent backlog upsert) bypasses this, but ./agent migrate command needed for bulk import [rejected]
+- [idea] Release notes to Notion backend [shipped]
+- [idea] [improvement] ./agent migrate command: bulk import local markdown (backlog, inbox, decisions, briefs) to Notion — bridge the gap for existing projects
+- [idea] [lesson] Agent entry point is critical UX: ./agent at project root is the idiomatic pattern for Claude Code + Codex. Python module paths (python3 -m src.cli.main) are fragile and verbose [shipped]
+- [idea] [bug] Notion brief body updates [shipped]
+- [idea] [bug-fix] Local backend write_backlog_row KeyError [rejected]
+- [idea] Brief version control [shipped]
+- [idea] [lesson] One install unit, not three: skills + templates + src should ship as single .briefcase/ folder from day one — avoids three-step copy and triple migration [rejected]
+- [idea] [lesson] Namespace collision: framework src/ overwrites consumer src/core/. Fix: isolate framework in .briefcase/ — never copy into consumer's source tree [shipped]
+- [idea] [improvement] Install script needed: ./install.sh that copies .briefcase/, patches skill-path references, creates ./agent entry point, and provisions an empty _project/ directory [shipped]
+- [idea] Session backend check in skills [shipped]
+- [idea] [lesson] Namespace collision: framework src/ overwrites consumer src/core/. Fix: isolate framework in .briefcase/ — never copy into consumer’s source tree [shipped]
+- [idea] [shakedown] canary [shipped]
+- [idea] Implementation-ready dispatch automation [shipped]
+- [idea] Automation must update Feature status after dispatch [shipped]
+- [idea] Fix-cycle dispatch automation [shipped]
+- [idea] [tech-debt] brief write corruption [promoted]
+- [idea] Workflow shakedown test [shipped]
+- [idea] [bug] Task status skips in-progress [shipped]
+- [idea] Move title rule to PLAYBOOK shared rules
+- [idea] Automate ship step via GitHub Actions
+- [idea] Flip orchestrated mode default on
+- [idea] [lesson] Notion API token naming: framework expects NOTION_API_TOKEN, consumer expects NOTION_API_KEY [shipped]
+- [idea] Ship dispatch automation [shipped]
+- [idea] Scalable multi-workstream automation via Claude dispatch
+- [idea] Research workflow track for v2
+- [idea] Review-ready dispatch automation [shipped]
+- [idea] [lesson] Agent entry point is critical UX: ./agent at project root is the ideal invocation for Claude Code compatibility [shipped]
+- [idea] [bug] Automation Trace property not provisioned in Notion backlog [shipped]
+- [idea] Idea-close dispatch automation [shipped]
+- [idea] [tech-debt] Create docs/plan/ during install [shipped]
+- [idea] Bug: install.sh hides venv/pip failure details [shipped]
+- [idea] [tech-debt] Lazy-import Notion modules [shipped]
+- [idea] Briefs page: reverse-chronological order with date grouping [shipped]
+- [idea] [tech-debt] Add --backend flag to setup [shipped]
+- [idea] Brief-to-Idea linking reliability [shipped]
+- [idea] Post-install smoke test in README [shipped]
+- [idea] Feature: docs-plan only for local [shipped]
+- [idea] Bug: shipped Ideas missing release note link [shipped]
+- [idea] [tech-debt] Clarify default backend in README [shipped]
+- [idea] Release readiness gate [shipped]
+- [idea] Feature: preflight Notion parent access [shipped]
+- [idea] Backlog and inbox: surface timestamps and date filtering [shipped]
+- [idea] Ideation: evaluate context completeness before closing inbox capture [shipped]
+- [idea] [tech-debt] Installer version tag [shipped]
+- [idea] User feedback channel via inbox [shipped]
+- [idea] Idea-to-Feature parent linking and ship aggregation [shipped]
+- [idea] [tech-debt] Add self-install guard [shipped]
+- [idea] [tech-debt] Fix install.sh step counter [shipped]
+- [idea] Bug: malformed Notion README seed text [shipped]
+- [idea] Bug: setup message uses wrong command [shipped]
+- [idea] Bug: installer pip invocation consistency [shipped]
+- [idea] Feature: non-interactive installer mode
+- [idea] [tech-debt] Installer create venv and deps [shipped]
+- [idea] Bug: inbox add ignores priority field [shipped]
+- [idea] [tech-debt] Add scaffolding header to files [shipped]
+- [idea] [tech-debt] Install AGENTS.md CLAUDE.md files [shipped]
+- [idea] [tech-debt] Add dependency manifest file [shipped]
+- [idea] Automated version bump on release [shipped]
+- [idea] Gitignore egg-info build artifacts
+- [idea] Self-update mechanism [shipped]
+- [idea] Three-lane feedback model [shipped]
+- [idea] Bug: reinstall resets .briefcase/storage.yaml to bare 'backend: notion' while _project/storage.yaml retains full config (page IDs, database IDs). CLI throws config mismatch error. Reinstall should either preserve existing .briefcase/storage.yaml or sync from _project/storage.yaml. [rejected]
+- [idea] GitHub release publishing for update [shipped]
+- [idea] Clean desk rule: delivery manager shipping checklist should verify working directory is clean before merge to main. Prevents bundling unrelated uncommitted work into a single commit.
+- [idea] Multi-model code review [shipped]
+- [idea] Bug: installer skips pip install when venv directory already exists, even if dependencies are missing. Consumer hit crash on ./briefcase setup (missing python-dotenv) because venv existed from prior install but deps were not installed. Installer should verify deps are present, not just check for venv directory. [rejected]
+- [idea] Browser-based QA agent
+- [idea] Pre-push safety gate: git hook or briefcase ship command that automates rebase + test + push to prevent broken code on main. Motivated by v0.9.0 push where conflict resolution silently dropped an import and semantic conflicts broke tests. [shipped]
+- [idea] Bug: installer breaks with spaces in project folder name. Consumer used 'briefcase demo project' (with spaces) and venv path resolution failed. Installer path handling needs quoting throughout. [rejected]
+- [idea] Backfill parent Idea links on Features
+- [idea] Worktree-aware project root resolution [promoted]
+- [idea] For briefcase, there're steps in notion that user has to setup for the first time. we should provide
+- [idea] briefcase notion template - project tags [promoted]
+- [idea] Inline args on brief write are shell-escaping hostile - logs [exploring]
+- [idea] [tech-debt] Remove redundant import re in setup.py
+- [idea] Guided Notion onboarding [rejected]
+- [idea] No --expected-experience flag on brief write - logs [promoted]
+- [idea] Auto-close brief when Feature ships
+- [idea] Guided Notion setup onboarding [exploring]
+- [idea] Add --expected-experience CLI flag [rejected]
+- [idea] Persist consumer-feedback-brief-write brief to Notion
+- [idea] Brief lifecycle guards and field preservation [promoted]
+- [idea] Session velocity: full-pipeline feature took excessive wall-clock time due to Notion API timeouts, terminal congestion, AC gap rework, and skipped Delivery Manager handoffs
+- [idea] Pipeline velocity improvements [exploring]

@@ -1,12 +1,8 @@
-backend: notion
-notion:
-  parent_page_id: 325b5a09fa4a806a815cdd28b79e38cb
-  parent_page_url: https://notion.so/325b5a09fa4a806a815cdd28b79e38cb
-  databases:
-    backlog: 326b5a09-fa4a-8161-9691-d76a2b93e8d8
-    decisions: 326b5a09-fa4a-818c-999c-d40e5f224a45
-    readme: 326b5a09-fa4a-81f3-945c-f5dce8f2cf8f
-    templates: 326b5a09-fa4a-81ef-887a-d980fd1d8b1e
-    briefs: 326b5a09-fa4a-804b-8acc-f03092c98c24
-    release_notes: 326b5a09-fa4a-80dd-843f-f840ad69a547
-  seeded_template_versions: {}
+backend: git
+git:
+  remote: origin
+  remote_url: https://github.com/Tchunchun/the-briefcase.git
+  branch: main
+  paths:
+  - docs/plan/
+  - _project/
