@@ -24,10 +24,17 @@ NOTION_ENTRIES: list[tuple[str, str]] = [
 
 
 def entries_for_backend(backend: str = "local") -> list[tuple[str, str]]:
-    """Return the gitignore entries appropriate for *backend*."""
+    """Return the gitignore entries appropriate for *backend*.
+
+    - local/git: BASELINE_ENTRIES only — artifact dirs (docs/plan/, _project/)
+      are committed and should NOT be ignored.
+    - notion: BASELINE_ENTRIES + NOTION_ENTRIES — docs/plan/ is ignored because
+      Notion is the source of truth and local copy is transient.
+    """
     entries = list(BASELINE_ENTRIES)
     if backend == "notion":
         entries.extend(NOTION_ENTRIES)
+    # git and local backends: baseline only (artifact dirs are committed)
     return entries
 
 
