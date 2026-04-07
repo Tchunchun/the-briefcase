@@ -1,4 +1,4 @@
-# {Feature Name} (v3)
+# {Feature Name} (v4)
 
 **Status: draft** ← ideation agent sets this to `draft`; architect agent sets this to `implementation-ready`
 
@@ -28,14 +28,28 @@ Show concrete before/after examples of what the user will see when this feature 
 
 *For CLI features, include literal terminal output. For UI changes, describe what the user sees. For API changes, show request/response pairs. If the feature has multiple user-facing touchpoints, include an example for each.*
 
+## Experience Goals
+*Owned by ideation agent.*
+Describe what the user should feel, observe, or be able to do when this feature is working correctly. Focus on UX intent, not implementation details.
+
+## Constraints & Invariants
+*Owned by ideation agent.*
+List behavioral rules and guarantees the implementation must uphold — things the system must always or never do, or existing behaviors it must preserve. These are not future scope items (use Out of Scope for that); they are hard constraints that must survive this change.
+
+- Always: ...
+- Never: ...
+- Preserve: ...
+
 ## Acceptance Criteria
 *Owned by ideation agent.*
+
+**Happy path:**
 - [ ] Criterion 1
 - [ ] Criterion 2
 
-## Expected Experience
-*Owned by ideation agent.*
-Describe what the user should feel, observe, or be able to do when this feature is working correctly. Focus on UX intent, not implementation details.
+**Edge cases & regression:**
+- [ ] (What happens with existing or pre-change data?)
+- [ ] (What happens if an upstream gate or dependency is missing?)
 
 ## Non-Functional Requirements
 *Owned by ideation agent. Leave a field blank or write "not yet known" if genuinely unknown — the architect will flag it as an Open Question.*
@@ -44,6 +58,7 @@ Describe what the user should feel, observe, or be able to do when this feature 
 - **Latency / response time:** (e.g. CLI response < 2 s, API p95 < 500 ms, or "not applicable")
 - **Availability / reliability:** (e.g. best-effort, 99% uptime, graceful degradation on API failure)
 - **Cost constraints:** (e.g. must stay within free tier, < $10/month, no new paid services)
+- **Migration / backward compatibility:** (e.g. existing records default to `false`, no migration required, or a one-time script is needed — write "not applicable" if no existing data is affected)
 - **Compliance / data residency:** (e.g. no PII stored, EU data only, internal use only)
 - **Other constraints:** (e.g. must work offline, must not break existing CLI commands)
 
@@ -63,7 +78,7 @@ Describe the chosen architecture, patterns, libraries, and any constraints from 
 
 ## Notes
 
-- Ideation agent fills everything above Technical Approach (including Expected Experience), then flags open questions.
+- Ideation agent fills everything above Technical Approach (including Expected Experience, Experience Goals, and Constraints & Invariants), then flags open questions.
 - During ideation handoff, the brief stays `draft` while the Feature backlog row moves to `architect-review`; these are not the same field.
 - Architect agent fills Technical Approach, resolves open questions, and sets Status to `implementation-ready`.
 - Implementation agent treats this entire file as read-only.

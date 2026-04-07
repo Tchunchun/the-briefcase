@@ -39,6 +39,47 @@ REVISION_METADATA_FIELDS = {
     "Change Summary": "change_summary",
 }
 
+# Sections that must have non-empty content before a brief may be promoted
+# to these lifecycle statuses.
+PROMOTION_STATUSES = frozenset({
+    "architect-review",
+    "implementation-ready",
+    "review-ready",
+    "done",
+})
+
+PROMOTION_REQUIRED_SECTIONS = ("problem", "goal", "acceptance_criteria")
+
+
+def validate_promotion_sections(
+    data: dict,
+    target_status: str,
+) -> dict:
+    """Check that required sections are present for promotion statuses.
+
+    Returns a dict with:
+      - ``valid`` (bool): True when all required sections are present.
+      - ``missing`` (list[str]): Keys of sections that are empty or absent.
+      - ``checked_status`` (str): The target status that was evaluated.
+      - ``sections`` (dict[str, str]): Per-section status (``populated`` or ``blank``).
+    """
+    if target_status not in PROMOTION_STATUSES:
+        return {"valid": True, "missing": [], "checked_status": target_status, "sections": {}}
+
+    sections: dict[str, str] = {}
+    missing: list[str] = []
+    for key in PROMOTION_REQUIRED_SECTIONS:
+        populated = bool((data.get(key) or "").strip())
+        sections[key] = "populated" if populated else "blank"
+        if not populated:
+            missing.append(key)
+    return {
+        "valid": len(missing) == 0,
+        "missing": missing,
+        "checked_status": target_status,
+        "sections": sections,
+    }
+
 
 def extract_brief_status(content: str, default: str = "draft") -> str:
     """Extract a brief status from markdown-like content."""

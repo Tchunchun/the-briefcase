@@ -19,6 +19,7 @@ from src.core.storage.briefs import (
     extract_brief_status,
     normalize_inline_brief_value,
     parse_brief_sections,
+    validate_promotion_sections,
 )
 
 
@@ -228,6 +229,7 @@ def brief_read(name: str, project_dir: str) -> None:
 @click.option("--file", "file_path", default=None, type=click.Path(exists=True), help="Read brief from a markdown file instead of inline options.")
 @click.option("--link-idea-id", default="", help="Idea notion_id/id to attach this brief URL to.")
 @click.option("--link-idea-title", default="", help="Idea title to attach this brief URL to.")
+@click.option("--force", is_flag=True, default=False, help="Bypass promotion validation for missing required sections.")
 @project_dir_option
 def brief_write(
     name: str,
@@ -246,6 +248,7 @@ def brief_write(
     file_path: str | None,
     link_idea_id: str,
     link_idea_title: str,
+    force: bool,
     project_dir: str,
 ) -> None:
     """Create or update a brief. Use --file to import from markdown, or inline options."""
@@ -323,11 +326,29 @@ def brief_write(
 
         data["_actor"] = _default_actor()
         data["_change_summary"] = change_summary
+
+        # --- Promotion validation gate ---
+        target_status = data.get("status", "draft")
+        validation = validate_promotion_sections(data, target_status)
+        if not validation["valid"] and not force:
+            missing_labels = ", ".join(validation["missing"])
+            output_error(
+                f"Promotion to '{target_status}' blocked: missing required sections: "
+                f"{missing_labels}. Use --force to override."
+            )
+            return
+
+        if not validation["valid"] and force:
+            data["_change_summary"] = f"{change_summary} [force-promoted]"
+
         store.write_brief(name, data)
         output_data = {
             "written": name,
             "status": data.get("status", status or "draft"),
+            "field_validation": validation.get("sections", {}),
         }
+        if not validation["valid"] and force:
+            output_data["field_validation_bypassed"] = True
         if data.get("project"):
             output_data["project"] = data["project"]
         try:

@@ -50,7 +50,13 @@ def output_json(data: dict | list, success: bool = True) -> None:
 
 
 def output_error(message: str) -> None:
-    """Print JSON error to stderr and exit."""
+    """Print JSON error to stderr and exit with code 1.
+
+    Outputs ``{"success": false, "error": "..."}`` to **stderr** then
+    calls ``sys.exit(1)``.  In Click test runners with the default
+    ``mix_stderr=True``, this output appears in ``result.output`` and
+    ``result.exit_code`` will be ``1``.
+    """
     result = {"success": False, "error": message}
     click.echo(json.dumps(result, indent=2), err=True)
     sys.exit(1)
