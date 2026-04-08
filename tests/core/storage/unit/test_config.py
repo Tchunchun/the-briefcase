@@ -4,6 +4,7 @@ import pytest
 import yaml
 
 from src.core.storage.config import (
+    GitConfig,
     StorageConfig,
     NotionConfig,
     ProjectConfig,
@@ -135,6 +136,26 @@ def test_save_config_notion_creates_file_with_all_fields(project_dir):
     assert data["notion"]["seeded_template_versions"]["brief"] == "v3"
 
 
+def test_save_config_git_writes_project_slug(project_dir):
+    config = StorageConfig(
+        backend="git",
+        git=GitConfig(
+            remote="origin",
+            remote_url="git@github.com:user/repo.git",
+            branch="main",
+            project_slug="briefcase-project",
+            paths=["docs/plan/", "_project/"],
+        ),
+    )
+
+    path = save_config(config, project_dir)
+
+    with open(path) as f:
+        data = yaml.safe_load(f)
+
+    assert data["git"]["project_slug"] == "briefcase-project"
+
+
 def test_save_config_writes_project_name(project_dir):
     config = StorageConfig(
         backend="local",
@@ -185,6 +206,25 @@ def test_save_then_load_roundtrip(project_dir):
     )
     assert loaded.project is not None
     assert loaded.project.name == "Briefcase"
+
+
+def test_save_then_load_roundtrip_git_project_slug(project_dir):
+    original = StorageConfig(
+        backend="git",
+        git=GitConfig(
+            remote="origin",
+            remote_url="git@github.com:user/repo.git",
+            branch="main",
+            project_slug="0-to-1-agent-guidelines",
+            paths=["docs/plan/", "_project/"],
+        ),
+    )
+
+    save_config(original, project_dir)
+    loaded = load_config(project_dir)
+
+    assert loaded.git is not None
+    assert loaded.git.project_slug == "0-to-1-agent-guidelines"
 
 
 # --- _find_config_dir dual-mode tests (D-036) ---

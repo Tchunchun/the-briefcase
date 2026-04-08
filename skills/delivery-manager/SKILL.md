@@ -43,29 +43,29 @@ Delivery manager verifies statuses are correct during handoffs. The only status 
 
 **Verify before handoff:**
 ```
-agent backlog list --type Feature    # Check Feature statuses
-agent backlog list --type Task       # Check Task statuses
-agent inbox list                     # Check Idea statuses
+briefcase backlog list --type Feature    # Check Feature statuses
+briefcase backlog list --type Task       # Check Task statuses
+briefcase inbox list                     # Check Idea statuses
 ```
 
 **Record routing decisions:**
 ```
-agent backlog upsert --title "Feature Title" --type Feature --status <current-status> --route-state routed --notes "Routed to <agent> on <date>"
+briefcase backlog upsert --title "Feature Title" --type Feature --status <current-status> --route-state routed --notes "Routed to <agent> on <date>"
 ```
 
 ```
-agent backlog upsert --title "Feature Title" --type Feature --status <current-status> --route-state returned --notes "Returned from review: <reason>"
+briefcase backlog upsert --title "Feature Title" --type Feature --status <current-status> --route-state returned --notes "Returned from review: <reason>"
 ```
 
 ```
-agent backlog upsert --title "Feature Title" --type Feature --status <current-status> --route-state blocked --notes "Blocked: <reason>"
+briefcase backlog upsert --title "Feature Title" --type Feature --status <current-status> --route-state blocked --notes "Blocked: <reason>"
 ```
 
 Do NOT change Feature/Task status — that is owned by the role agent doing the work.
 
 **After ship (delivery-manager owns this):**
 ```
-agent backlog upsert --title "Short Title" --type Idea --status shipped --release-note-link "<release-note-url>" --notes "Shipped in vX.Y.Z on YYYY-MM-DD HH:MM PST/PDT"
+briefcase backlog upsert --title "Short Title" --type Idea --status shipped --release-note-link "<release-note-url>" --notes "Shipped in vX.Y.Z on YYYY-MM-DD HH:MM PST/PDT"
 ```
 
 When marking an Idea shipped, always copy the `release_note_link` from the child Feature's `done` row to the Idea row. If multiple Features share a parent Idea, use the most recent release note link.

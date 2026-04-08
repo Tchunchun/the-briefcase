@@ -67,7 +67,7 @@ If the brief has no Expected Experience section (legacy briefs), skip this step.
 1. Run `briefcase backlog list` to see current backlog state.
 2. Run `briefcase brief read {feature-name}` to read the brief.
 3. Run `briefcase backlog list --type Task` to check for existing tasks for this feature.
-4. If no tasks exist, create them from the brief's acceptance criteria: `briefcase backlog upsert --title "Task title" --type Task --status to-do --priority High --parent-id "<feature-notion-id>" --notes "Covers AC ..."`
+4. If no tasks exist, create them from the brief's acceptance criteria: `briefcase backlog upsert --title "Task title" --type Task --status to-do --priority High --feature {feature-name} --notes "Covers AC ..."`
 5. When implementation work begins, move the Feature row from `implementation-ready` to `in-progress`: `briefcase backlog upsert --title "Feature Title" --type Feature --status in-progress --notes "Implementation started on <date>"`
 6. Pick the highest-priority available task.
 7. Mark it in-progress: `briefcase backlog upsert --title "Task title" --type Task --status in-progress`
@@ -94,42 +94,42 @@ You are responsible for updating these statuses in the backlog:
 
 **When implementation starts on a Feature:**
 ```
-agent backlog upsert --title "Feature Title" --type Feature --status in-progress --notes "Implementation started on <date>"
+briefcase backlog upsert --title "Feature Title" --type Feature --status in-progress --notes "Implementation started on <date>"
 ```
 
 Move the Feature row to `in-progress` as soon as active build work begins. Do not leave a Feature at `implementation-ready` once implementation has started.
 
 **When creating Tasks from a brief:**
 ```
-agent backlog upsert --title "Task Title" --type Task --status to-do --priority High --parent-id "<feature-notion-id>"
+briefcase backlog upsert --title "Task Title" --type Task --status to-do --priority High --feature {feature-name}
 ```
 
 **When starting work on a Task:**
 ```
-agent backlog upsert --title "Task Title" --type Task --status in-progress
+briefcase backlog upsert --title "Task Title" --type Task --status in-progress
 ```
 
 **When a Task is blocked:**
 ```
-agent backlog upsert --title "Task Title" --type Task --status blocked --notes "Blocked on: ..."
+briefcase backlog upsert --title "Task Title" --type Task --status blocked --notes "Blocked on: ..."
 ```
 
 **When a Task is done (tests pass):**
 ```
-agent backlog upsert --title "Task Title" --type Task --status done --notes "Tests: X/X pass"
+briefcase backlog upsert --title "Task Title" --type Task --status done --notes "Tests: X/X pass"
 ```
 
 **When implementation is complete and the Feature is ready for review:**
 ```
-agent backlog upsert --title "Feature Title" --type Feature --status review-ready --notes "Implementation complete; ready for review on <date>"
-agent automate review-ready --notes-only
+briefcase backlog upsert --title "Feature Title" --type Feature --status review-ready --notes "Implementation complete; ready for review on <date>"
+briefcase automate review-ready --notes-only
 ```
 
 Use `review-ready` only when all scoped implementation work is finished, the relevant tests have been run, and the Feature is ready for review handoff.
 
 **When review is accepted and ship wrap-up is complete:**
 ```
-agent backlog upsert --title "Feature Title" --type Feature --status done --release-note-link "<release-note-url>" --notes "Shipped in vX.Y.Z on YYYY-MM-DD HH:MM PST/PDT"
+briefcase backlog upsert --title "Feature Title" --type Feature --status done --release-note-link "<release-note-url>" --notes "Shipped in vX.Y.Z on YYYY-MM-DD HH:MM PST/PDT"
 ```
 
 Always include the ship timestamp in Pacific Time, with the timezone abbreviation explicitly written as `PST` or `PDT`.

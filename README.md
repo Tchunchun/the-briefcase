@@ -117,6 +117,22 @@ export NOTION_API_KEY="ntn_..."
 
 This prompts for a parent page ID, provisions the Briefs and Backlog databases, and saves config. All `./briefcase` commands then route transparently to Notion.
 
+### Migrate from Notion to git
+
+If a consumer project already uses the Notion backend and you want to move planning artifacts to a private git backend, use the migration plan in [consumer-notion-to-git-migration-plan.md](/Users/chunchun/Documents/02%20Framework/0%20to%201%20Agent%20Guidelines/consumer-notion-to-git-migration-plan.md).
+
+Core command:
+
+```bash
+./briefcase migrate notion-to-git --remote-url <private-artifact-remote>
+```
+
+Required acceptance step after migration:
+
+```bash
+./briefcase sync shakedown-git --brief-name <brief-slug> --feature-title "<feature-title>" --expected-status <status>
+```
+
 ---
 
 ## Agent Artifact CLI
@@ -170,7 +186,49 @@ All commands output JSON (`{"success": true, "data": ...}`) to stdout, errors to
 ```bash
 ./briefcase sync local                                    # Pull Notion → local markdown
 ./briefcase sync notion                                   # Push local → Notion
+./briefcase sync push                                     # Push git-backed artifacts to the configured remote
+./briefcase sync pull                                     # Pull git-backed artifacts from the configured remote
+./briefcase sync shakedown-git --brief-name my-feature --feature-title "My Feature" --expected-status review-accepted
 ```
+
+### Operator Shakedown Workflow
+
+Use `sync shakedown-git` after migrating a project to the git backend, after changing git sync behavior, or before declaring a git-backed workflow healthy.
+
+For Notion-to-git migrations, this command is the required post-cutover acceptance gate before the migration branch is merged.
+
+Recommended operator sequence:
+
+```bash
+# 1. Push current planning artifacts
+./briefcase sync push
+
+# 2. Validate a known active feature in a clean consumer workspace
+./briefcase sync shakedown-git \
+    --brief-name shared-private-artifact-repo \
+    --feature-title "Shared private artifact repo" \
+    --expected-status review-accepted \
+    --expected-review-verdict accepted \
+    --expected-route-state routed \
+    --expected-lane feature
+
+# 3. Validate a shipped feature with release metadata
+./briefcase sync shakedown-git \
+    --feature-title "CLI-first skill instructions" \
+    --expected-status done \
+    --expected-release-note-link docs/plan/_releases/v0.4.0/release-notes.md \
+    --expected-automation-trace-contains "[auto-ship-dispatch]"
+```
+
+What this command does:
+
+- Pushes current git-backed planning artifacts if needed
+- Creates a fresh temporary consumer workspace
+- Pulls artifacts from the configured git backend into that clean workspace
+- Reads the requested brief and backlog row through the normal storage layer
+- Fails if expected workflow fields do not survive the roundtrip
+
+Use `--keep-consumer` if you want to inspect the temporary pulled workspace after the run.
 
 ### Automation (Delivery Manager dispatch)
 

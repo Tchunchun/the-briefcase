@@ -26,6 +26,7 @@ class GitConfig:
     remote: str = "origin"
     remote_url: str = ""
     branch: str = "main"
+    project_slug: str = ""
     paths: list = None  # type: ignore[assignment]
 
     def __post_init__(self) -> None:
@@ -194,6 +195,7 @@ def load_config(project_dir: str | Path | None = None) -> StorageConfig:
             remote=git_raw.get("remote", "origin"),
             remote_url=git_raw.get("remote_url", ""),
             branch=git_raw.get("branch", "main"),
+            project_slug=git_raw.get("project_slug", ""),
             paths=git_raw.get("paths", ["docs/plan/", "_project/"]),
         )
 
@@ -280,6 +282,7 @@ def save_config(config: StorageConfig, project_dir: str | Path) -> Path:
             "remote": config.git.remote,
             "remote_url": config.git.remote_url,
             "branch": config.git.branch,
+            "project_slug": config.git.project_slug,
             "paths": config.git.paths,
         }
 

@@ -248,9 +248,9 @@ Backlog database fields: Title · Type · Status (per-type) · Priority · Revie
 - Task Status: to-do / in-progress / blocked / done
 - Review Verdict (Features only): pending / accepted / changes-requested
 - Route State (delivery-manager only): routed / returned / blocked
-- Brief Link: URL to the brief page (set on Feature rows)
-- Release Note Link: URL to the release note page (set when Feature ships)
-- Parent: self-relation for Idea→Feature and Feature→Task hierarchy
+- Brief Link: path to the brief file — for local backend, this is the `feature` column value (resolves to `docs/plan/{feature}/brief.md`); set on Feature rows
+- Release Note Link: path to the release note file, set when a Feature ships (e.g. `docs/plan/_releases/v0.x.0/release-notes.md`)
+- Parent: on Notion backend, a self-relation for Idea→Feature and Feature→Task hierarchy; on local backend, use the `Feature` column on Task rows to link to the parent Feature
 - Tech debt items must be logged via `briefcase inbox add --type idea --text "[tech-debt] ..."` before backlog.
 - Ship notes on Feature `done` rows and Idea `shipped` rows must include an explicit Pacific timestamp in the form `YYYY-MM-DD HH:MM PST/PDT`.
 
@@ -267,8 +267,13 @@ Feature lifecycle is tracked on separate axes — do not collapse into one field
 
 ### Artifact Ownership Boundary
 
-- **Notion** owns: briefs, backlog tracking, review/routing state, release notes, and operational docs.
+When `backend: notion`:
+- **Notion** owns: briefs, backlog entries, review/routing state, release notes, and operational docs.
 - **Local Git** owns: source code, tests, `_project/` engineering-governance docs (tech-stack, testing-strategy, definition-of-done), and code-adjacent ADRs.
+
+When `backend: local` (default):
+- **Local Git** owns everything — source code, tests, `docs/plan/` planning artifacts, and `_project/` docs.
+- All artifact access goes through the `briefcase` CLI regardless of backend.
 
 ---
 

@@ -139,6 +139,7 @@ def backlog_children(parent_id: str, project_dir: str) -> None:
 @click.option("--append-notes", default="", help="Text to append to existing notes (preserves current content).")
 @click.option("--brief-link", default="", help="URL to brief page (Features only).")
 @click.option("--release-note-link", default="", help="URL to release note page (done Features after ship wrap-up).")
+@click.option("--automation-trace", default="", help="Structured automation trace or dispatch note.")
 @click.option("--review-verdict", default="", type=click.Choice(["", "pending", "accepted", "changes-requested"], case_sensitive=False), help="Review verdict (Features only).")
 @click.option("--route-state", default="", type=click.Choice(["", "routed", "returned", "blocked"], case_sensitive=False), help="Route state set by delivery-manager.")
 @click.option("--lane", default="", type=click.Choice(["", "quick-fix", "small", "feature"], case_sensitive=False), help="Processing lane: quick-fix, small, or feature.")
@@ -157,6 +158,7 @@ def backlog_upsert(
     append_notes: str,
     brief_link: str,
     release_note_link: str,
+    automation_trace: str,
     review_verdict: str,
     route_state: str,
     lane: str,
@@ -201,6 +203,8 @@ def backlog_upsert(
             row["brief_link"] = brief_link
         if release_note_link:
             row["release_note_link"] = release_note_link
+        if automation_trace:
+            row["automation_trace"] = automation_trace
         if review_verdict:
             row["review_verdict"] = review_verdict
         if route_state:

@@ -6,6 +6,7 @@ Provides data migration commands between backends, e.g.:
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 
 import click
@@ -140,6 +141,8 @@ def notion_to_git(
             "Git remote URL (e.g. git@github.com:you/private-project.git)"
         )
 
+    project_slug = _default_project_slug(root, config)
+
     click.echo(f"\nStep 3/4: Rewriting _project/storage.yaml (backend: git)...")
 
     if not dry_run:
@@ -149,6 +152,7 @@ def notion_to_git(
                 remote=remote_name,
                 remote_url=remote_url,
                 branch=branch,
+                project_slug=project_slug,
             ),
             upstream=config.upstream,
             project=config.project,
@@ -164,6 +168,7 @@ def notion_to_git(
         remote=remote_name,
         remote_url=remote_url,
         branch=branch,
+        project_slug=project_slug,
     )
     syncer = GitSync(root, sync_cfg)
 
@@ -216,3 +221,13 @@ def _read_env_key(project_root: Path, key: str) -> str | None:
         if line.startswith(f"{key}="):
             return line.split("=", 1)[1].strip()
     return None
+
+
+def _default_project_slug(project_root: Path, config) -> str:
+    """Choose a stable slug for git artifact namespace migration."""
+    project_name = ""
+    if getattr(config, "project", None) is not None:
+        project_name = getattr(config.project, "name", "") or ""
+    basis = project_name or project_root.name
+    slug = re.sub(r"[^a-z0-9]+", "-", basis.lower()).strip("-")
+    return slug or "project"

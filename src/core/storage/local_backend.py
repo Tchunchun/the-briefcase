@@ -10,7 +10,10 @@ Reads and writes markdown files at canonical paths:
 
 from __future__ import annotations
 
+import base64
+import json
 import os
+import re
 import re
 from datetime import datetime, date, timezone
 from pathlib import Path
@@ -29,6 +32,22 @@ from src.core.storage.briefs import (
 
 class LocalBackend:
     """ArtifactStore implementation backed by local markdown files."""
+
+    BACKLOG_LEGACY_HEADER = "| ID | Type | Use Case | Feature | Title | Priority | Status |"
+    BACKLOG_COMPACT_HEADER = "| Type | Title | Status | Priority | Project | Notes |"
+    COMPACT_METADATA_PATTERN = re.compile(
+        r"\s*<!--\s*briefcase-meta:(?P<payload>[^>]*)-->\s*$"
+    )
+    COMPACT_METADATA_FIELDS = (
+        "id",
+        "use_case",
+        "feature",
+        "review_verdict",
+        "route_state",
+        "release_note_link",
+        "automation_trace",
+        "lane",
+    )
 
     def __init__(self, project_root: str | Path) -> None:
         self.root = Path(project_root)
@@ -292,14 +311,43 @@ class LocalBackend:
         content = path.read_text()
         rows = []
         in_table = False
+        schema = "legacy"
         for line in content.splitlines():
-            if line.startswith("| ID"):
+            if line.startswith(self.BACKLOG_LEGACY_HEADER):
                 in_table = True
+                schema = "legacy"
+                continue
+            if line.startswith(self.BACKLOG_COMPACT_HEADER):
+                in_table = True
+                schema = "compact"
                 continue
             if in_table and line.startswith("|---"):
                 continue
             if in_table and line.startswith("|"):
                 cols = [c.strip() for c in line.split("|")[1:-1]]
+                if schema == "compact" and len(cols) >= 6:
+                    notes, metadata = self._decode_compact_notes(cols[5])
+                    rows.append(
+                        {
+                            "id": metadata.get("id", ""),
+                            "type": cols[0],
+                            "use_case": metadata.get("use_case", ""),
+                            "feature": metadata.get("feature", ""),
+                            "title": cols[1],
+                            "priority": cols[3],
+                            "status": cols[2],
+                            "review_verdict": metadata.get("review_verdict", ""),
+                            "route_state": metadata.get("route_state", ""),
+                            "release_note_link": metadata.get("release_note_link", ""),
+                            "project": cols[4],
+                            "notes": notes,
+                            "automation_trace": metadata.get("automation_trace", ""),
+                            "lane": metadata.get("lane", ""),
+                            "created_at": created_at,
+                            "updated_at": updated_at,
+                        }
+                    )
+                    continue
                 if len(cols) >= 12:
                     rows.append(
                         {
@@ -349,6 +397,7 @@ class LocalBackend:
     def write_backlog_row(self, row: dict) -> None:
         path = self.plan_dir / "_shared" / "backlog.md"
         content = path.read_text()
+        compact_schema = self.BACKLOG_COMPACT_HEADER in content
 
         row_id = row.get("id", "")
         if row_id == "—":
@@ -356,19 +405,27 @@ class LocalBackend:
         row_type = row.get("type", "Task")
         row_title = row.get("title", "")
 
-        new_line = (
-            f"| {row_id or '—'} | {row_type} | {row.get('use_case', '—')} "
-            f"| {row.get('feature', '—')} | {row_title} | {row.get('priority', 'Medium')} "
-            f"| {row.get('status', 'to-do')} | {row.get('review_verdict', '—') or '—'} "
-            f"| {row.get('route_state', '—') or '—'} | {row.get('release_note_link', '—') or '—'} "
-            f"| {row.get('project', '—') or '—'} | {row.get('notes', '—')} | {row.get('automation_trace', '')} "
-            f"| {row.get('lane', '—') or '—'} |"
-        )
+        if compact_schema:
+            compact_notes = self._encode_compact_notes(row)
+            new_line = (
+                f"| {row_type} | {row_title} | {row.get('status', 'to-do')} "
+                f"| {row.get('priority', 'Medium')} | {row.get('project', '—') or '—'} "
+                f"| {compact_notes} |"
+            )
+        else:
+            new_line = (
+                f"| {row_id or '—'} | {row_type} | {row.get('use_case', '—')} "
+                f"| {row.get('feature', '—')} | {row_title} | {row.get('priority', 'Medium')} "
+                f"| {row.get('status', 'to-do')} | {row.get('review_verdict', '—') or '—'} "
+                f"| {row.get('route_state', '—') or '—'} | {row.get('release_note_link', '—') or '—'} "
+                f"| {row.get('project', '—') or '—'} | {row.get('notes', '—')} | {row.get('automation_trace', '')} "
+                f"| {row.get('lane', '—') or '—'} |"
+            )
         lines = content.splitlines()
         updated = False
 
         # Primary lookup: by ID if provided
-        if row_id:
+        if row_id and not compact_schema:
             for i, line in enumerate(lines):
                 if line.startswith("|") and f"| {row_id} |" in line:
                     lines[i] = new_line
@@ -378,10 +435,20 @@ class LocalBackend:
         # Fallback lookup: by title + type (matches Notion backend behavior)
         if not updated and row_title:
             for i, line in enumerate(lines):
-                if not line.startswith("|") or line.startswith("| ID") or line.startswith("|---"):
+                if (
+                    not line.startswith("|")
+                    or line.startswith("| ID")
+                    or line.startswith(self.BACKLOG_COMPACT_HEADER)
+                    or line.startswith("|---")
+                ):
                     continue
                 cols = [c.strip() for c in line.split("|")[1:-1]]
-                if len(cols) >= 7 and cols[1] == row_type and cols[4] == row_title:
+                if compact_schema:
+                    if len(cols) >= 2 and cols[0] == row_type and cols[1] == row_title:
+                        lines[i] = new_line
+                        updated = True
+                        break
+                elif len(cols) >= 7 and cols[1] == row_type and cols[4] == row_title:
                     lines[i] = new_line
                     updated = True
                     break
@@ -398,6 +465,46 @@ class LocalBackend:
                     break
             lines.insert(insert_idx, new_line)
         path.write_text("\n".join(lines) + "\n")
+
+    def _decode_compact_notes(self, raw_notes: str) -> tuple[str, dict[str, str]]:
+        match = self.COMPACT_METADATA_PATTERN.search(raw_notes)
+        if not match:
+            return raw_notes, {}
+
+        payload = match.group("payload").strip()
+        try:
+            decoded = base64.urlsafe_b64decode(payload + self._base64_padding(payload)).decode()
+            metadata = json.loads(decoded)
+        except (ValueError, json.JSONDecodeError):
+            return raw_notes, {}
+
+        visible_notes = raw_notes[: match.start()].rstrip()
+        return visible_notes or "—", {
+            key: value
+            for key, value in metadata.items()
+            if key in self.COMPACT_METADATA_FIELDS and value not in ("", None, "—")
+        }
+
+    def _encode_compact_notes(self, row: dict) -> str:
+        notes = row.get("notes", "—") or "—"
+        metadata = {
+            key: row.get(key, "")
+            for key in self.COMPACT_METADATA_FIELDS
+            if row.get(key, "") not in ("", None, "—")
+        }
+        if not metadata:
+            return notes
+
+        payload = base64.urlsafe_b64encode(
+            json.dumps(metadata, separators=(",", ":")).encode()
+        ).decode()
+        return f"{notes} <!-- briefcase-meta:{payload}-->"
+
+    def _base64_padding(self, payload: str) -> str:
+        remainder = len(payload) % 4
+        if remainder == 0:
+            return ""
+        return "=" * (4 - remainder)
 
     def list_children(self, parent_id: str) -> list[dict]:
         """Return direct child Feature rows for parent_id.

@@ -56,11 +56,17 @@ def setup(backend: str | None, project_dir: str) -> None:
         )
         branch = click.prompt("Default branch", default="main")
         remote_name = click.prompt("Remote name", default="origin")
+        project_slug = click.prompt(
+            "Project slug",
+            default=_default_project_slug(root),
+            show_default=True,
+        )
 
         config.git = GitConfig(
             remote=remote_name,
             remote_url=remote_url,
             branch=branch,
+            project_slug=project_slug,
         )
 
         # Warn if NOTION_API_KEY is still in .env — no longer needed
@@ -170,7 +176,7 @@ def setup(backend: str | None, project_dir: str) -> None:
         click.echo("  Artifacts will be stored in local markdown files.")
     elif backend == "git":
         click.echo("\n  Next steps:")
-        click.echo("  1. Run `./briefcase sync push` to commit and push artifacts to git remote")
+        click.echo("  1. Run `./briefcase sync push` to export artifacts to the shared git repo")
         click.echo("  2. Run `./briefcase sync pull` to fetch and merge updates from remote")
     elif backend == "notion":
         click.echo("\n  Next steps:")
@@ -211,6 +217,12 @@ def _save_env_token(project_root: Path, token: str) -> None:
     else:
         with open(env_path, "a") as f:
             f.write(f"NOTION_API_KEY={token}\n")
+
+
+def _default_project_slug(project_root: Path) -> str:
+    """Return a stable default slug for shared artifact repo sync."""
+    slug = re.sub(r"[^a-z0-9]+", "-", project_root.name.lower()).strip("-")
+    return slug or "project"
 
 
 def _parse_page_id(value: str) -> str:

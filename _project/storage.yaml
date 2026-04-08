@@ -1,8 +1,9 @@
 backend: git
 git:
   remote: origin
-  remote_url: https://github.com/Tchunchun/the-briefcase.git
+  remote_url: https://github.com/Tchunchun/thebriefcase-artifacts
   branch: main
+  project_slug: 0-to-1-agent-guidelines
   paths:
   - docs/plan/
   - _project/

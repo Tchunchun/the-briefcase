@@ -130,7 +130,7 @@ class ArtifactStore(Protocol):
 
         row must include at least: {title, type, status}.
         Optional: {id, feature, use_case, priority, project, notes, brief_link,
-        release_note_link, review_verdict, route_state, parent_ids}.
+        release_note_link, automation_trace, review_verdict, route_state, parent_ids}.
 
         Lookup precedence: by id if present, then by title + type.
         If no match is found, a new row is appended.

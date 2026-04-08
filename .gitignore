@@ -34,5 +34,5 @@ _*.py
 _*.json
 _*.md
 
-# Plan artifacts — tracked in git when backend = git
-# docs/plan/
+# Plan artifacts — ignored when Notion is source of truth
+docs/plan/

@@ -125,3 +125,4 @@ Append-only capture for ideas, bugs, requests, and follow-ups.
 - [idea] Brief lifecycle guards and field preservation [promoted]
 - [idea] Session velocity: full-pipeline feature took excessive wall-clock time due to Notion API timeouts, terminal congestion, AC gap rework, and skipped Delivery Manager handoffs
 - [idea] Pipeline velocity improvements [exploring]
+- [idea] Shared private artifact repo [exploring]

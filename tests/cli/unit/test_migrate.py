@@ -76,10 +76,11 @@ class TestAbortConditions:
             "backend: notion\nnotion:\n  parent_page_id: abc\n  parent_page_url: x\n  databases: {}\n  seeded_template_versions: {}\n"
         )
         # No .env file → no key
-        result = runner.invoke(
-            migrate,
-            ["notion-to-git", "--project-dir", str(tmp_path), "--remote-url", "git@github.com:user/r.git"],
-        )
+        with patch.dict("os.environ", {}, clear=True):
+            result = runner.invoke(
+                migrate,
+                ["notion-to-git", "--project-dir", str(tmp_path), "--remote-url", "git@github.com:user/r.git"],
+            )
         assert result.exit_code != 0
         assert "NOTION_API_KEY" in result.output
 

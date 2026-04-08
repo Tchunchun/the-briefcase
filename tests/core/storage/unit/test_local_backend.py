@@ -256,6 +256,114 @@ def test_read_backlog(backend):
     assert "updated_at" in rows[0]
 
 
+def test_read_backlog_compact_table(backend, project):
+    backlog_path = project / "docs" / "plan" / "_shared" / "backlog.md"
+    backlog_path.write_text(
+        "# Backlog\n\n"
+        "Cross-feature source of truth for task priority and execution status.\n\n"
+        "| Type | Title | Status | Priority | Project | Notes |\n"
+        "|---|---|---|---|---|---|\n"
+        "| Feature | Shared private artifact repo | implementation-ready | High | Briefcase | Implementation-ready feature for artifact-only shared private repo sync. |\n"
+    )
+
+    rows = backend.read_backlog()
+
+    assert len(rows) == 1
+    assert rows[0]["type"] == "Feature"
+    assert rows[0]["title"] == "Shared private artifact repo"
+    assert rows[0]["status"] == "implementation-ready"
+    assert rows[0]["priority"] == "High"
+    assert rows[0]["project"] == "Briefcase"
+    assert rows[0]["notes"] == "Implementation-ready feature for artifact-only shared private repo sync."
+
+
+def test_read_backlog_compact_table_decodes_hidden_metadata(backend, project):
+    backlog_path = project / "docs" / "plan" / "_shared" / "backlog.md"
+    backlog_path.write_text(
+        "# Backlog\n\n"
+        "Cross-feature source of truth for task priority and execution status.\n\n"
+        "| Type | Title | Status | Priority | Project | Notes |\n"
+        "|---|---|---|---|---|---|\n"
+        "| Feature | Shared private artifact repo | review-accepted | High | Briefcase | Delivery handoff preserved. <!-- briefcase-meta:eyJyZXZpZXdfdmVyZGljdCI6ImFjY2VwdGVkIiwicm91dGVfc3RhdGUiOiJyb3V0ZWQiLCJsYW5lIjoiZmVhdHVyZSIsInJlbGVhc2Vfbm90ZV9saW5rIjoiZG9jcy9wbGFuL19yZWxlYXNlcy92MC45LjQvcmVsZWFzZS1ub3Rlcy5tZCIsImF1dG9tYXRpb25fdHJhY2UiOiJbYXV0by1yZXZpZXctcmVhZHldIGRpc3BhdGNoZWQifQ==--> |\n"
+    )
+
+    rows = backend.read_backlog()
+
+    assert len(rows) == 1
+    assert rows[0]["notes"] == "Delivery handoff preserved."
+    assert rows[0]["review_verdict"] == "accepted"
+    assert rows[0]["route_state"] == "routed"
+    assert rows[0]["lane"] == "feature"
+    assert rows[0]["release_note_link"] == "docs/plan/_releases/v0.9.4/release-notes.md"
+    assert rows[0]["automation_trace"] == "[auto-review-ready] dispatched"
+
+
+def test_write_backlog_row_preserves_compact_table_schema(backend, project):
+    backlog_path = project / "docs" / "plan" / "_shared" / "backlog.md"
+    backlog_path.write_text(
+        "# Backlog\n\n"
+        "Cross-feature source of truth for task priority and execution status.\n\n"
+        "| Type | Title | Status | Priority | Project | Notes |\n"
+        "|---|---|---|---|---|---|\n"
+    )
+
+    backend.write_backlog_row(
+        {
+            "title": "Shared private artifact repo",
+            "type": "Feature",
+            "status": "implementation-ready",
+            "priority": "High",
+            "project": "Briefcase",
+            "notes": "Implementation-ready feature for artifact-only shared private repo sync.",
+        }
+    )
+
+    rows = backend.read_backlog()
+
+    assert len(rows) == 1
+    assert rows[0]["title"] == "Shared private artifact repo"
+    assert rows[0]["project"] == "Briefcase"
+    assert rows[0]["notes"] == "Implementation-ready feature for artifact-only shared private repo sync."
+    assert "| Feature | Shared private artifact repo | implementation-ready | High | Briefcase | Implementation-ready feature for artifact-only shared private repo sync. |" in backlog_path.read_text()
+
+
+def test_write_backlog_row_preserves_compact_metadata(backend, project):
+    backlog_path = project / "docs" / "plan" / "_shared" / "backlog.md"
+    backlog_path.write_text(
+        "# Backlog\n\n"
+        "Cross-feature source of truth for task priority and execution status.\n\n"
+        "| Type | Title | Status | Priority | Project | Notes |\n"
+        "|---|---|---|---|---|---|\n"
+    )
+
+    backend.write_backlog_row(
+        {
+            "title": "Shared private artifact repo",
+            "type": "Feature",
+            "status": "review-accepted",
+            "priority": "High",
+            "project": "Briefcase",
+            "notes": "Delivery handoff preserved.",
+            "review_verdict": "accepted",
+            "route_state": "routed",
+            "lane": "feature",
+            "release_note_link": "docs/plan/_releases/v0.9.4/release-notes.md",
+            "automation_trace": "[auto-review-ready] dispatched",
+        }
+    )
+
+    rows = backend.read_backlog()
+
+    assert len(rows) == 1
+    assert rows[0]["notes"] == "Delivery handoff preserved."
+    assert rows[0]["review_verdict"] == "accepted"
+    assert rows[0]["route_state"] == "routed"
+    assert rows[0]["lane"] == "feature"
+    assert rows[0]["release_note_link"] == "docs/plan/_releases/v0.9.4/release-notes.md"
+    assert rows[0]["automation_trace"] == "[auto-review-ready] dispatched"
+    assert "briefcase-meta:" in backlog_path.read_text()
+
+
 def test_write_backlog_persists_project_column(backend):
     backend.write_backlog_row(
         {

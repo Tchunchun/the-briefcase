@@ -36,6 +36,25 @@ def test_setup_local_backend(runner, project):
     assert data["backend"] == "local"
 
 
+def test_setup_git_backend_saves_project_slug(runner, project):
+    result = runner.invoke(
+        setup,
+        ["--backend", "git", "--project-dir", str(project)],
+        input=(
+            "git@github.com:Tchunchun/thebriefcase-artifacts.git\n"
+            "main\n"
+            "origin\n"
+            "shared-artifact-project\n"
+        ),
+    )
+
+    assert result.exit_code == 0, result.output
+    config_path = project / "_project" / "storage.yaml"
+    data = yaml.safe_load(config_path.read_text())
+    assert data["backend"] == "git"
+    assert data["git"]["project_slug"] == "shared-artifact-project"
+
+
 def test_setup_notion_backend_provisions_and_saves_db_ids(runner, project):
     """Blocking #1-3: Setup must call provisioner, seed templates, save DB IDs."""
     from src.integrations.notion.provisioner import ProvisionResult

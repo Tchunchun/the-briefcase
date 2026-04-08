@@ -1,254 +1,303 @@
-"""Unit tests for GitSync (src/sync/git_sync.py).
-
-All git subprocess calls are mocked — no real git repository required.
-"""
+"""Tests for shared private artifact repo sync."""
 
 from __future__ import annotations
 
 import subprocess
-from unittest.mock import MagicMock, call, patch
+from pathlib import Path
 
 import pytest
 
+from src.core.storage.local_backend import LocalBackend
 from src.sync.git_sync import GitSync, GitSyncConfig, GitSyncError
 
 
-# ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _make_proc(returncode: int = 0, stdout: str = "", stderr: str = "") -> MagicMock:
-    """Return a mock CompletedProcess."""
-    m = MagicMock(spec=subprocess.CompletedProcess)
-    m.returncode = returncode
-    m.stdout = stdout
-    m.stderr = stderr
-    return m
+def _git(cwd: Path, *args: str) -> subprocess.CompletedProcess:
+	return subprocess.run(
+		["git", *args],
+		cwd=cwd,
+		check=True,
+		capture_output=True,
+		text=True,
+	)
 
 
-def _syncer(tmp_path) -> GitSync:
-    cfg = GitSyncConfig(
-        remote="origin",
-        remote_url="git@github.com:user/repo.git",
-        branch="main",
-        paths=["docs/plan/", "_project/"],
-    )
-    return GitSync(tmp_path, cfg)
+def _init_repo(root: Path) -> None:
+	_git(root, "init", "-b", "main")
+	_git(root, "config", "user.name", "Test User")
+	_git(root, "config", "user.email", "test@example.com")
 
 
-# ---------------------------------------------------------------------------
-# _run
-# ---------------------------------------------------------------------------
-
-class TestRun:
-    def test_run_success_returns_process(self, tmp_path):
-        syncer = _syncer(tmp_path)
-        proc = _make_proc(0, stdout="ok\n")
-        with patch("subprocess.run", return_value=proc) as mock_run:
-            result = syncer._run(["git", "status"])
-        mock_run.assert_called_once()
-        assert result.stdout == "ok\n"
-
-    def test_run_nonzero_raises_without_check(self, tmp_path):
-        """check=False should not raise even on non-zero exit."""
-        syncer = _syncer(tmp_path)
-        proc = _make_proc(1, stderr="error")
-        with patch("subprocess.run", return_value=proc):
-            result = syncer._run(["git", "bad"], check=False)
-        assert result.returncode == 1
-
-    def test_run_nonzero_raises_with_check(self, tmp_path):
-        syncer = _syncer(tmp_path)
-        proc = _make_proc(1, stderr="fatal: not a git repo")
-        with patch("subprocess.run", return_value=proc):
-            with pytest.raises(GitSyncError, match="git command failed"):
-                syncer._run(["git", "status"])
-
-    def test_run_raises_when_git_not_found(self, tmp_path):
-        syncer = _syncer(tmp_path)
-        with patch("subprocess.run", side_effect=FileNotFoundError):
-            with pytest.raises(GitSyncError, match="git executable not found"):
-                syncer._run(["git", "status"])
+def _commit_all(root: Path, message: str) -> None:
+	_git(root, "add", ".")
+	_git(root, "commit", "-m", message)
 
 
-# ---------------------------------------------------------------------------
-# push
-# ---------------------------------------------------------------------------
-
-class TestPush:
-    def test_push_clean_returns_no_changes(self, tmp_path):
-        syncer = _syncer(tmp_path)
-        # status --porcelain → empty output = clean
-        status_proc = _make_proc(0, stdout="")
-        with patch("subprocess.run", return_value=status_proc):
-            result = syncer.push()
-        assert result["committed"] == 0
-        assert result["pushed"] is False
-        assert "Nothing to push" in result["message"]
-
-    def test_push_dirty_commits_and_pushes(self, tmp_path):
-        syncer = _syncer(tmp_path)
-        # First call: git status --porcelain → dirty files
-        # Subsequent calls: git add, git commit, git push
-        dirty_proc = _make_proc(0, stdout=" M docs/plan/backlog.md\n?? _project/notes.md")
-        ok_proc = _make_proc(0)
-        with patch("subprocess.run", side_effect=[dirty_proc, ok_proc, ok_proc, ok_proc]) as mock_run:
-            result = syncer.push()
-
-        assert result["committed"] == 2
-        assert result["pushed"] is True
-        # Verify commit and push were called
-        calls = [c.args[0] for c in mock_run.call_args_list]
-        assert any("add" in c for c in calls)
-        assert any("commit" in c for c in calls)
-        assert any("push" in c for c in calls)
-
-    def test_push_dry_run_returns_count_without_writing(self, tmp_path):
-        syncer = _syncer(tmp_path)
-        dirty_proc = _make_proc(0, stdout=" M docs/plan/backlog.md\n M _project/storage.yaml")
-        with patch("subprocess.run", return_value=dirty_proc) as mock_run:
-            result = syncer.push(dry_run=True)
-
-        assert result["dry_run"] is True
-        assert result["committed"] == 2
-        assert result["pushed"] is False
-        # Only the status call should have been made
-        assert mock_run.call_count == 1
-
-    def test_push_raises_git_sync_error_on_failure(self, tmp_path):
-        syncer = _syncer(tmp_path)
-        dirty_proc = _make_proc(0, stdout=" M docs/plan/backlog.md")
-        fail_proc = _make_proc(1, stderr="push rejected")
-        # status → dirty, add → ok, commit → ok, push → fail
-        with patch("subprocess.run", side_effect=[dirty_proc, _make_proc(0), _make_proc(0), fail_proc]):
-            with pytest.raises(GitSyncError, match="git command failed"):
-                syncer.push()
+def _clone_remote(remote: Path, destination: Path) -> Path:
+	subprocess.run(
+		["git", "clone", str(remote), str(destination)],
+		check=True,
+		capture_output=True,
+		text=True,
+	)
+	return destination
 
 
-# ---------------------------------------------------------------------------
-# pull
-# ---------------------------------------------------------------------------
+@pytest.fixture()
+def project_repo(tmp_path: Path) -> tuple[Path, Path]:
+	remote = tmp_path / "artifacts-remote.git"
+	_git(tmp_path, "init", "--bare", str(remote))
 
-class TestPull:
-    def test_pull_up_to_date(self, tmp_path):
-        syncer = _syncer(tmp_path)
-        # fetch → ok, incoming_files → empty diff
-        fetch_proc = _make_proc(0)
-        merge_base_proc = _make_proc(0, stdout="abc123\n")
-        diff_proc = _make_proc(0, stdout="")
-        with patch("subprocess.run", side_effect=[fetch_proc, merge_base_proc, diff_proc]):
-            result = syncer.pull()
+	project = tmp_path / "project"
+	project.mkdir()
+	(project / "docs" / "plan").mkdir(parents=True)
+	(project / "_project").mkdir()
+	(project / "src").mkdir()
+	(project / "docs" / "plan" / "brief.md").write_text("version one\n")
+	(project / "_project" / "storage.yaml").write_text("backend: git\n")
+	(project / "src" / "app.py").write_text("print('code')\n")
 
-        assert result["applied"] is False
-        assert result["incoming"] == []
-        assert "up to date" in result["message"].lower()
-
-    def test_pull_applies_new_files(self, tmp_path):
-        syncer = _syncer(tmp_path)
-        fetch_proc = _make_proc(0)
-        merge_base_proc = _make_proc(0, stdout="abc123\n")
-        diff_proc = _make_proc(0, stdout="docs/plan/inbox.md\n_project/decisions.md")
-        # local dirty check → clean
-        dirty_proc = _make_proc(0, stdout="")
-        merge_proc = _make_proc(0)
-
-        with patch("subprocess.run", side_effect=[
-            fetch_proc, merge_base_proc, diff_proc, dirty_proc, merge_proc
-        ]):
-            result = syncer.pull()
-
-        assert result["applied"] is True
-        assert len(result["incoming"]) == 2
-        assert result["conflicts"] == []
-
-    def test_pull_dry_run_returns_incoming_without_merging(self, tmp_path):
-        syncer = _syncer(tmp_path)
-        fetch_proc = _make_proc(0)
-        merge_base_proc = _make_proc(0, stdout="abc123\n")
-        diff_proc = _make_proc(0, stdout="docs/plan/inbox.md")
-
-        with patch("subprocess.run", side_effect=[fetch_proc, merge_base_proc, diff_proc]) as mock_run:
-            result = syncer.pull(dry_run=True)
-
-        assert result["dry_run"] is True
-        assert result["applied"] is False
-        assert "docs/plan/inbox.md" in result["incoming"]
-        # No merge call should have been made
-        calls = [c.args[0] for c in mock_run.call_args_list]
-        assert not any("merge" in c for c in calls)
-
-    def test_pull_aborts_on_conflicts(self, tmp_path):
-        """When local dirty files overlap with incoming, pull should abort."""
-        syncer = _syncer(tmp_path)
-        fetch_proc = _make_proc(0)
-        merge_base_proc = _make_proc(0, stdout="abc123\n")
-        diff_proc = _make_proc(0, stdout="docs/plan/inbox.md")
-        # local dirty shows same file
-        dirty_proc = _make_proc(0, stdout=" M docs/plan/inbox.md")
-
-        with patch("subprocess.run", side_effect=[fetch_proc, merge_base_proc, diff_proc, dirty_proc]):
-            result = syncer.pull()
-
-        assert result["applied"] is False
-        assert "docs/plan/inbox.md" in result["conflicts"]
-        assert "conflict" in result["message"].lower()
+	_init_repo(project)
+	_commit_all(project, "initial project state")
+	return project, remote
 
 
-# ---------------------------------------------------------------------------
-# status
-# ---------------------------------------------------------------------------
+def test_push_exports_only_artifacts_to_project_namespace(
+	project_repo: tuple[Path, Path], tmp_path: Path
+):
+	project, remote = project_repo
+	(project / "docs" / "plan" / "brief.md").write_text("version two\n")
 
-class TestStatus:
-    def test_status_clean_reachable(self, tmp_path):
-        syncer = _syncer(tmp_path)
-        ls_remote_proc = _make_proc(0, stdout="abc123\trefs/heads/main")
-        dirty_proc = _make_proc(0, stdout="")
-        fetch_proc = _make_proc(0)
-        merge_base_proc = _make_proc(0, stdout="abc123\n")
-        diff_proc = _make_proc(0, stdout="")
+	syncer = GitSync(
+		project,
+		GitSyncConfig(
+			remote="origin",
+			remote_url=str(remote),
+			branch="main",
+			project_slug="demo-project",
+		),
+	)
 
-        with patch("subprocess.run", side_effect=[
-            dirty_proc, ls_remote_proc, fetch_proc, merge_base_proc, diff_proc
-        ]):
-            status = syncer.status()
+	syncer.configure_remote(str(remote))
+	result = syncer.push()
 
-        assert status["remote_reachable"] is True
-        assert status["dirty_files"] == []
-        assert status["incoming_files"] == []
+	assert result["pushed"] is True
 
-    def test_status_unreachable_remote(self, tmp_path):
-        syncer = _syncer(tmp_path)
-        dirty_proc = _make_proc(0, stdout="")
-        ls_remote_proc = _make_proc(1, stderr="could not connect")
-
-        with patch("subprocess.run", side_effect=[dirty_proc, ls_remote_proc]):
-            status = syncer.status()
-
-        assert status["remote_reachable"] is False
-        assert status["incoming_files"] == []
+	clone_dir = _clone_remote(remote, tmp_path / "inspect-remote")
+	assert (
+		clone_dir / "projects" / "demo-project" / "docs" / "plan" / "brief.md"
+	).read_text() == "version two\n"
+	assert (
+		clone_dir / "projects" / "demo-project" / "_project" / "storage.yaml"
+	).exists()
+	assert not (clone_dir / "src" / "app.py").exists()
 
 
-# ---------------------------------------------------------------------------
-# configure_remote
-# ---------------------------------------------------------------------------
+def test_pull_restores_only_current_project_namespace(
+	project_repo: tuple[Path, Path], tmp_path: Path
+):
+	project, remote = project_repo
+	syncer = GitSync(
+		project,
+		GitSyncConfig(
+			remote="origin",
+			remote_url=str(remote),
+			branch="main",
+			project_slug="demo-project",
+		),
+	)
+	(project / "docs" / "plan" / "brief.md").write_text("local sync seed\n")
+	syncer.configure_remote(str(remote))
+	syncer.push()
 
-class TestConfigureRemote:
-    def test_adds_new_remote(self, tmp_path):
-        syncer = _syncer(tmp_path)
-        get_url_proc = _make_proc(1)  # remote doesn't exist
-        add_proc = _make_proc(0)
+	clone_dir = _clone_remote(remote, tmp_path / "mutate-remote")
+	_git(clone_dir, "config", "user.name", "Remote User")
+	_git(clone_dir, "config", "user.email", "remote@example.com")
+	(clone_dir / "projects" / "demo-project" / "docs" / "plan").mkdir(
+		parents=True, exist_ok=True
+	)
+	(
+		clone_dir / "projects" / "demo-project" / "docs" / "plan" / "brief.md"
+	).write_text("remote update\n")
+	(clone_dir / "projects" / "other-project").mkdir(parents=True, exist_ok=True)
+	(clone_dir / "projects" / "other-project" / "docs.txt").write_text(
+		"ignore me\n"
+	)
+	_commit_all(clone_dir, "update artifact namespace")
+	_git(clone_dir, "push", "origin", "HEAD:main")
 
-        with patch("subprocess.run", side_effect=[get_url_proc, add_proc]):
-            added = syncer.configure_remote("git@github.com:user/new-repo.git")
+	result = syncer.pull()
 
-        assert added is True
+	assert result["applied"] is True
+	assert (project / "docs" / "plan" / "brief.md").read_text() == "remote update\n"
+	assert (project / "src" / "app.py").read_text() == "print('code')\n"
 
-    def test_updates_existing_remote(self, tmp_path):
-        syncer = _syncer(tmp_path)
-        get_url_proc = _make_proc(0, stdout="git@github.com:user/old-repo.git")
-        set_url_proc = _make_proc(0)
 
-        with patch("subprocess.run", side_effect=[get_url_proc, set_url_proc]):
-            added = syncer.configure_remote("git@github.com:user/new-repo.git")
+def test_push_fails_clearly_when_project_slug_missing(
+	project_repo: tuple[Path, Path]
+):
+	project, remote = project_repo
+	syncer = GitSync(
+		project,
+		GitSyncConfig(
+			remote="origin",
+			remote_url=str(remote),
+			branch="main",
+			project_slug="",
+		),
+	)
 
-        assert added is False
+	with pytest.raises(GitSyncError, match="project_slug"):
+		syncer.push()
+
+
+def test_pull_allows_bootstrap_storage_yaml_for_clean_consumer(
+	project_repo: tuple[Path, Path], tmp_path: Path
+):
+	project, remote = project_repo
+	syncer = GitSync(
+		project,
+		GitSyncConfig(
+			remote="origin",
+			remote_url=str(remote),
+			branch="main",
+			project_slug="demo-project",
+		),
+	)
+	(project / "docs" / "plan" / "brief.md").write_text("seeded artifact\n")
+	syncer.configure_remote(str(remote))
+	syncer.push()
+
+	consumer = tmp_path / "consumer"
+	consumer.mkdir()
+	(consumer / "_project").mkdir()
+	(consumer / "_project" / "storage.yaml").write_text(
+		"backend: git\n"
+		"git:\n"
+		"  remote: origin\n"
+		f"  remote_url: {remote}\n"
+		"  branch: main\n"
+		"  project_slug: demo-project\n"
+	)
+
+	consumer_syncer = GitSync(
+		consumer,
+		GitSyncConfig(
+			remote="origin",
+			remote_url=str(remote),
+			branch="main",
+			project_slug="demo-project",
+		),
+	)
+	consumer_syncer.configure_remote(str(remote))
+
+	result = consumer_syncer.pull()
+
+	assert result["applied"] is True
+	assert result["conflicts"] == []
+	assert (consumer / "docs" / "plan" / "brief.md").read_text() == "seeded artifact\n"
+
+
+def test_pull_restores_missing_local_artifacts_without_new_remote_commit(
+	project_repo: tuple[Path, Path]
+):
+	project, remote = project_repo
+	syncer = GitSync(
+		project,
+		GitSyncConfig(
+			remote="origin",
+			remote_url=str(remote),
+			branch="main",
+			project_slug="demo-project",
+		),
+	)
+	(project / "docs" / "plan" / "brief.md").write_text("rehydrate me\n")
+	syncer.configure_remote(str(remote))
+	syncer.push()
+
+	(project / "docs" / "plan" / "brief.md").unlink()
+
+	result = syncer.pull()
+
+	assert result["applied"] is True
+	assert "docs/plan/brief.md" in result["incoming"]
+	assert (project / "docs" / "plan" / "brief.md").read_text() == "rehydrate me\n"
+
+
+def test_git_roundtrip_preserves_compact_backlog_metadata(
+	project_repo: tuple[Path, Path], tmp_path: Path
+):
+	project, remote = project_repo
+	(project / "docs" / "plan" / "_shared").mkdir(parents=True, exist_ok=True)
+	(project / "docs" / "plan" / "_shared" / "backlog.md").write_text(
+		"# Backlog\n\n"
+		"Cross-feature source of truth for task priority and execution status.\n\n"
+		"| Type | Title | Status | Priority | Project | Notes |\n"
+		"|---|---|---|---|---|---|\n"
+	)
+
+	backend = LocalBackend(project)
+	backend.write_backlog_row(
+		{
+			"title": "Shared private artifact repo",
+			"type": "Feature",
+			"status": "review-accepted",
+			"priority": "High",
+			"project": "Briefcase",
+			"notes": "Delivery handoff preserved.",
+			"review_verdict": "accepted",
+			"route_state": "routed",
+			"lane": "feature",
+			"release_note_link": "docs/plan/_releases/v0.9.4/release-notes.md",
+			"automation_trace": "[auto-review-ready] dispatched",
+		}
+	)
+
+	syncer = GitSync(
+		project,
+		GitSyncConfig(
+			remote="origin",
+			remote_url=str(remote),
+			branch="main",
+			project_slug="demo-project",
+		),
+	)
+	syncer.configure_remote(str(remote))
+	syncer.push()
+
+	consumer = tmp_path / "consumer"
+	consumer.mkdir()
+	(consumer / "_project").mkdir()
+	(consumer / "_project" / "storage.yaml").write_text(
+		"backend: git\n"
+		"git:\n"
+		"  remote: origin\n"
+		f"  remote_url: {remote}\n"
+		"  branch: main\n"
+		"  project_slug: demo-project\n"
+	)
+
+	consumer_syncer = GitSync(
+		consumer,
+		GitSyncConfig(
+			remote="origin",
+			remote_url=str(remote),
+			branch="main",
+			project_slug="demo-project",
+		),
+	)
+	consumer_syncer.configure_remote(str(remote))
+	consumer_syncer.pull()
+
+	row = next(
+		item
+		for item in LocalBackend(consumer).read_backlog()
+		if item["title"] == "Shared private artifact repo"
+	)
+
+	assert row["status"] == "review-accepted"
+	assert row["review_verdict"] == "accepted"
+	assert row["route_state"] == "routed"
+	assert row["lane"] == "feature"
+	assert row["release_note_link"] == "docs/plan/_releases/v0.9.4/release-notes.md"
+	assert row["automation_trace"] == "[auto-review-ready] dispatched"
+	assert row["notes"] == "Delivery handoff preserved."

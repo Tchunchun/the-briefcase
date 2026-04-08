@@ -2,56 +2,199 @@
 
 Cross-feature source of truth for task priority and execution status.
 
-| ID | Type | Use Case | Feature | Title | Priority | Status | Notes |
-|---|---|---|---|---|---|---|---|
-| T-001 | Feature | Agents need a stable interface to read/write artifacts regardless of backend | artifact-storage | Define ArtifactStore + SyncableStore protocols | High | Done | 7/7 tests pass |
-| T-002 | Feature | CLI and agents need to know which backend is active | artifact-storage | Implement storage config loader (storage.yaml) | High | Done | 10/10 tests pass |
-| T-003 | Feature | Existing workflow must work through the new interface | artifact-storage | Implement LocalBackend (markdown files) | High | Done | 15/15 tests pass |
-| T-004 | Feature | Users choose their backend during project setup | artifact-storage | Factory + `briefcase setup` CLI (local backend) | High | Done | 7/7 tests pass; Phase 1 complete (39/39 total) |
-| T-005 | Feature | Notion backend needs a clean API client layer | artifact-storage | Notion API client wrapper | Medium | Done | 12/12 tests pass |
-| T-006 | Feature | Setup must provision Notion workspace automatically | artifact-storage | Notion schemas + provisioner | Medium | Done | 15/15 tests pass |
-| T-007 | Feature | Agents read/write artifacts in Notion via the interface | artifact-storage | NotionBackend (ArtifactStore + SyncableStore) | Medium | Done | 15/15 tests pass |
-| T-008 | Feature | Users set up Notion backend with one CLI command | artifact-storage | `briefcase setup --backend notion` CLI extension | Medium | Done | Tested in T-004 setup tests |
-| T-009 | Feature | Users generate local markdown from Notion for git audit | artifact-storage | `briefcase sync local` command + sync logic | Medium | Done | Sync logic + CLI implemented |
-| T-010 | Feature | Non-technical users edit templates in Notion and sync back | artifact-storage | `briefcase sync templates` command | Low | Done | Template sync + version comparison implemented |
-| T-011 | Feature | Teams need explicit orchestration across role handoffs | delivery-manager-handoffs | Add delivery-manager routing + handoff checkpoints to PLAYBOOK | High | Done | PLAYBOOK updated for fifth role + orchestration sequence; delivery-manager routed feature to review on 2026-03-16 14:12 PT |
-| T-012 | Feature | Orchestration behavior needs explicit, reusable role guidance | delivery-manager-handoffs | Create `skills/delivery-manager/SKILL.md` | High | Done | New skill includes packet contract, checklists, and escalation |
-| T-013 | Feature | Handoffs need a consistent data format across transitions | delivery-manager-handoffs | Standardize handoff packet + review verdict in tasks template | Medium | Done | `template/tasks.md` updated with handoff and verdict sections |
-| T-014 | Feature | Users need a single interface for implementation + delivery flow | delivery-manager-orchestrated-mode | Add orchestrated mode and mode toggle documentation in PLAYBOOK | High | Done | Added explicit single-entrypoint behavior and orchestrated/manual mode rules; review accepted on 2026-03-16; delivery-manager closed orchestration on 2026-03-16 14:33 PT |
-| T-015 | Feature | Delivery-manager should delegate work using existing role skills | delivery-manager-orchestrated-mode | Define delivery-manager dispatch, retry, and escalation contract | High | Done | Delivery-manager skill now specifies subagent dispatch and retry/blocked escalation; delivery-manager routed accepted review to implementation ship path on 2026-03-16 14:30 PT |
-| T-016 | Feature | Existing role skills need orchestrated-mode compatibility notes | delivery-manager-orchestrated-mode | Update implementation/review skills for delivery-manager delegation path | Medium | Done | Added delegated invocation notes while preserving ownership boundaries; shipped with release-notes addendum on 2026-03-16 |
-| T-017 | Feature | Notion needs a unified Backlog replacing 5 separate databases | notion-project-setup | Replace database schemas with unified Backlog + Decisions | High | Done | Registry: 2 entries (backlog, decisions); 3 type-specific status props |
-| T-018 | Feature | Self-relation requires PATCH after DB creation | notion-project-setup | Add `update_database()` to NotionClient | High | Done | PATCH /databases/{id} for self-relation |
-| T-019 | Feature | Provisioner must create new structure (DBs + pages) | notion-project-setup | Rewrite provisioner for Backlog, Decisions, README, Templates | High | Done | 2-step self-relation, README page, Templates page, idempotent; E2E verified |
-| T-020 | Feature | Backend CRUD must use unified Backlog schema | notion-project-setup | Rewrite NotionBackend for unified schema | High | Done | All ArtifactStore methods work; E2E 6/6 pass |
-| T-021 | Feature | Sync needs version tracking (Notion free tier = 7-day history) | notion-project-setup | Implement sync manifest + git orphan branch snapshots | Medium | Done | SHA-256 checksums, conflict detection, orphan branch commits |
-| T-022 | Feature | Pull sync must use new schema + manifest + snapshots | notion-project-setup | Update `briefcase sync local` pull logic | Medium | Done | Integrated manifest + snapshot into pull flow |
-| T-023 | Feature | Users need to push local changes to Notion | notion-project-setup | Add `briefcase sync notion` push command | Medium | Done | New CLI subcommand + to_notion.py push logic |
-| T-024 | Feature | Setup must provision new structure + gitignore + orphan branch | notion-project-setup | Update `briefcase setup --backend notion` CLI | Medium | Done | Gitignore, orphan branch, next-steps output |
-| T-025 | Feature | All changes need test coverage | notion-project-setup | Tests: unit + integration for all changed modules | High | Done | 101/101 pass, 0 fail; E2E 6/6 pass on live Notion |
-| T-026 | Feature | Agents need CLI subcommands for direct artifact CRUD | agent-artifact-api | CLI commands: inbox, brief, decision, backlog | High | Done | 4 command groups; JSON envelope; dual-mode skill docs; 93/93 tests pass |
-| T-027 | Feature | Brief write needs markdown file import | agent-artifact-api | Brief write --file import + inline options | Medium | Done | Parses markdown brief and uploads to active backend |
-| T-028 | Feature | Skills need CLI-first artifact access instructions | agent-artifact-api | Update 5 skills with dual-mode instructions | Medium | Done | CLI primary, file-path fallback (local only) |
-| T-029 | Feature | Skill files must route all artifact ops through CLI | cli-first-skill-instructions | Rewrite 5 skills + PLAYBOOK for CLI-only | High | Done | Shipped v0.4.0; D-021 logged; tasks.md eliminated |
-| T-030 | Feature | AGENTS.md must be ≤60 lines, agent-facing only | slim-agents-md | Rewrite AGENTS.md (≤55 lines) | High | Done | 37 lines; 5 sections; repo tree moved to README.md |
-| T-031 | Feature | Displaced content must not be lost | slim-agents-md | Move repo tree + naming to README.md | High | Done | README.md §Repository Structure + Folder Naming |
-| T-032 | Feature | CLAUDE.md + tests must still work | slim-agents-md | Verify CLAUDE.md, line count, tests | Medium | Done | CLAUDE.md OK; 37 < 60; 93/93 pass |
-| T-033 | Feature | Anyone can install via single pip command | pip-install-support | Add pyproject.toml + briefcase init cmd | Low | Implementation Ready | Brief: docs/plan/pip-install-support/brief.md |
-
-## Rules
-
-- `ID`: unique task identifier, prefixed with `T-`
-- `Type`: `Feature`, `Tech Debt`, or `Bug`
-- `Use Case`: user scenario or job-to-be-done
-- `Feature`: matches `docs/plan/{feature-name}`
-- `Title`: **3–7 words**, action-oriented. Move longer context to `Notes`.
-- `Priority`: `High`, `Medium`, or `Low`
-- `Status`: `To Do`, `In Progress`, `Done`, or `Blocked`
-- `Notes`: blockers, context, dependencies, or meaningful test outcomes
-
-**Type guidance:**
-- `Feature` — new user-facing capability or planned behaviour from a `brief.md`
-- `Tech Debt` — internal improvement with no user-visible change (refactor, dependency upgrade, test coverage gap). Log the item in `_inbox.md` first; the ideation agent decides whether to promote it to a brief.
-- `Bug` — deviation from an existing, accepted acceptance criterion
-
-Backlog state must match reality, not intent.
+| Type | Title | Status | Priority | Project | Notes |
+|---|---|---|---|---|---|
+| Feature | Brief version control | done | High |  | Shipped in v0.6.2 on 2026-03-19 11:48 PDT. Release notes consolidated into v0.6.2. |
+| Task | Add brief revision storage | done | High |  | Fix cycle complete on 2026-03-17. Notion history-page lookup now reuses the existing revision container by normalized brief identity as well as exact title, preventing duplicate history containers for punctuated titles. Verified by pytest tests/integrations/notion/integration/test_backend.py tests/core/storage/unit/test_local_backend.py (56/56 pass). |
+| Task | Test architect-review automation | done | High |  | Done on 2026-03-17. Added unit coverage for new-entry dispatch, unchanged-item skip, and re-entry behavior plus CLI integration coverage for trace persistence and idempotent rescans. Verified by pytest tests/core/automation/unit/test_architect_review.py tests/cli/integration/test_automate.py (4/4 pass). |
+| Feature | Review-ready automation | done | Medium |  | Shipped in v0.6.2 on 2026-03-19 11:48 PDT. Release notes consolidated into v0.6.2. |
+| Task | Rewrite delivery-manager skill CLI refs | done | High |  | AC 1,4 done. |
+| Task | Write brief version-control tests | done | High |  | Done on 2026-03-17. Added protocol, local backend, CLI, and Notion backend coverage for revision history and restore behavior. Verified by pytest tests/core/storage/unit/test_protocol.py tests/core/storage/unit/test_local_backend.py tests/cli/integration/test_brief.py tests/integrations/notion/integration/test_backend.py (68/68 pass). |
+| Task | Rewrite architect skill CLI refs | done | High |  | Fix cycle: Exit Criteria updated to reference agent decision add. |
+| Feature | Architect-review automation | done | High |  | Shipped in v0.6.2 on 2026-03-19 11:48 PDT. Release notes consolidated into v0.6.2. |
+| Task | BNI-2: Add Consumer Layout variant to PLAYBOOK.md | done | Medium |  | Added Consumer Layout tree diagram + dual-path blockquote to PLAYBOOK.md |
+| Task | AEP-1: Create agent wrapper template | done | Medium |  | Created template/agent.sh with .briefcase/ sentinel walk, venv preference, sys.path bootstrap. |
+| Feature | Artifact migration command | draft | Medium |  | Architect sign-off 2026-03-17: D-040 logged. Dedicated dry-run-first local-to-Notion migration path approved for briefs, backlog rows, and decisions; inbox and release notes deferred from v1. |
+| Task | Add brief history CLI commands | done | High |  | Done on 2026-03-17. Added brief history, revision, and restore commands plus optional --change-summary on brief write. Verified by pytest tests/cli/integration/test_brief.py tests/integrations/notion/integration/test_backend.py tests/core/storage/unit/test_local_backend.py (48/48 pass). |
+| Task | Add verification and measurement | done | Medium |  | Added 22 regression tests in test_skill_loading_efficiency.py covering: always-on layer presence (5 tests), role skills reference PLAYBOOK (5), no duplicated artifact table (5), no duplicated backend check (5), install symlink (1), total line count threshold (1). Tests: 306/306 pass. |
+| Task | Rewrite AGENTS.md | done | High |  | Rewrote to 34 lines |
+| Task | Write unit tests for release-note backends | done | High |  | AC 9 done. Tests: 6 local + 6 Notion = 12/12 pass. Protocol test updated. |
+| Task | WGC-1: Brief persistence regression tests | done | Medium |  | Added brief roundtrip test and backlog new-fields test. 139/139 pass. |
+| Feature | Skill Loading Efficiency | done | Medium |  | Shipped in v0.7.0 on 2026-03-19 16:30 PDT |
+| Task | UPG-4: Write CLI integration tests | done | Medium |  | 6/6 pass. Covers --check healthy, --check missing props, local rejection, --yes healthy, --yes fixes, invalid dir. |
+| Task | NBBU-1: Add brief section roundtrip support | done | High |  | Fix cycle complete: blank Non-Functional Requirements sections now parse as empty instead of absorbing the next heading. Verified by pytest tests/core/storage/unit/test_briefs.py tests/cli/integration/test_brief.py tests/core/storage/unit/test_local_backend.py tests/integrations/notion/integration/test_backend.py (57/57 pass) and live brief read-back shows non_functional_requirements as an empty string. |
+| Task | Add release-note methods to ArtifactStore protocol | done | High |  | AC 1 done. Protocol extended with write/read/list methods. |
+| Task | WGC-2: Add notion_url to brief and backlog responses | done | Medium |  | Added notion_url to read_brief and read_backlog responses in Notion backend. |
+| Task | NBBU-2: Add regression coverage for brief updates | done | High |  | Added regression coverage for multiline inline CLI updates, section preservation, and NFR roundtrip behavior. Focused tests pass. Full tests/ run is blocked by existing E2E behavior in tests/e2e/test_cli_artifact_api.py, which exits during collection and reports a separate live Notion archived-block failure on brief write. |
+| Task | Document ship-time invocation in implementation skill | done | High |  | AC 6 done. SKILL.md updated with agent release write command. |
+| Task | BNI-1: Document .briefcase/ layout and mapping table in README | done | Medium |  | Added: mapping table, namespace isolation section, gitignore rationale, sys.path contract |
+| Task | Refactor always-on instructions | done | Medium |  | Verified: PLAYBOOK.md contains Backend Protocol, Artifact Access Rules, Session Protocol, Collaboration Protocol, Shared Rules. AGENTS.md has commands + conventions. Always-on layer confirmed complete. |
+| Task | Implement architect-review scanner | done | High |  | Fix cycle complete on 2026-03-17. Live architect-review automation now requires and executes a real dispatch command template in apply mode, records dispatch results, and remains idempotent across rescans/re-entry. Verified by pytest tests/core/automation/unit/test_architect_review.py tests/cli/integration/test_automate.py tests/core/storage/unit/test_local_backend.py (35/35 pass). |
+| Feature | Artifact access API | done | Medium |  | Shipped in v0.7.0 on 2026-03-19 16:30 PDT |
+| Feature | Install gitignore hygiene | done | Medium |  | Shipped in v0.7.0 on 2026-03-19 16:30 PDT |
+| Task | Add CLI release command group | done | High |  | AC 5 done. agent release write/read/list registered. |
+| Task | BNI-5: Formalize sys.path contract in README | done | Medium |  | Done as part of BNI-1: sys.path contract section added to README with code example and D-032 ref |
+| Feature | Notion brief body updates | done | High |  | Done in v0.6.1 on 2026-03-17. Review accepted. Release notes: v0.6.1. Scope delivered: Notion brief body persistence, Non-Functional Requirements roundtrip, inline multiline normalization, robust status parsing, and archived-block-safe Notion body replacement. |
+| Feature | CLI-first skill instructions | done | High | — | Shipped in v0.4.0 on 2026-03-16. Review: accepted. Release notes: docs/plan/_releases/v0.4.0/release-notes.md <!-- briefcase-meta:eyJyZWxlYXNlX25vdGVfbGluayI6ImRvY3MvcGxhbi9fcmVsZWFzZXMvdjAuNC4wL3JlbGVhc2Utbm90ZXMubWQiLCJhdXRvbWF0aW9uX3RyYWNlIjoiW2F1dG8tc2hpcC1kaXNwYXRjaF0gcm91dGVkIHNoaXBwZWQgZmVhdHVyZSB0byByZWxlYXNlIGNsb3Nlb3V0In0=--> |
+| Task | AEP-5: Update docs for ./agent invocation | done | Medium |  | Updated AGENTS.md commands table. Skills already use agent CLI. PLAYBOOK already documents consumer layout. |
+| Task | Add architect-review automation CLI | done | High |  | Done on 2026-03-17. Added agent automate architect-review with machine-readable dispatch payloads and dry-run support, registered in CLI and documented in README. Verified by pytest tests/cli/integration/test_automate.py tests/core/automation/unit/test_architect_review.py (4/4 pass). |
+| Task | AEP-3: Update helpers.py store resolution | done | Medium |  | get_store_from_dir checks .briefcase/storage.yaml first, then _project/. Backward compatible. |
+| Task | UPG-1: Create shared upgrade service module | done | Medium |  | Created src/integrations/notion/upgrade.py with FindingStatus, Finding, UpgradeReport, NotionUpgradeService |
+| Feature | Cross-role escalation protocol | done | Medium |  | Shipped in v0.7.0 on 2026-03-19 16:30 PDT |
+| Feature | Agent entry point | done | Medium |  | Shipped in v0.6.0. Review accepted. All AC met. |
+| Feature | Install script | done | Medium |  | Shipped in v0.6.0. Review accepted. All AC met. |
+| Task | Rewrite ideation skill CLI refs | done | High |  | AC 1,4,5,6,7,12,13 done. All file-path refs replaced with CLI commands. |
+| Task | Update install and docs | done | Medium |  | Verified: install.sh step 5 creates .skills symlink. README documents consumer layout + dual-path convention. AGENTS.md references PLAYBOOK.md. PLAYBOOK consumer layout section includes .skills path. All aligned. |
+| Feature | Release notes Notion backend | done | Medium |  | Shipped in v0.5.0 on 2026-03-17. Merged to main. |
+| Task | Verify line count and tests | done | Medium |  | 37 lines; CLAUDE.md OK; 53/53 tests pass |
+| Feature | Agent upgrade command | done | Medium |  | DM: Ship path complete. Review accepted, v0.5.0 shipped, route closed 2026-03-17. |
+| Task | INS-1: Create install.sh | done | Medium |  | install.sh created. Smoke tested: fresh install + idempotent re-run verified. .briefcase/ copy, ./agent generation, .gitignore append, storage.yaml creation all working. |
+| Feature | Workflow gap closure | done | Medium |  | DM: Ship path complete. Review accepted, v0.5.0 shipped, route closed 2026-03-17. |
+| Task | Align brief role guidance | done | High |  | Done on 2026-03-17. Updated ideation, architect, and implementation skill guidance plus README command docs to use append-only brief history, restore flow, and --change-summary. Verified by pytest tests/cli/integration/test_brief.py tests/core/storage/unit/test_local_backend.py tests/integrations/notion/integration/test_backend.py (53/53 pass within focused suite). |
+| Feature | Schema health delegation | done | Medium |  | Shipped in v0.7.0 on 2026-03-19 16:30 PDT |
+| Feature | Review-ready feature workflow | done | Low |  | Superseded planning artifact. Replaced by the Phase 3 Feature Review-ready automation under Status-driven agent automation. |
+| Task | Rewrite implementation skill CLI refs | done | High |  | Fix cycle: Done Standard, Exit Criteria, frontmatter all updated. Zero stale refs remain. |
+| Task | UPG-3: Write unit tests for upgrade service | done | Medium |  | 17/17 pass. Covers healthy, missing props, missing options, missing page IDs, token diagnostics, title edge case, report. |
+| Feature | Ship-routing Automation | done | Medium |  | Shipped in v0.7.0 on 2026-03-19 16:30 PDT |
+| Task | Rewrite PLAYBOOK session protocol | done | High |  | Fix cycle: Folder Structure annotated, Handoff Sequence, Workflow Phases, Shared Rules all updated. |
+| Task | Implement local + Notion backends for release notes | done | Medium |  | Review: [Major] AC 8 — live Notion E2E for write/read not verified. [Minor] list_briefs() skip_titles should exclude release-note pages. |
+| Task | AEP-4: Write entry point tests | done | Medium |  | 6 config dual-mode tests + 5 wrapper integration tests. 155/155 pass. |
+| Feature | Implementation-ready automation | done | Medium |  | Shipped in v0.6.2 on 2026-03-19 11:48 PDT. Release notes consolidated into v0.6.2. |
+| Feature | Ideation phase-splitting hygiene | done | Medium |  | Shipped in v0.7.0 on 2026-03-19 16:30 PDT |
+| Feature | Slim AGENTS.md | done | High |  | Shipped: 164→37 lines; repo tree moved to README |
+| Task | WGC-5: Align PLAYBOOK and skill docs | done | Medium |  | Updated PLAYBOOK backlog schema, handoff sequence, lifecycle axes, artifact ownership. Updated review skill with --review-verdict. Updated delivery-manager skill with --route-state. Updated implementation skill ship template. |
+| Task | BNI-3: Document dual-path convention in PLAYBOOK.md | done | Medium |  | Dual-path convention documented in PLAYBOOK.md blockquote + README install step 1 |
+| Feature | Upgrade config cleanup | done | Medium |  | Shipped in v0.7.0 on 2026-03-19 16:30 PDT |
+| Feature | Briefcase namespace isolation | done | Medium |  | DM: Ship path complete. Review accepted, v0.5.0 shipped, route closed 2026-03-17. |
+| Task | UPG-2: Add CLI upgrade command | done | Medium |  | src/cli/commands/upgrade.py created + registered in main.py. Fixed get_database to use httpx for properties. Smoke tested live. |
+| Task | AEP-2: Update config.py for dual-mode resolution | done | Medium |  | Added _find_config_dir() with .briefcase/ first, _project/ fallback. load_config uses new resolver. D-036 implemented. |
+| Task | BNI-4: Verify storage.yaml path compatibility | done | Medium |  | Verified: config.py load_config resolves _project/ relative to project root. _project/ stays at project root, not inside .briefcase/. Fully compatible. |
+| Feature | Notion brief status parsing | done | Low |  | Architect queue cleanup 2026-03-17: standalone item closed as superseded. Scope was merged into Notion brief body updates under D-037 and shipped in v0.6.1; do not implement separately. |
+| Task | INS-2: Write install tests | done | Medium |  | 15 tests: fresh install (7), idempotency (3), wrapper integration (2), token detection (3). 170/170 pass. |
+| Task | WGC-3: Add Review Verdict and Route State to schema | done | Medium |  | Added Review Verdict, Route State, Release Note Link to BACKLOG_SCHEMA. Backend read/write updated. CLI flags added. Schema applied to live workspace via agent upgrade. |
+| Task | Rewrite review skill CLI refs | done | High |  | AC 1,3,4 done. Findings to --notes. |
+| Task | Slim role skill files | done | Medium |  | Removed duplicated Backend Check block and How to Access Artifacts section from architect SKILL.md (24 lines). All 5 role skills now use the shared one-liner reference. Tests: 284/284 pass. |
+| Task | WGC-4: Expand Feature Status lifecycle vocabulary | done | Medium |  | Added in-progress, review-ready, shipped to Feature Status options. Applied to live workspace. |
+| Task | Move repo tree to README | done | High |  | Repo tree + folder conventions added to README |
+| Task | FCD-2: Add fix-cycle CLI command to automate.py | done | High |  | Registered agent automate fix-cycle-dispatch, wired AGENT_FIX_CYCLE_COMMAND dispatching, and added fix-cycle pre-dispatch feature status transition to in-progress. |
+| Task | Preserve trace-safe status writes | done | High |  | Updated scanner trace persistence to re-read the latest backlog row before writing Automation Trace so post-dispatch status changes are preserved. Tests: pytest focused automation suite 50/50 pass; targeted ruff checks pass. |
+| Feature | Review-ready dispatch | done | Medium |  | Already implemented: review_ready.py + agent automate review-ready CLI. Closed as done during backlog cleanup 2026-03-19. |
+| Feature | Session backend check | done | Medium |  | Already implemented: all 5 skills have Backend Check sections. Closed as done during backlog cleanup 2026-03-19. |
+| Feature | Idea-close dispatch | done | Medium |  | Shipped in v0.9.3 on 2026-03-21 11:15 PDT |
+| Feature | Shakedown gap fixes | done | Medium |  | Shipped in v0.8.0 on 2026-03-19 16:07 PDT. DM: Ship confirmed, route_state=routed. No source Idea row to mark shipped (feature created directly from shakedown findings). |
+| Task | Implement dispatch status hooks | done | High |  | Implemented dispatcher-owned entry/exit Feature transitions in automate command flow across architect-review, implementation-ready, and review-ready phases. Fix cycle complete on 2026-03-19: Notion backlog writes now serialize per repo and update exact rows by notion_id when available, preventing duplicate Feature rows from concurrent upserts. Validation: pytest tests/integrations/notion/integration/test_backend.py tests/cli/integration/test_automate.py tests/cli/unit/test_automate_hooks.py (42/42 pass); targeted ruff checks pass. |
+| Feature | Task status transition flow | done | Medium |  | Shipped in v0.7.0 on 2026-03-19 16:30 PDT |
+| Feature | Ship dispatch | done | Medium |  | Shipped in v0.7.0 on 2026-03-19 16:30 PDT |
+| Feature | Ship dispatch automation | done | Medium |  | Duplicate of Ship dispatch (title drift). Closed during backlog cleanup 2026-03-19. |
+| Feature | Automation must update Feature status after dispatch | done | High |  | Shipped in v0.6.2 on 2026-03-19 11:48 PDT. Release notes recorded in v0.6.2 after review acceptance and fix-cycle completion. |
+| Task | Execute guardrail and idempotency checks | done | Medium |  | Guardrail: premature dispatch blocked (PASS). Idempotency: re-run returned 0 dispatches (PASS). No duplicate rows (PASS). Known gaps documented in brief Technical Approach pre-execution. Additional gap found: ship-dispatch targets review-accepted but ship workflow moves to done first, causing 0 dispatches. |
+| Task | [shakedown] canary task 1 | done | Medium |  | Tests: 1/1 pass |
+| Feature | [shakedown] canary | done | Medium |  | Shipped [shakedown] canary 2026-03-19 14:03 PDT |
+| Task | Test lifecycle and schema repair | done | High |  | Added lifecycle regression coverage for implementation dispatch status changes and scanner write safety, plus Automation Trace schema/provisioner and upgrade repair coverage for older Notion workspaces. Fix cycle complete on 2026-03-19: the consumer Notion workspace at /Users/chunchun/Documents/Playground - Code/consumer project - notion was upgraded live, tests/e2e/test_cli_artifact_api.py now self-heals with agent upgrade --yes before execution, and direct live CLI checks passed 10/10. |
+| Task | FCD-3: Write unit tests for fix-cycle service | done | High |  | Added fix-cycle service unit coverage for dispatch gating, idempotence, payload shape, dry-run, notes-only, and missing-brief blocking. Tests: pytest tests/core/automation/unit/test_fix_cycle.py (11/11 pass). |
+| Task | FCD-1: Add fix_cycle.py automation service | done | High |  | Implemented thin fix-cycle automation service on StatusEntryScanner with changes-requested verdict gating and fix-cycle marker/token prefixes. |
+| Feature | Workflow shakedown test | done | Medium |  | Shipped in v0.7.0 on 2026-03-19 14:10 PDT |
+| Task | Execute happy-path and failure-path dispatch runs | done | Medium |  | All phases exercised. Happy path: ideation->architect->impl->review->ship. Failure path: changes-requested->fix-cycle->re-review->accepted. Gap found: ship-dispatch expects review-accepted but feature already moved to done. |
+| Feature | Fix-cycle dispatch | done | Medium |  | Shipped in v0.7.0 on 2026-03-19 16:30 PDT |
+| Task | Create shakedown stub code and canary artifacts | done | Medium |  | Tests: 1/1 pass. Stub code + canary Notion artifacts created. |
+| Task | FCD-4: Write CLI integration tests for fix-cycle command | done | High |  | Added CLI coverage for fix-cycle command dispatch filtering and pre-dispatch status transition, plus hook coverage for fix-cycle status moves. Tests: pytest tests/cli/unit/test_automate_hooks.py tests/cli/integration/test_automate.py (11/11 pass). |
+| Feature | Implementation-ready dispatch | done | Medium |  | Already implemented: implementation_ready.py + agent automate implementation-ready CLI. Closed as done during backlog cleanup 2026-03-19. |
+| Feature | Automation Trace provisioning | done | High |  | Architect queue cleanup 2026-03-19: already implemented. BACKLOG_SCHEMA provisions Automation Trace for new workspaces, NotionProvisioner repairs missing properties on existing backlog databases, and NotionUpgradeService plus upgrade CLI cover additive repair for older workspaces. No additional implementation is required. |
+| Task | SRL-2: Add release link propagation to ship_routing.py | done | Medium |  | Tests: 11/11 pass. Added propagate_release_links() to ShipRoutingAutomationService. 6 new unit tests covering happy path, skip existing link, skip no link, skip non-done, multiple features, non-idea parents. |
+| Task | Add inbox priority option | done | High |  | Implemented inbox add --priority (default Medium) through CLI/local/notion paths. Tests: pytest tests/cli/integration/test_inbox.py tests/core/storage/unit/test_local_backend.py::test_read_inbox tests/core/storage/unit/test_local_backend.py::test_append_inbox tests/core/storage/unit/test_local_backend.py::test_append_inbox_with_priority tests/integrations/notion/integration/test_backend.py::test_read_inbox tests/integrations/notion/integration/test_backend.py::test_append_inbox tests/integrations/notion/integration/test_backend.py::test_append_inbox_with_priority (8/8 pass). |
+| Feature | Idea-Feature linking and ship aggregation | done | Medium |  | Shipped in v0.9.1 on 2026-03-20 11:17 PDT |
+| Task | Add grouped brief-list JSON output | done | High |  | brief list now returns grouped JSON by date headers with per-brief date fields and tests for grouped output. Validation: pytest tests/cli/integration/test_backlog.py tests/cli/integration/test_brief.py tests/core/storage/unit/test_protocol.py tests/core/storage/unit/test_local_backend.py tests/integrations/notion/integration/test_backend.py tests/core/automation/unit/test_ship_routing.py (102/102 pass). |
+| Feature | Briefs reverse-chronological order | done | Medium |  | Shipped in v0.9.1 on 2026-03-20 11:17 PDT |
+| Task | Implement backlog children query | done | High |  | Added backlog children command, list_children protocol contract, local + Notion backend implementations, and children summary/readiness output with tests. Validation: pytest tests/cli/integration/test_backlog.py tests/core/storage/unit/test_protocol.py tests/core/storage/unit/test_local_backend.py tests/integrations/notion/integration/test_backend.py tests/core/automation/unit/test_ship_routing.py (95/95 pass). |
+| Feature | Installer bootstrap | done | Medium |  | Shipped in v0.8.0 on 2026-03-20 06:30 PDT. Commit 3e51d97. Review: all AC met, 0 regressions. |
+| Task | Document feedback intake flow | done | Medium |  | Added README feedback guidance, install summary feedback block confirmation, and explicit ideation triage ownership language. |
+| Task | Expand timestamp filtering tests | done | High |  | Added/updated protocol, artifact service, local backend, Notion backend, and CLI integration tests for timestamp surfacing and date filtering/grouping. Tests: pytest 108/108 pass. |
+| Feature | Ideation context completeness check | done | Medium |  | Shipped in v0.9.0 on 2026-03-20 10:14 PDT |
+| Task | Add parent-id guidance to role skills | done | High |  | Updated ideation/implementation/delivery-manager skills to require parent-link preservation and pre-ship child-feature checks. Validation: pytest tests/cli/integration/test_backlog.py tests/core/storage/unit/test_protocol.py tests/core/storage/unit/test_local_backend.py tests/integrations/notion/integration/test_backend.py tests/core/automation/unit/test_ship_routing.py (95/95 pass). |
+| Feature | Inbox priority bug fix | done | Medium |  | Shipped in v0.8.1 on 2026-03-20 09:54 PDT. Routed to ship closeout on 2026-03-20 10:28 PDT. |
+| Feature | Shipped Idea release link fix | done | Medium |  | Shipped in v0.9.0 on 2026-03-20 10:14 PDT |
+| Task | Fix Notion brief roundtrip | done | Medium |  | Implemented roundtrip fixes in Notion conversion/write path (blank-line paragraphs, divider blocks, rich-text annotation rendering, and merge-safe brief updates). Validation: pytest tests/integrations/notion/integration/test_backend.py tests/integrations/notion/integration/test_provisioner.py tests/cli/integration/test_brief.py (60/60 pass). |
+| Feature | Backlog inbox date filtering | done | Medium |  | Shipped in v0.9.1 on 2026-03-20 11:17 PDT |
+| Task | Add brief date field and sorting | done | High |  | Implemented date field on local/Notion list_briefs and newest-first sorting by last-modified day. Validation: pytest tests/cli/integration/test_backlog.py tests/cli/integration/test_brief.py tests/core/storage/unit/test_protocol.py tests/core/storage/unit/test_local_backend.py tests/integrations/notion/integration/test_backend.py tests/core/automation/unit/test_ship_routing.py (102/102 pass). |
+| Task | Fix malformed README emoji | done | Medium |  | Tests: 1/1 pass. Replaced replacement character with 📋 clipboard emoji in provisioner.py. |
+| Task | Conditional docs/plan creation | done | Medium |  | Tests: 2/2 pass. install.sh reads backend from storage.yaml; skips docs/plan/ when backend!=local. |
+| Task | SRL-1: Update delivery-manager SKILL ship-path instructions | done | Medium |  | Added release-note-link propagation to Review->Ship checklist and After ship status update section in delivery-manager SKILL.md. |
+| Task | Add storage timestamp fields | done | High |  | Implemented protocol/service/backend timestamp fields for inbox/backlog (created_at, updated_at). Tests: focused suite pass. |
+| Task | Add corruption regression tests | done | High |  | Added/validated regression coverage for markdown block roundtrip, annotation/divider reconstruction, and partial-write merge safety for brief read/write behavior. Validation: pytest tests/integrations/notion/integration/test_backend.py tests/integrations/notion/integration/test_provisioner.py tests/cli/integration/test_brief.py (60/60 pass). |
+| Feature | Installer hardening | done | Medium |  | Shipped in v0.8.2 on 2026-03-20 23:05 PDT |
+| Feature | brief-write-corruption | done | High |  | Shipped in v0.9.1 on 2026-03-20 11:17 PDT |
+| Task | Preflight parent page access check | done | Medium |  | Tests: 4/4 pass. preflight_check() validates parent page via get_page() before provisioning; raises LookupError (404), PermissionError (403), or RuntimeError. |
+| Feature | README setup accuracy | done | Medium |  | Shipped in v0.8.0 on 2026-03-20 06:30 PDT. Commit 3e51d97. Review: all AC met, 0 regressions. |
+| Feature | Release readiness gate | done | Medium |  | Shipped in v0.8.2 on 2026-03-20 23:05 PDT |
+| Task | Add ship-routing child status gate | done | High |  | Ship-routing release-link propagation now blocks partial ship scenarios when sibling Features under an Idea are not all done and appends [partial-ship] notes with done/total counts; added unit coverage. Validation: pytest tests/cli/integration/test_backlog.py tests/core/storage/unit/test_protocol.py tests/core/storage/unit/test_local_backend.py tests/integrations/notion/integration/test_backend.py tests/core/automation/unit/test_ship_routing.py (95/95 pass). |
+| Task | Unit tests for setup hardening | done | Medium |  | Tests: 8/8 pass. Added preflight tests (4), emoji test (1), conditional docs/plan tests (2), provision-preflight integration test (1). |
+| Feature | Notion setup hardening | done | Medium |  | Shipped in v0.8.1 on 2026-03-20 22:46 PDT |
+| Task | Add scaffold headers to generated entrypoints | done | Medium |  | Added generated-file headers for scaffolded AGENTS.md and CLAUDE.md in install.sh and added install integration coverage for scaffolding header + self-install guard. |
+| Feature | Lazy-import Notion modules | done | Medium |  | Shipped in v0.8.0 on 2026-03-20 06:30 PDT. Commit 3e51d97. Review: all AC met, 0 regressions. |
+| Task | Add README install verification section | done | Medium |  | Added Verify your install subsection with 3-command smoke test and expected success output in README. |
+| Task | Add CLI date options | done | High |  | Added inbox/backlog list flags: --since, --today, --group-by-date with grouped output mode and conflict validation. Tests: focused suite pass. |
+| Task | ICC-1: Add context completeness check to ideation SKILL | done | Medium |  | Added Context Completeness Check section with 4 dimensions, advisory for inbox add, hard gate for brief write, reference in Decision Rules and Required Workflow step 7. |
+| Feature | Installer Round 2 polish | done | Medium |  | Shipped in v0.8.1 on 2026-03-20 09:54 PDT. Routed to ship closeout on 2026-03-20 10:28 PDT. |
+| Task | Implement since date filtering | done | High |  | Implemented --since filtering via updated_at for local and Notion backends, including Notion server-side last_edited_time filter. Tests: focused suite pass. |
+| Feature | User feedback channel | done | Medium |  | Shipped in v0.8.1 on 2026-03-20 09:54 PDT. Routed to ship closeout on 2026-03-20 10:28 PDT. |
+| Feature | Post-install smoke test | done | Medium |  | Shipped in v0.8.1 on 2026-03-20 09:54 PDT. Routed to ship closeout on 2026-03-20 10:28 PDT. |
+| Feature | Self-update mechanism | done | Medium |  | Shipped in v0.9.0 on 2026-03-20 23:28 PDT |
+| Task | Add Lane schema and CLI | done | Medium |  | Tests: 407/407 pass. Added Lane select to schemas.py, Notion backend read/write, local backend read/write, backlog upsert CLI, inbox add CLI. |
+| Task | Update ideation SKILL Expected Experience | done | Medium |  | Tests: N/A (skill instruction markdown only). Commit b8e35fb |
+| Task | Fix agent references to ./briefcase | done | Medium |  | Tests: 1/1 pass. setup.py sync commands fixed, docstring updated. |
+| Feature | Brief intent fidelity pipeline | done | Medium |  | Shipped in v0.9.0 on 2026-03-21 09:30 PDT |
+| Task | Fix error visibility in venv/pip setup | done | Medium |  | Tests: 2/2 pass. Removed 2>/dev/null, redirect stderr to temp log, show on failure. |
+| Task | Update PLAYBOOK with lanes | done | Medium |  | Added Processing Lanes section with lane definitions, assignment tree, handoff rules, escalation rules, and backlog schema update. |
+| Task | Add pre-build validation to implementation | done | Medium |  | Tests: N/A (skill instruction markdown only). Commit 798dbca |
+| Task | Unit tests for release gate | done | Medium |  | Tests: 21/21 pass. Covers all 7 checks plus report structure and apply mode. |
+| Task | Create manifest.py version tracking module | done | Medium |  | Tests: 12/12 pass. VERSION file + manifest.json with SHA-256 hashes + customization detection. |
+| Task | Install.sh VERSION and manifest | done | Medium |  | Already implemented. install.sh writes VERSION and manifest.json via Python helper. |
+| Task | Update install.sh to write VERSION and manifest.json | done | Medium |  | Tests: 2/2 pass. Reads version from pyproject.toml, writes .briefcase/VERSION and manifest.json. |
+| Task | Update agent skills for lanes | done | Medium |  | Updated ideation (triage tree + quick-fix/small workflows), implementation (lane-specific entry), review (lane awareness), architect (lane awareness), delivery-manager (lane-aware routing). |
+| Task | Tests for lane support | done | Medium |  | Tests: 416/416 pass (9 new lane tests). Covers: backlog upsert with lane, lane persistence, default empty lane, invalid lane rejection, inbox add with lane, lane tag in notes, schema validation. |
+| Task | Update CLI command | done | Medium |  | Already implemented. src/cli/commands/update.py with --check, --yes, --force, --source flags. |
+| Task | Create briefcase update CLI command | done | Medium |  | Tests: pass. --check, --yes, --force, --source flags. Exit codes 0/1/2. |
+| Task | Gitignore egg-info build artifacts | done | Medium |  | Fixed: changed src/*.egg-info/ to *.egg-info/ in .gitignore to catch all egg-info directories regardless of nesting. Self-review: single-file quick-fix. |
+| Task | Tests for self-update | done | Medium |  | 29 existing tests pass: 18 updater unit tests + 8 manifest unit tests + 3 install.sh integration tests. |
+| Task | Fix: installer skips pip when venv exists | done | Medium |  | Root cause: install.sh line 207 checked 'if [ \! -d .venv ]' and skipped the entire pip install block when .venv/ existed. A prior partial install could leave the venv dir without deps. Fix: split venv creation and pip install into separate steps — always run 'pip install -e .' when .venv/ exists (install.sh lines 207-242). Test: test_reinstall_runs_pip_even_when_venv_exists in tests/cli/integration/test_install.py. Commit: ef9ccdc. Shipped in v0.9.2 on 2026-03-21 10:45 PDT. |
+| Task | Add gate subcommand to release CLI | done | Medium |  | Tests: pass. --dry-run (default), --apply, JSON output, exit codes. |
+| Task | Add intent-check to review SKILL | done | Medium |  | Tests: N/A (skill instruction markdown only). Commit 4fe0496 |
+| Task | Fix: reinstall resets .briefcase/storage.yaml | done | Medium |  | Root cause: install.sh line 132 only checked 'if [ \! -f .briefcase/storage.yaml ]'. After 'rm -rf .briefcase' + reinstall, it created a bare 'backend: local' file while _project/storage.yaml had full Notion config (page IDs, database IDs). The config drift detector (src/core/storage/config.py) then raised a mismatch error. Fix: before creating a new .briefcase/storage.yaml, check if _project/storage.yaml exists and copy from it instead (install.sh lines 132-157). Test: test_reinstall_syncs_from_project_storage_yaml in tests/cli/integration/test_install.py. Commit: ef9ccdc. Shipped in v0.9.2 on 2026-03-21 10:45 PDT. |
+| Feature | Three-lane feedback model | done | Medium |  | Shipped in v0.9.0 on 2026-03-20 22:10 PDT |
+| Task | Core updater module | done | Medium |  | Already implemented in prior installer-bootstrap work. 18 unit tests pass. |
+| Task | Fix: installer path handling with spaces in folder name | done | Medium |  | Root cause: consumer used folder 'briefcase demo project' (with spaces). Audited all path variable usage in install.sh — all $BRIEFCASE, $TARGET_DIR, $FRAMEWORK_DIR references are already double-quoted. The actual failure was likely from manual terminal commands without quoting, not the installer itself. Fix: confirmed safe, added regression test with spaces in path. Test: test_spaces_in_folder_name in tests/cli/integration/test_install.py. Commit: ef9ccdc. Shipped in v0.9.2 on 2026-03-21 10:45 PDT. |
+| Task | Add Expected Experience to brief template | done | Medium |  | Tests: N/A (template markdown only). Commit 02df9bc |
+| Task | Add Lane upgrade support | done | Medium |  | Tests: 20/20 pass. No new code needed — existing upgrade infrastructure auto-detects and patches the new Lane property via BACKLOG_SCHEMA. |
+| Task | Create updater.py with fetch, compare, apply logic | done | Medium |  | Tests: 15/15 pass. Local source + GitHub API fetch, atomic apply, skill path rewrite, dep reinstall, schema check. |
+| Feature | Pre-push safety gate | done | Medium |  | Shipped in v0.9.1 on 2026-03-21 10:15 PDT |
+| Feature | Briefs Notion database migration | done | Medium |  | Shipped in v0.9.0 on 2026-03-21 09:30 PDT |
+| Task | Implement ReleaseGate class with 7 check methods | done | Medium |  | Tests: 21/21 pass. src/core/release_gate.py created. |
+| Task | Consistent pip invocation via python -m pip | done | Medium |  | Tests: 1/1 pass. All .venv/bin/pip calls replaced with .venv/bin/python -m pip. |
+| Task | Add --non-interactive flag to install.sh | done | Medium |  | Tests: 2/2 pass. Accepts --non-interactive arg or BRIEFCASE_NON_INTERACTIVE env var. Exits 1 on failure. |
+| Feature | Worktree root resolution | review-accepted | Medium |  | Review: all AC met. Blocking finding (consumer AGENTS.md template missing root resolution) fixed in install.sh. 234 tests pass. No regressions. |
+| Task | brief write clears omitted fields - logs | done | Medium |  | Review [Major]: Brief consumer-feedback-brief-write not persisted in Notion. briefcase brief read returns not-found; content is only in _tmp_brief.md. Per PLAYBOOK artifact rules, briefs must be readable via briefcase brief read. Recommend: persist brief to Notion as follow-up task. Does not block acceptance since all 10 AC verified from _tmp_brief.md. Review [Minor]: _tmp_brief.md artifact remains in project root, cleanup blocked by policy. Review [Minor]: _write_brief_db uses merged_data.update(data) without _ key filter, unlike _write_brief_page. Functionally OK. All 10 AC verified pass. Regression: 420 tests pass, 0 failures. Lint clean on changed files. |
+| Feature | Expected experience CLI flag | done | High |  | Self-review 2026-03-29: Bug fix complete. Added --expected-experience flag to briefcase brief write, Expected Experience to BRIEF_SECTIONS and render_brief_markdown, updated template/brief.md and ideation SKILL.md. 22/22 tests pass (3 new). Shipped in current build. |
+| Feature | Github release publishing | done | Medium |  | DM 2026-03-29: shipped in v0.9.4. Route state: routed → done. |
+| Task | GitHub Actions release publish workflow | done | Medium |  | .github/workflows/release-publish.yml created. Triggers on v*.*.* tags, creates GitHub release. |
+| Feature | Project field propagation | done | Medium |  | Shipped in v0.9.4 on 2026-03-29 12:53 PDT. Project default propagation now covers inline and file-based brief writes, backlog rows persist Project in Notion, and release notes were published. |
+| Task | Add project config default | done | Medium |  | Implemented project.name config support and defaults. |
+| Feature | Guided Notion onboarding | done | Medium |  | Independent review: all 6 AC met, 0 blocking/major findings. 1 minor: redundant import re (pre-existing). 17/17 tests pass, 0 regressions (16 pre-existing failures in install/upgrade/backend). Shipped in v0.9.0 on 2026-03-29 12:30 PDT |
+| Task | Persist project in Notion | done | Medium |  | Backlog rows now persist structured Project select in Notion; briefs store project metadata in body. |
+| Feature | Consumer feedback brief write fixes | review-accepted | Medium |  | Review accepted 2026-03-30. All 10 AC verified: partial inline write preserves fields (local+Notion), --file preserves unset sections, parse_brief_sections omits missing sections, NFR help text improved, PLAYBOOK.md Shell Escaping section added, SKILL.md single-quote examples. 420 tests pass, lint clean on all changed files. Residual findings: [Major] brief not persisted in Notion (brief readable from _tmp_brief.md only — create follow-up inbox item to persist); [Minor] _tmp_brief.md artifact in project root; [Minor] _write_brief_db _ key filter inconsistency with _write_brief_page. |
+| Task | Inline args on brief write are shell-escaping hostile | done | Medium |  | Added --file preference documentation to PLAYBOOK.md artifact access table and ideation SKILL.md artifact rules. The --file option and shell escaping rules were already documented in PLAYBOOK Shell Escaping section. Self-review: doc-only fix. |
+| Task | Unit tests for guided onboarding | done | High |  | Tests: 12/12 pass. 7 unit tests for _parse_page_id, 5 integration tests for guided output (checklist, token hint, sharing reminder, URL acceptance, piped-stdin). |
+| Task | Tests for version bump automation | done | Medium |  | 4 new tests in test_release.py. 9/9 pass. |
+| Task | Document release tagging in ship checklist | done | Medium |  | Tagging step added to delivery-manager/SKILL.md Review->Ship checklist. |
+| Task | Add briefcase update --check command | done | Medium |  | src/cli/commands/update.py added. briefcase update check queries GitHub releases/latest, compares to pyproject.toml. Registered in main.py. |
+| Feature | Version bump automation | done | Medium |  | DM 2026-03-29: shipped in v0.9.4. Route state: routed → done. |
+| Task | Add briefcase release check-version command | done | Medium |  | release check-version command added to release.py. 9/9 tests pass. |
+| Task | Test project propagation | done | Medium |  | Added targeted coverage for config, local backend, CLI, and Notion integration. |
+| Task | Plumb project through artifacts | done | Medium |  | Project now propagates through brief and backlog artifact flows. |
+| Task | Auto-bump pyproject.toml on release write | done | Medium |  | Implemented in src/cli/commands/release.py. _bump_pyproject_version() called in release write. 9/9 tests pass. |
+| Task | Inline checklist + token prompt hint + sharing reminder | done | High |  | Implemented: 3-line checklist, token prompt with URL hint, sharing reminder. All in setup.py only. |
+| Task | URL-to-ID parser for parent page prompt | done | High |  | Implemented _parse_page_id() with regex for raw hex IDs and full Notion URLs. Raises click.BadParameter on invalid input. |
+| Task | Write unit and integration tests for brief lifecycle guards | done | Medium |  | 9 unit + 8 integration = 17 new tests. 59 total cli/core tests pass including regression. |
+| Task | Add PROMOTION_REQUIRED_SECTIONS and validate_promotion_sections | done | Medium |  | Impl in briefs.py. 9 unit tests pass. |
+| Task | Add --force flag and validation gate to brief write | done | Medium |  | Impl in brief.py. --force flag, validation gate, field_validation output. 8 CLI integration tests pass. |
+| Feature | Brief lifecycle guards | done | Medium |  | Ship: all ACs met, review accepted, 39/39 tests green. |
+| Feature | Shared private artifact repo | review-accepted | High | — | Workflow E2E: delivery-manager routed the accepted feature to the ship path. <!-- briefcase-meta:eyJyZXZpZXdfdmVyZGljdCI6ImFjY2VwdGVkIiwicm91dGVfc3RhdGUiOiJyb3V0ZWQiLCJsYW5lIjoiZmVhdHVyZSJ9--> |

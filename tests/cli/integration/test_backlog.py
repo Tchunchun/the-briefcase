@@ -261,6 +261,37 @@ def test_backlog_upsert_accepts_bug_type(runner, project):
     assert bug_rows[0]["type"] == "Bug"
 
 
+def test_backlog_upsert_persists_automation_trace(runner, project):
+    result = runner.invoke(
+        cli,
+        [
+            "backlog",
+            "upsert",
+            "--title",
+            "Shipped feature",
+            "--type",
+            "Feature",
+            "--status",
+            "done",
+            "--automation-trace",
+            "[auto-ship-dispatch] routed shipped feature to release closeout",
+            "--project-dir",
+            str(project),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+
+    listing = runner.invoke(
+        cli, ["backlog", "list", "--project-dir", str(project)]
+    )
+    rows = json.loads(listing.output)["data"]
+    target_rows = [r for r in rows if r["title"] == "Shipped feature"]
+    assert target_rows
+    assert target_rows[0]["automation_trace"] == (
+        "[auto-ship-dispatch] routed shipped feature to release closeout"
+    )
+
+
 def test_backlog_upsert_append_notes_concatenates(runner, project):
     runner.invoke(
         cli,
