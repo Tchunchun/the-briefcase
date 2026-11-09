@@ -31,7 +31,7 @@ Each transition is mediated by the Delivery Manager, which validates readiness a
 
 ## Quick Start
 
-For a Markdown-based workflow with two agent prompts and an optional GitHub
+For a Markdown-based workflow with agent prompts and an optional GitHub
 Projects board, see [Briefcase Lite](lite/README.md).
 
 ### Install into your project

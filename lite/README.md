@@ -20,7 +20,7 @@ and Git. A GitHub Project can provide a shared board and mobile feedback inbox.
 These files are the Lite setup. The full Briefcase installer is a separate
 entry point.
 
-## Run the two loops
+## Run the loops
 
 1. In a product chat, say **“Run the requirements loop for [idea or bug].”**
    Review the proposed scope and acceptance criteria. After you approve them,
@@ -28,9 +28,20 @@ entry point.
 2. In a coding chat, say **“Run the build loop for tasks/example.md.”** The
    agent creates or resumes a task branch, implements the change, runs the
    agreed checks, and opens a PR when a remote base is available.
-3. Review and merge the PR. Ask the product agent to confirm the merge and
-   close out the task. Give independent tasks to separate sessions and
-   worktrees. Assign only one active session to each task.
+3. In a separate review chat, say **“Run the review loop for PR #123.”**
+   The reviewer checks the approved task against the diff, verifies the
+   relevant tests, and returns a verdict for the reviewed commit. Add
+   **“Post the review on GitHub”** to publish the verdict on the PR.
+4. If changes are requested, tell the coding chat **“Run the build loop to
+   resume issue #42 and fix the review findings on PR #123.”** Pass along the findings if they
+   were reported in chat. The coding agent updates the existing PR. Ask the
+   reviewer to run the loop again on the updated PR.
+5. After acceptance, merge through your project's normal process. Ask the
+   product agent to confirm the merge and close out the task.
+
+Assign only one coding session to each task. Give independent tasks separate
+worktrees. If review uncovers a product decision, return it to the
+requirements loop for approval before changing the scope.
 
 ## Connect a GitHub Project
 
