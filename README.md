@@ -36,18 +36,48 @@ Each transition is mediated by the Delivery Manager, which validates readiness a
 
 ## Quick Start
 
+### Prerequisites
+
+- Python 3.11 or newer
+- Git
+- A checkout of this framework that is separate from the repository where you
+  want to install it
+
+For example:
+
+```bash
+git clone https://github.com/Tchunchun/the-briefcase.git /absolute/path/to/the-briefcase
+FRAMEWORK_DIR=/absolute/path/to/the-briefcase
+```
+
 ### Install into your project
 
-```bash
-# From the framework repo root:
-./install.sh
-```
+The installer copies the framework from `FRAMEWORK_DIR` into another repository.
+It intentionally rejects installing the framework into its own checkout.
 
-Or, to install into a specific directory:
+For a new repository:
 
 ```bash
-TARGET_DIR=/path/to/your-project ./install.sh
+FRAMEWORK_DIR=/absolute/path/to/the-briefcase
+TARGET_DIR=/absolute/path/to/new-project
+
+mkdir -p "$TARGET_DIR"
+git -C "$TARGET_DIR" init
+TARGET_DIR="$TARGET_DIR" "$FRAMEWORK_DIR/install.sh"
 ```
+
+For an existing repository, review its working tree first and then target it
+explicitly:
+
+```bash
+FRAMEWORK_DIR=/absolute/path/to/the-briefcase
+TARGET_DIR=/absolute/path/to/existing-project
+
+git -C "$TARGET_DIR" status --short
+TARGET_DIR="$TARGET_DIR" "$FRAMEWORK_DIR/install.sh"
+```
+
+Do not run `./install.sh` with the framework checkout itself as `TARGET_DIR`.
 
 The install script:
 
@@ -58,6 +88,26 @@ The install script:
 5. Creates `docs/plan/` directory structure for local backend
 6. Copies `AGENTS.md`, `CLAUDE.md`, and `_project/` templates
 7. Updates `.gitignore` (idempotent)
+
+#### Existing-repository preservation rules
+
+The installer replaces framework-managed code under `.briefcase/src/`,
+`.briefcase/skills/`, and `.briefcase/template/`, and regenerates the
+`./briefcase` wrapper. It does not merge consumer-owned entrypoints or project
+policy:
+
+- Existing `AGENTS.md` and `CLAUDE.md` files are preserved and skipped.
+- An existing `_project/` directory is preserved and skipped as a whole.
+- Existing local planning files under `docs/plan/` are preserved; missing
+  scaffold files may be created.
+- Consumer `src/`, `tests/`, and other application files are not modified.
+
+If your repository already has `AGENTS.md`, manually integrate the instruction
+to read `.briefcase/skills/PLAYBOOK.md` before acting, along with any Briefcase
+commands your agents need. If it already has `CLAUDE.md`, make sure it points to
+the resulting `AGENTS.md` policy. Review the templates in
+`.briefcase/template/` and manually reconcile any desired additions with an
+existing `_project/`; the installer will not merge them for you.
 
 ### Post-install structure
 
@@ -92,15 +142,16 @@ The installer defaults to a **local file backend**. No API keys, no external ser
 
 ### Verify your install
 
-Run this quick smoke test right after install:
+Run these read-only checks from the target repository root:
 
 ```bash
 ./briefcase --help
-./briefcase inbox add --type idea --text "Install smoke test" --notes "Safe to keep or delete later"
 ./briefcase inbox list
+./briefcase backlog list
 ```
 
-Expected success indicators:
+The default configuration is `backend: local`, so these commands require no API
+key or external service. Artifact commands emit JSON; successful reads include:
 
 ```json
 {"success": true, "data": ...}
@@ -246,12 +297,59 @@ Use `--keep-consumer` if you want to inspect the temporary pulled workspace afte
 ./briefcase automate ship-dispatch          # Execute ship dispatch for accepted features
 ```
 
-### Upgrade
+### Update an installed framework
+
+Use `update` to check or replace the framework-managed files under
+`.briefcase/`. Start with the read-only check:
 
 ```bash
-./briefcase upgrade                         # Upgrade .briefcase/ from upstream
-./briefcase upgrade --check                 # Dry-run: show what would change
+./briefcase update --check
 ```
+
+`update --check` exits `0` when the installed version is current, `2` when an
+update is available, and `1` on error. Updates are version-gated: if the
+installed `.briefcase/VERSION` is the same as or newer than the source version,
+no files are changed.
+
+Apply an available update non-interactively with:
+
+```bash
+./briefcase update --yes
+```
+
+When testing or updating from a separate local checkout, make the source
+explicit:
+
+```bash
+./briefcase update --source /absolute/path/to/the-briefcase --check
+./briefcase update --source /absolute/path/to/the-briefcase --yes
+```
+
+The updater never changes consumer-owned `AGENTS.md`, `CLAUDE.md`, `_project/`,
+or `.env`. It also detects local changes inside framework-managed files and
+refuses to overwrite them by default. Back up or port those customizations
+before retrying. `--force` deliberately overwrites customized framework files;
+use it only after reviewing what `--check` reports.
+
+Re-running `install.sh` is also safe for restoring a missing `.briefcase/` or
+bootstrapping a fresh clone of a consumer repository. Because `.briefcase/` is
+gitignored, a fresh clone does not contain the framework runtime: clone or
+locate the framework separately, then run the absolute-`TARGET_DIR` install
+command above. Reinstallation replaces framework-managed directories while
+preserving the consumer-owned files described earlier.
+
+### Upgrade a Notion workspace schema
+
+`upgrade` does not update framework code. It validates and repairs the schema of
+an existing Notion backend:
+
+```bash
+./briefcase upgrade --check
+./briefcase upgrade --yes
+```
+
+Local-backend projects do not need this command. After `briefcase update`, a
+Notion-backed project may be prompted to run `briefcase upgrade --check`.
 
 ---
 
