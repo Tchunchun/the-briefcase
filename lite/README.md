@@ -1,8 +1,52 @@
 # Briefcase Lite
 
-Briefcase Lite is a workflow for turning product feedback into approved tasks
-that coding agents can implement and hand back for review. It uses Markdown
-and Git. A GitHub Project can provide a shared board and mobile feedback inbox.
+Briefcase Lite takes work from product feedback to a reviewed change in three
+loops. Start each loop with a short prompt. Markdown holds the approved
+requirements, Git holds the implementation, and an optional GitHub Project
+tracks issue-backed work.
+
+## Workflow at a glance
+
+```mermaid
+flowchart TD
+    Feedback["Idea in product chat or GitHub issue from your phone"]
+
+    subgraph Requirements["Requirements loop · product agent"]
+        Draft["Draft scope, acceptance criteria, and verification"]
+        Approval{"User approves the task?"}
+        Ready["Commit task to the shared branch and mark Ready"]
+        Draft --> Approval
+        Approval -->|Revise| Draft
+        Approval -->|Yes| Ready
+    end
+
+    subgraph Build["Build loop · coding agent"]
+        Implement["Check assignment and dependencies, then build and test in a task worktree"]
+        PR["Open or update the implementation PR"]
+        Implement -->|Checks pass| PR
+    end
+
+    subgraph Review["Review loop · independent reviewer"]
+        Check["Review the original PR against the approved task"]
+        Verdict{"Review verdict"}
+        Check --> Verdict
+    end
+
+    Feedback --> Draft
+    Ready -->|User assigns task| Implement
+    Implement -->|Product decision needed| Draft
+    PR --> Check
+    Verdict -->|Changes requested| Fix["Coding agent fixes the same branch and PR"]
+    Fix --> Implement
+    Verdict -->|Blocked| Blocked["Resolve the product question or supply missing evidence"]
+    Blocked -->|Scope needs approval| Draft
+    Blocked -->|Evidence supplied| Check
+    Verdict -->|Accepted| Merge["Merge through the project's normal approval process"]
+    Merge --> Done["Verify merge and coverage, mark Done, and close the linked issue"]
+```
+
+The PR stays **In review** after acceptance until it merges. When the PR
+delivers only part of an issue, keep the issue open for the remaining work.
 
 ## Set up a project
 
@@ -33,9 +77,9 @@ entry point.
    relevant tests, and returns a verdict for the reviewed commit. Add
    **“Post the review on GitHub”** to publish the verdict on the PR.
 4. If changes are requested, tell the coding chat **“Run the build loop to
-   resume issue #42 and fix the review findings on PR #123.”** Pass along the findings if they
-   were reported in chat. The coding agent updates the existing PR. Ask the
-   reviewer to run the loop again on the updated PR.
+   resume issue #42 and fix the review findings on PR #123.”** Pass along
+   the findings if they were reported in chat. Ask the reviewer to check
+   the updated commit on the same PR.
 5. After acceptance, merge through your project's normal process. Ask the
    product agent to confirm the merge and close out the task.
 

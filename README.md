@@ -2,6 +2,11 @@
 
 A multi-agent workflow framework that takes a software idea from raw thought to shipped feature — with structured documentation, automated handoffs, and traceable dispatch.
 
+Start with [Briefcase Lite](lite/README.md) for the requirements, build, and
+review loops using Markdown and Git, with an optional GitHub Projects board.
+For the full workflow with five roles, a CLI, and configurable storage, see
+the [installation guide](#quick-start).
+
 ## What This Does
 
 Five specialized AI agent roles, a strict handoff protocol between them, and a CLI toolchain (`briefcase`) that manages every planning artifact against a pluggable storage backend (local files or Notion).
@@ -30,9 +35,6 @@ Each transition is mediated by the Delivery Manager, which validates readiness a
 ---
 
 ## Quick Start
-
-For a Markdown-based workflow with agent prompts and an optional GitHub
-Projects board, see [Briefcase Lite](lite/README.md).
 
 ### Install into your project
 
