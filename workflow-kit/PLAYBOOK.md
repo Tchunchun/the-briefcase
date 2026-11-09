@@ -51,6 +51,13 @@ Accepted work remains `In review` until delivery gates pass.
 - Review independently verifies the current PR head and owns the verdict.
 - Repository permissions govern merge. No role may infer deployment from Done.
 
-Use [the Build skill](skills/build/SKILL.md) for implementation work. Apply the
-selected profile's additional gates; for Standard, read
+Use the shared [Requirements](skills/requirements/SKILL.md),
+[Build](skills/build/SKILL.md), and [Review](skills/review/SKILL.md) skills by
+direct user invocation. There is no automatic role handoff. Apply the selected
+profile's additional gates; for Standard, read
 [the Standard profile](profiles/standard/PROFILE.md).
+
+Reusable records live under [templates/shared](templates/shared). They are
+evidence packets, not another execution queue. See the
+[staged handoff examples](examples/handoffs.md) for successful and refused
+transitions.
