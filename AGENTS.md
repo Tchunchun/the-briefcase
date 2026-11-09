@@ -6,6 +6,20 @@ Upstream source for the 0-to-1 Agent Skills framework (five roles, workflow play
 
 Note: In this repo, skills live at `skills/` and paths in the PLAYBOOK are correct as-is. The `install.sh` script rewrites them to `.briefcase/skills/` for consumer projects.
 
+## This Repository's Backlog
+
+Read [_project/backlog-policy.md](_project/backlog-policy.md).
+[GitHub Project #4](https://github.com/users/Tchunchun/projects/4) is the only
+active backlog and owns execution status. This repository-specific policy
+overrides generic playbook instructions to use CLI backlog rows, the legacy
+inbox, or backlog-scanning automation. Use GitHub directly; do not recreate or
+update the retired Markdown backlog. If access fails, report it and pause
+affected work rather than silently falling back to local status.
+
+The configured Git backend still stores briefs, decisions, releases, and
+history; no GitHub storage adapter is implied. This override is for framework
+development only, not a change to the installed consumer workflow.
+
 ## Commands
 
 | Task | Command |
