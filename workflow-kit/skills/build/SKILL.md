@@ -1,0 +1,122 @@
+---
+name: build
+description: >
+  On explicit user invocation, claim eligible Ready work from the authoritative
+  GitHub Project, implement it in dedicated branches and worktrees, run the
+  approved checks, and open or update implementation pull requests for a
+  separate Review session.
+---
+
+# Build
+
+Read [the shared playbook](../../PLAYBOOK.md), the active profile, the
+repository's agent instructions, and the approved requirement before changing
+state or code.
+
+## Trigger and assignment
+
+Run only when the user explicitly asks to run the Build loop. This is not a
+continuous scanner or background scheduler.
+
+- If the user names an issue, consider it first.
+- Then query the configured Project for every item whose live `Status` is
+  `Ready`.
+- The invocation authorizes this session to attempt claims, not to bypass any
+  gate. Process eligible items one at a time and continue until no eligible
+  Ready work remains.
+- Skip ineligible items and report the failed gate, responsible role, and
+  resume condition. Do not move skipped work to `In progress`.
+
+## Before every claim
+
+Use `gh` to re-read the repository, Project, issue, native blockers, assignment,
+branches, worktrees, and open PRs. Resolve field and option IDs from the live
+Project; never hard-code IDs from another installation.
+
+An item is eligible only when all applicable checks pass:
+
+1. The Project status is still `Ready`.
+2. One canonical requirements revision is linked and approved.
+3. The active profile's gates pass. Standard requires Architect sign-off for
+   the same requirements revision.
+4. Every native blocker is `Done` with its required evidence.
+5. The current session is explicitly assigned and records its claim.
+6. No other active session, branch, worktree, or implementation PR owns the
+   item. Existing work may be reused only under an explicit resume assignment.
+7. Required GitHub reads and writes are available.
+
+If a requirement revision changed after approval or Standard sign-off, refuse
+the claim and return it to the responsible Requirements or Architect role.
+
+## Claim and readback
+
+For one eligible item at a time:
+
+1. Record the session, branch, worktree, and any resumed PR on the issue or
+   configured claim fields.
+2. Move the Project status from `Ready` to `In progress` before editing code.
+3. Re-read both the claim and status. If either differs from the intended
+   values, stop and reconcile the concurrent change; do not start coding.
+4. Create a dedicated branch and worktree from the configured base revision.
+   Reuse the existing branch and worktree only for an explicitly assigned
+   resumption.
+
+## Build and verify
+
+Implement only the approved scope. Follow the repository's engineering and
+test rules and run every check recorded in the requirement. Record exact
+commands, results, and the tested commit.
+
+If work needs a scope decision, record the question and resume condition, move
+the item to `Blocked`, and continue with independent eligible Ready work. Send
+scope questions to Requirements and Standard technical questions to Architect.
+
+If any required GitHub operation fails, stop affected work. Do not fall back to
+Markdown status, fabricate a claim, or report a transition as successful.
+
+## Required PR handoff
+
+After the implementation and checks pass:
+
+1. Commit the verified change and push the task branch.
+2. Open an implementation PR against the configured base, or update the
+   existing PR for an assigned review-fix resumption.
+3. Verify through GitHub readback that the PR is open, its head is the pushed
+   tested commit, its base is correct, and the issue and evidence are linked.
+4. Only after that readback succeeds, move `In progress` to `In review` and
+   hand the PR to a separate Review session.
+
+A local commit, an unpushed branch, a draft description without a PR, or a
+failed PR write is not a review handoff. Keep the item `In progress`, or mark
+it `Blocked` when a stopping condition exists, and report how to resume.
+
+Expected successful output:
+
+```text
+Ready candidates: 3
+Claimed: <issue URL>
+Status: Ready -> In progress
+Branch: <task branch>
+Checks: passed
+Pull request: <PR URL>
+Status: In progress -> In review
+```
+
+## Review fixes
+
+When Review requests in-scope changes, an explicit Build invocation resumes the
+same item, branch, and PR. Move it to `In progress`, address every blocking
+finding, rerun affected checks, push the new commit, verify the updated PR head,
+and return it to `In review`. The new head requires a fresh Review verdict.
+
+## Boundaries
+
+- Never review your own implementation.
+- Never merge or enable auto-merge.
+- Never move an item to `Done` or close its issue.
+- Never create a replacement issue or PR for an ordinary fix cycle.
+- Never expand scope to make the implementation match a finding.
+- Never treat Accepted, landed, released, or deployed as synonyms.
+
+Requirements verifies closeout after independent acceptance and landing.
+Standard also requires its release evidence before Done.
