@@ -60,10 +60,7 @@ elif args[:2] == ["project", "list"]:
         for project in state["projects"]:
             emit(str(project["number"]) + "\t" + project["title"])
 elif args[:2] == ["project", "create"]:
-    state["projects"].append({"number": 7, "title": flag("--title")})
-    state["fields"] = {"Status": new_field("Status", ["Todo", "In Progress", "Done"])}
-    save()
-    emit(7)
+    error("GraphQL: Variable $query is used by anonymous mutation but not declared")
 elif args[:2] == ["project", "view"]:
     if flag("--jq") == ".items.totalCount":
         emit(state.get("items", 0))
@@ -117,7 +114,19 @@ elif args[:2] == ["api", "graphql"]:
         query = flag("query") if "query" in args else ""
         if not query:
             query = next(a[6:] for a in args if a.startswith("query="))
-        if "viewerCanUpdate" in query:
+        if "repositoryOwner" in query:
+            if state.get("owner_read_error"):
+                error("Cannot resolve Project owner")
+            emit(state.get("owner_id", "MDQ6VXNlcjE="))
+        elif "createProjectV2" in query:
+            if state.get("project_create_error"):
+                error("Project creation denied")
+            title = next(a[6:] for a in args if a.startswith("title="))
+            state["projects"].append({"number": 7, "title": title})
+            state["fields"] = {"Status": new_field("Status", ["Todo", "In Progress", "Done"])}
+            save()
+            emit(state.get("creation_number", 7))
+        elif "viewerCanUpdate" in query:
             emit(state.get("project_write", True))
         elif "dataType" in query:
             field_id = next(a[3:] for a in args if a.startswith("id="))
@@ -178,7 +187,9 @@ def mutations(log):
         call for call in calls
         if call[:2] in [
             ["project", "create"], ["project", "field-create"], ["project", "link"],
-        ] or call[:2] == ["api", "graphql"] and "--input" in call
+        ] or call[:2] == ["api", "graphql"] and (
+            "--input" in call or any("createProjectV2" in arg for arg in call)
+        )
     ]
 
 
@@ -219,11 +230,58 @@ def test_lite_uses_only_common_fields(github):
 
 
 def test_create_private_project_and_initialize_status(github):
-    run, state, _ = github
+    run, state, log = github
     result = run("--apply", create=True, update={"projects": []})
     assert result.returncode == 0, result.stderr
     assert "Created Project #7" in result.stdout
     assert json.loads(state.read_text())["fields"]["Status"]["options"] == STATUSES
+    calls = [json.loads(line) for line in log.read_text().splitlines()]
+    assert not any(c[:2] == ["project", "create"] for c in calls)
+    creation = next(c for c in calls if any("createProjectV2" in a for a in c))
+    assert "ownerId=MDQ6VXNlcjE=" in creation
+    assert "title=Briefcase Standard" in creation
+
+
+@pytest.mark.parametrize(
+    ("update", "message"),
+    [
+        ({"owner_read_error": True}, "Cannot resolve Project owner"),
+        ({"owner_id": "null"}, "Could not resolve Project owner"),
+        ({"owner_id": ""}, "Could not resolve Project owner"),
+    ],
+)
+def test_new_project_owner_failure_prevents_creation(github, update, message):
+    run, _, log = github
+    result = run("--apply", create=True, update={"projects": [], **update})
+    assert result.returncode != 0
+    assert message in result.stderr
+    assert mutations(log) == []
+
+
+def test_project_creation_failure_stops_without_fallback(github):
+    run, state, log = github
+    result = run(
+        "--apply", create=True,
+        update={"projects": [], "project_create_error": True},
+    )
+    assert result.returncode != 0
+    assert "Project creation denied" in result.stderr
+    assert "GitHub backlog verified" not in result.stdout
+    assert json.loads(state.read_text())["projects"] == []
+    assert len(mutations(log)) == 1
+
+
+@pytest.mark.parametrize("number", ["null", "", "0", "not-a-number"])
+def test_invalid_creation_response_stops_before_schema_changes(github, number):
+    run, _, log = github
+    result = run(
+        "--apply", create=True,
+        update={"projects": [], "creation_number": number},
+    )
+    assert result.returncode != 0
+    assert "inspect GitHub before retrying" in result.stderr
+    assert "GitHub backlog verified" not in result.stdout
+    assert len(mutations(log)) == 1
 
 
 def test_create_preview_is_read_only(github):
@@ -373,7 +431,9 @@ def test_failed_new_project_initialization_can_be_resumed(github):
     )
     assert result.returncode == 0, result.stderr
     assert json.loads(state.read_text())["fields"]["Status"]["options"] == STATUSES
-    assert len([c for c in mutations(log) if c[:2] == ["project", "create"]]) == 1
+    assert len([
+        c for c in mutations(log) if any("createProjectV2" in arg for arg in c)
+    ]) == 1
 
 
 def test_nontext_link_field_is_rejected_before_mutation(github):

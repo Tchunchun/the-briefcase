@@ -96,8 +96,17 @@ if [ -z "$NUMBER" ]; then
         printf 'Preview only. No local or remote changes. Workflow installation has not run.\n'
         exit 0
     fi
+    STEP="Project owner lookup"
+    OWNER_ID="$(gh api graphql \
+        -f query='query($login:String!){repositoryOwner(login:$login){id}}' \
+        -f login="$OWNER" --jq '.data.repositoryOwner.id')"
+    [ -n "$OWNER_ID" ] && [ "$OWNER_ID" != null ] ||
+        fail "Could not resolve Project owner $OWNER; no Project was created."
     STEP="Project creation"
-    NUMBER="$(gh project create --owner "$OWNER" --title "$TITLE" --format json --jq '.number')"
+    NUMBER="$(gh api graphql \
+        -f query='mutation($ownerId:ID!,$title:String!){createProjectV2(input:{ownerId:$ownerId,title:$title}){projectV2{number}}}' \
+        -f ownerId="$OWNER_ID" -f title="$TITLE" \
+        --jq '.data.createProjectV2.projectV2.number')"
     [[ "$NUMBER" =~ ^[1-9][0-9]*$ ]] || fail "Creation did not return a Project number; inspect GitHub before retrying."
     CREATED=true
     printf 'Created Project #%s. If a later step fails, retry using this number.\n' "$NUMBER"

@@ -45,6 +45,14 @@ bash scripts/setup-github.sh --mode standard \
   --create-project --title 'Briefcase Standard' --apply
 ```
 
+Project creation uses `gh api graphql` with an explicit user or organization
+owner ID and declared mutation variables. It does not use `gh project create`,
+which returned an undeclared `$query` variable error with `gh` 2.87.0.
+The regression suite reproduces that failure and exercises creation, denial,
+invalid responses, and interrupted retries through a deterministic fake `gh`.
+Live creation/apply verification is still required before claiming supported
+CLI-version compatibility; these tests do not create a real Project.
+
 The default is preview; only `--apply` permits remote mutations. Omit
 `--apply` to preview creation and fields. `--dry-run` explicitly selects preview
 and cannot be combined with `--apply`.
