@@ -28,6 +28,12 @@ continuous scanner or background scheduler.
 - Skip ineligible items and report the failed gate, responsible role, and
   resume condition. Do not move skipped work to `In progress`.
 
+Before every Project mutation, follow the playbook's mandatory live preflight,
+transition evaluation, and readback procedure. Build may evaluate only
+`claim-build-work`, `handoff-for-review`, `block-work`, or
+`resume-blocked-work`. Record Assignee and Claim Session only as effects of an
+allowed `claim-build-work` decision. A denied decision means no write.
+
 ## Before every claim
 
 Use `gh` to re-read the repository, Project, issue, native blockers, assignment,

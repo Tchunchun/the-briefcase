@@ -74,6 +74,28 @@ def test_closeout_owner_has_one_configuration_point():
         assert "workflow.yaml" in path.read_text()
 
 
+def test_every_role_requires_the_executable_transition_gate():
+    required_transitions = {
+        "requirements": ["begin-requirement-shaping", "ready-lite-work"],
+        "build": ["claim-build-work", "handoff-for-review"],
+        "review": ["accept-review", "complete-task", "complete-feature"],
+    }
+    for role, transitions in required_transitions.items():
+        skill = (WORKFLOW_KIT / "skills" / role / "SKILL.md").read_text()
+        assert "mandatory live preflight" in skill
+        assert "denied decision" in skill.casefold()
+        for transition in transitions:
+            assert transition in skill
+
+    architect = (
+        WORKFLOW_KIT / "profiles" / "standard" / "skills" / "architect" / "SKILL.md"
+    ).read_text()
+    assert "mandatory live preflight" in architect
+    assert "ready-standard-feature" in architect
+    assert "ready-standard-task" in architect
+    assert "--offline` is insufficient" in PLAYBOOK
+
+
 def test_current_guidance_uses_requirements_terminology():
     agents = (ROOT / "AGENTS.md").read_text()
     assert "brief" not in agents.lower().replace("briefcase", "")

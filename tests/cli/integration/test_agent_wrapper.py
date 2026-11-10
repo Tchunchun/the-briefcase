@@ -3,11 +3,20 @@
 import os
 import stat
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
 from src.core.storage.config import save_config, StorageConfig
+
+
+def supported_python_env():
+    """Put pytest's supported interpreter ahead of an older system python3."""
+    env = os.environ.copy()
+    python_bin = str(Path(sys.executable).parent)
+    env["PATH"] = python_bin + os.pathsep + env.get("PATH", "")
+    return env
 
 
 @pytest.fixture
@@ -65,6 +74,7 @@ class TestAgentWrapper:
             ["./briefcase", "--help"],
             capture_output=True, text=True,
             cwd=str(consumer_project),
+            env=supported_python_env(),
             timeout=15,
         )
         assert result.returncode == 0
@@ -75,6 +85,7 @@ class TestAgentWrapper:
             ["./briefcase", "inbox", "list"],
             capture_output=True, text=True,
             cwd=str(consumer_project),
+            env=supported_python_env(),
             timeout=15,
         )
         assert result.returncode == 0
@@ -90,6 +101,7 @@ class TestAgentWrapper:
             [str(wrapper), "--help"],
             capture_output=True, text=True,
             cwd=str(subdir),
+            env=supported_python_env(),
             timeout=15,
         )
         # Should find .briefcase/ by walking up and show help

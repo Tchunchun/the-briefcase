@@ -2,12 +2,21 @@
 
 import os
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
 
 FRAMEWORK_DIR = str(Path(__file__).resolve().parents[3])
+
+
+def supported_python_env():
+    """Put pytest's supported interpreter ahead of an older system python3."""
+    env = os.environ.copy()
+    python_bin = str(Path(sys.executable).parent)
+    env["PATH"] = python_bin + os.pathsep + env.get("PATH", "")
+    return env
 
 
 @pytest.fixture
@@ -20,7 +29,7 @@ def consumer_dir(tmp_path):
 
 def run_install(consumer_dir, env_overrides=None):
     """Run install.sh with TARGET_DIR pointing to consumer_dir."""
-    env = os.environ.copy()
+    env = supported_python_env()
     env["FRAMEWORK_DIR"] = FRAMEWORK_DIR
     env["TARGET_DIR"] = str(consumer_dir)
     if env_overrides:
@@ -263,7 +272,7 @@ class TestInstallerHardening:
 
     def test_non_interactive_flag_succeeds(self, consumer_dir):
         """--non-interactive should complete successfully."""
-        env = os.environ.copy()
+        env = supported_python_env()
         env["FRAMEWORK_DIR"] = FRAMEWORK_DIR
         env["TARGET_DIR"] = str(consumer_dir)
 

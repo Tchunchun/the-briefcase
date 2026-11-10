@@ -32,6 +32,11 @@ orchestrator and applies only to Standard profile work.
 GitHub read or write failure pauses the affected item. Report the failed
 operation and do not claim a transition succeeded.
 
+Before every Project mutation, follow the playbook's mandatory live preflight,
+transition evaluation, and readback procedure. Architect may evaluate only
+`ready-standard-feature`, `ready-standard-task`, `block-work`, or
+`resume-blocked-work`. A denied decision means no write.
+
 ## Before recording sign-off
 
 Re-read the live GitHub issue, the linked requirement revision, and the Standard

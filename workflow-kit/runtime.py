@@ -326,7 +326,7 @@ def evaluate_transition(
         )
 
     sources = _as_list(transition["from"])
-    idempotent = current_status == target
+    idempotent = current_status == target and target not in sources
     if current_status not in sources and not idempotent:
         return TransitionDecision(
             False,
@@ -613,6 +613,22 @@ def format_report(report: PreflightReport) -> str:
     return "\n".join(lines)
 
 
+def format_transition(decision: TransitionDecision) -> str:
+    """Render a transition decision for an agent or operator."""
+    lines = [
+        f"Transition evaluation: {'ALLOWED' if decision.allowed else 'DENIED'}",
+        "",
+        f"Transition: {decision.transition_id}",
+        f"Status: {decision.from_status} -> {decision.to_status}",
+        f"Action Owner after transition: {decision.result_owner}",
+        f"Reason: {decision.reason}",
+    ]
+    if decision.missing_evidence:
+        lines.append(f"Missing evidence: {', '.join(decision.missing_evidence)}")
+    lines.extend(["", "No changes were made."])
+    return "\n".join(lines)
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     default_manifest = Path(__file__).with_name("workflow.yaml")
@@ -620,21 +636,60 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--contract", type=Path)
     parser.add_argument("--offline", action="store_true")
     parser.add_argument("--json", action="store_true", dest="as_json")
+    parser.add_argument("--transition")
+    parser.add_argument("--status")
+    parser.add_argument("--profile")
+    parser.add_argument("--work-type")
+    parser.add_argument("--actor")
+    parser.add_argument("--action-owner")
+    parser.add_argument("--resume-status")
+    parser.add_argument("--result-owner")
+    parser.add_argument("--evidence", action="append", default=[])
     args = parser.parse_args(argv)
 
+    decision = None
     try:
         manifest = load_yaml(args.manifest)
         contract_path = args.contract or args.manifest.parent / manifest["contract"]
         contract = load_yaml(contract_path)
         report = run_preflight(manifest, contract, offline=args.offline)
+        if report.passed and args.transition:
+            required_context = {
+                "status": args.status,
+                "work_type": args.work_type,
+                "actor": args.actor,
+                "action_owner": args.action_owner,
+            }
+            missing_context = [
+                name for name, value in required_context.items() if value is None
+            ]
+            if missing_context:
+                report.fail(
+                    "Transition context missing: " + ", ".join(missing_context)
+                )
+            else:
+                context = {
+                    **required_context,
+                    "profile": args.profile or manifest["mode"],
+                    "resume_status": args.resume_status,
+                    "result_owner": args.result_owner,
+                    "evidence": {gate: True for gate in args.evidence},
+                }
+                decision = evaluate_transition(contract, args.transition, context)
     except (KeyError, OSError, ValueError, yaml.YAMLError) as error:
         report = PreflightReport(False, errors=[f"Configuration: {error}"])
 
     if args.as_json:
-        print(json.dumps(asdict(report), indent=2, sort_keys=True))
+        payload = {"preflight": asdict(report)}
+        if decision is not None:
+            payload["transition"] = asdict(decision)
+        print(json.dumps(payload, indent=2, sort_keys=True))
     else:
         print(format_report(report))
-    return 0 if report.passed else 2
+        if decision is not None:
+            print()
+            print(format_transition(decision))
+    return 0 if report.passed and (decision is None or decision.allowed) else 2
 
 
 if __name__ == "__main__":

@@ -10,6 +10,8 @@ Not included in automated test suite (requires live Notion access).
 import os
 import sys
 
+import pytest
+
 from src.integrations.notion.client import NotionClient
 from src.integrations.notion.provisioner import NotionProvisioner
 from src.core.storage.config import NotionConfig
@@ -17,8 +19,10 @@ from src.integrations.notion.backend import NotionBackend
 
 PARENT_PAGE_ID = os.environ.get('NOTION_PARENT_PAGE_ID', '')
 if not PARENT_PAGE_ID or not os.environ.get('NOTION_API_TOKEN'):
-    print('Skipping E2E: set NOTION_API_TOKEN and NOTION_PARENT_PAGE_ID env vars')
-    sys.exit(0)
+    pytest.skip(
+        'NOTION_API_TOKEN and NOTION_PARENT_PAGE_ID env vars required',
+        allow_module_level=True,
+    )
 
 client = NotionClient()
 

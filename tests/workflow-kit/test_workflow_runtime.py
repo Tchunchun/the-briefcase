@@ -201,6 +201,27 @@ def test_changed_head_or_unmerged_acceptance_cannot_complete():
     assert not unmerged.allowed
 
 
+def test_review_verdict_is_gated_before_merge():
+    evidence = evidence_for("accept-review")
+    evidence["reviewed-head-current"] = False
+    denied = decide(
+        "accept-review",
+        actor="Review",
+        action_owner="Review",
+        evidence=evidence,
+    )
+    assert not denied.allowed
+    assert denied.missing_evidence == ("reviewed-head-current",)
+
+    accepted = decide(
+        "accept-review",
+        actor="Review",
+        action_owner="Review",
+    )
+    assert accepted.allowed
+    assert not accepted.idempotent
+
+
 def test_task_and_feature_completion_have_distinct_gates():
     task = decide(
         "complete-task",
@@ -309,3 +330,55 @@ def test_offline_preflight_validates_without_calling_github():
         MANIFEST, CONTRACT, offline=True, runner=forbidden_runner
     )
     assert report.passed
+
+
+def test_transition_cli_fails_closed_and_returns_machine_readable_result(capsys):
+    result = RUNTIME.main(
+        [
+            "--offline",
+            "--json",
+            "--transition",
+            "claim-build-work",
+            "--status",
+            "ready",
+            "--work-type",
+            "Task",
+            "--actor",
+            "Build",
+            "--action-owner",
+            "Build",
+            "--evidence",
+            "claim-writable",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert result == 2
+    assert payload["preflight"]["passed"]
+    assert not payload["transition"]["allowed"]
+    assert payload["transition"]["missing_evidence"] == ["no-competing-work"]
+
+
+def test_transition_cli_allows_complete_evidence(capsys):
+    result = RUNTIME.main(
+        [
+            "--offline",
+            "--json",
+            "--transition",
+            "claim-build-work",
+            "--status",
+            "ready",
+            "--work-type",
+            "Task",
+            "--actor",
+            "Build",
+            "--action-owner",
+            "Build",
+            "--evidence",
+            "claim-writable",
+            "--evidence",
+            "no-competing-work",
+        ]
+    )
+    payload = json.loads(capsys.readouterr().out)
+    assert result == 0
+    assert payload["transition"]["allowed"]

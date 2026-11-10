@@ -81,6 +81,37 @@ See [the installation path](INSTALLATION.md). The root `install.sh` remains the
 legacy installer; a workflow-kit installer is deferred until a named pilot
 passes capture through verified closeout.
 
+## Mandatory transition gate
+
+Every role must fail closed through the executable contract before a Project
+write that changes Status, Action Owner, Resume Status, Review Verdict,
+Assignee, or Claim Session:
+
+1. Re-read the live item and all evidence required by the intended transition.
+2. Run the intended transition live with `--transition`, the contract status
+   key, profile, work type, actor, current Action Owner, and one `--evidence`
+   flag for each verified gate. The command performs the live preflight before
+   evaluating the transition; `--offline` is insufficient for a Project
+   mutation. For example:
+
+   ```bash
+   python3 workflow-kit/runtime.py \
+     --transition claim-build-work \
+     --status ready --profile standard --work-type Task \
+     --actor Build --action-owner Build \
+     --evidence claim-writable --evidence no-competing-work
+   ```
+
+3. Preserve the machine-readable decision with the handoff or closeout packet.
+   A denied evaluation or failed preflight means no Project write.
+4. Apply only the evaluated transition, then read back every changed field.
+   Re-evaluate the read-back state for status-changing transitions; separately
+   verify declared effects such as Review Verdict, Assignee, and Claim Session.
+
+Evidence flags are assertions backed by live reads and linked records; they are
+not permission to infer or manufacture evidence. The evaluator never mutates
+GitHub and does not replace expected-head merge guards or post-write readback.
+
 ## Evidence authority
 
 | Evidence | Authority |
