@@ -13,9 +13,11 @@
 
 ## Closeout
 
+- Action Owner: `<Review until complete | None when Done>`
 - Issue closure verified: `<yes | no>`
 - Project `Done` verified: `<yes | no>`
 - Remaining obligations: `<none | explicit blocker and owner>`
 
-Do not mark `Done` unless acceptance, landing, coverage, checks, and applicable
-release evidence are all verified.
+There is no separate Deliver stage. Review does not mark `Done` unless
+acceptance, landing, coverage, checks, and applicable release evidence are all
+verified.

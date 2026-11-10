@@ -20,7 +20,7 @@ continuous scanner or background scheduler.
 
 - If the user names an issue, consider it first.
 - Then query the configured Project for every item whose live `Status` is
-  `Ready`.
+  `Ready` and `Action Owner` is `Build`.
 - The invocation authorizes this session to attempt claims, not to bypass any
   gate. Process eligible items one at a time and continue until no eligible
   Ready work remains.
@@ -40,10 +40,9 @@ An item is eligible only when all applicable checks pass:
 3. The active profile's gates pass. Standard requires Architect sign-off for
    the same requirements revision.
 4. Every native blocker is `Done` with its required evidence.
-5. The current session is explicitly assigned and records its claim.
-6. No other active session, branch, worktree, or implementation PR owns the
+5. No other active session, branch, worktree, or implementation PR owns the
    item. Existing work may be reused only under an explicit resume assignment.
-7. Required GitHub reads and writes are available.
+6. Required GitHub reads and writes are available.
 
 If a requirement revision changed after approval or Standard sign-off, refuse
 the claim and return it to the responsible Requirements or Architect role.
@@ -52,11 +51,12 @@ the claim and return it to the responsible Requirements or Architect role.
 
 For one eligible item at a time:
 
-1. Record the session, branch, worktree, and any resumed PR on the issue or
-   configured claim fields.
+1. Assign the item to the current Build actor and record the Claim Session,
+   branch, worktree, and any resumed PR on the issue or configured claim fields.
 2. Move the Project status from `Ready` to `In progress` before editing code.
-3. Re-read both the claim and status. If either differs from the intended
-   values, stop and reconcile the concurrent change; do not start coding.
+3. Keep `Action Owner: Build` and re-read assignment, claim, owner, and status.
+   If any differs from the intended values, stop and reconcile the concurrent
+   change; do not start coding.
 4. Create a dedicated branch and worktree from the configured base revision.
    Reuse the existing branch and worktree only for an explicitly assigned
    resumption.
@@ -83,8 +83,8 @@ After the implementation and checks pass:
    existing PR for an assigned review-fix resumption.
 3. Verify through GitHub readback that the PR is open, its head is the pushed
    tested commit, its base is correct, and the issue and evidence are linked.
-4. Only after that readback succeeds, move `In progress` to `In review` and
-   hand the PR to a separate Review session.
+4. Only after that readback succeeds, move `In progress` to `In review`, set
+   `Action Owner: Review`, and hand the PR to a separate Review session.
 
 A local commit, an unpushed branch, a draft description without a PR, or a
 failed PR write is not a review handoff. Keep the item `In progress`, or mark
@@ -118,5 +118,5 @@ and return it to `In review`. The new head requires a fresh Review verdict.
 - Never expand scope to make the implementation match a finding.
 - Never treat Accepted, landed, released, or deployed as synonyms.
 
-Requirements verifies closeout after independent acceptance and landing.
-Standard also requires its release evidence before Done.
+Review merges eligible accepted work, verifies landing and applicable release
+evidence, closes the task, and sets `Done` last.

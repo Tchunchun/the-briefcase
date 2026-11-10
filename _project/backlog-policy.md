@@ -45,24 +45,42 @@ Consumer templates, supported backends, and other repositories are unchanged.
 
 ## Standard Board Contract
 
-Status is the sole execution axis: Inbox, User requirement shaping, Technical
-shaping, Ready, In progress, In review, Blocked, Done. Stage is Requirements,
-Architecture, Build, Review, or Deliver. Review Verdict is Pending, Accepted,
-Changes requested, or Blocked.
+Status is the execution axis: Inbox, Requirement shaping, Technical shaping,
+Ready, In progress, In review, Blocked, Done. `Action Owner` is the dispatch
+authority: Requirements, Architect, Build, Review, or None. Stage is optional
+reporting metadata and never controls dispatch. Review Verdict is Pending,
+Accepted, Changes requested, or Blocked.
 
-Feature creation includes user needs, scope, acceptance criteria, and product
-approval. Added Standard features proceed directly to Technical shaping, then
-implementation; they do not repeat requirement shaping. Technical shaping owns
-the technical approach, applicable architecture sign-off, and remaining Build
-readiness gates. The existing User requirement shaping option is historical or
-exception-only, not a mandatory phase. Do not bulk-move existing cards or change
-board options merely to apply this policy. No Ready gate or Lite behavior changes.
-
-Ready requires approved scope, applicable architecture sign-off, satisfied
-dependencies, and an accepted assignment. All implementation requires
+Requirements owns product scope and approval. Architect owns technical shaping
+and revision-bound sign-off. Ready requires approved scope, current applicable
+sign-off, satisfied dependencies, and no competing implementation claim. Build
+records Assignee and Claim Session atomically when moving Ready to In progress;
+assignment is not a prerequisite for Ready. All implementation requires
 separate-session review. Historical acceptance is not current-revision
 acceptance or verified landing. Done additionally requires full scope coverage,
 intended-base landing, and applicable Standard release evidence.
+
+Normal ownership is deterministic: Inbox and Requirement shaping belong to
+Requirements; Technical shaping to Architect; Ready and In progress to Build;
+In review to Review; Done to None. Blocked records an explicit Action Owner and
+Resume Status. There is no Deliver stage or agent.
+
+### Required Project fields
+
+| Field | Type | Purpose |
+|---|---|---|
+| Status | single select | Lifecycle position and queue column |
+| Action Owner | single select | Requirements, Architect, Build, Review, or None; automation dispatch authority |
+| Assignees | native people field | Human or service account that accepted the work |
+| Claim Session | text | Session ID, timestamp, branch, worktree, and PR reference |
+| Resume Status | single select | Required for Blocked; the status whose gates must be revalidated |
+| Review Verdict | single select | Pending, Accepted, Changes requested, or Blocked |
+| Work Type | single select | Idea, Feature, or Task |
+
+Status transitions update Action Owner in the same operation sequence and read
+both fields back. Stage may remain temporarily for migration reporting, but an
+automation must never dispatch from it. A mismatch between Status and Action
+Owner is a blocker, not permission to guess the intended owner.
 
 Use native parent/sub-issue and blocked-by relationships for issue-backed work.
 The unified initiative is public source issue #18; detailed feature/task issues
@@ -87,9 +105,9 @@ that would promote backlog rows or continue directly into Build.
   versus private ownership from an issue number alone. Search all result pages
   for existing scope, children, dependencies, and competing work before creating
   anything. Reuse matching items rather than duplicating them.
-- **"Run the requirements loop"** is a compatibility alias for this Standard
-  technical shaping loop. It must not restart product shaping for an added feature.
-- With no target, read all pages of Inbox and Technical shaping cards, capture
+- A Requirements invocation remains owned by Requirements. Already approved
+  Standard work is handed to Architect rather than silently changing roles.
+- With no target, read all pages of Technical shaping cards owned by Architect, capture
   that queue once, and process eligible features against their existing approved
   scope. Report missing evidence and decisions. Do not select or approve unrelated scope,
   continually poll, or claim every card as assigned work.
@@ -135,19 +153,18 @@ that would promote backlog rows or continue directly into Build.
    architecture is not applicable. A legacy lane alone cannot waive a required
    Standard gate or the separate-session implementation review.
 6. Resolve dependencies from their authoritative cards and verify Done evidence.
-   Record the intended owner/session and its accepted assignment, checking
-   existing claims, branches and PRs. Do not overwrite another session's claim
-   or mistake a suggested Build prompt for an accepted assignment.
+   Check existing claims, branches and PRs. Do not overwrite another session's
+   claim. Build records assignment when it later claims Ready.
 
 ### Readiness and handoff
 
-| Evidence | Status | Stage | Next action |
+| Evidence | Status | Action Owner | Next action |
 |---|---|---|---|
-| Added feature has approved scope and awaits technical review | Technical shaping | Architecture | Reuse the approved revision and resolve technical questions; do not repeat requirement shaping. |
-| Missing approval or a material scope gap | Blocked | Requirements | Request only the missing product decision and revision-bound evidence; no Build dispatch. |
-| Approval/sign-off complete, but no accepted assignment | Technical shaping | Build | Offer the exact target and prerequisites; do not claim Ready. |
-| An unresolved decision, dependency, access failure, or conflicting claim prevents progress | Blocked | Stage where blocked | Record responsible owner and explicit unblock condition. |
-| Approved revision, applicable sign-off, satisfied dependencies, and accepted assignment verified | Ready | Build | Save the handoff packet and offer the exact Build prompt; stop. |
+| Approved scope awaits technical review | Technical shaping | Architect | Resolve technical questions and record sign-off. |
+| Missing approval or a material scope gap | Blocked | Requirements | Request the missing product decision and record Resume Status. |
+| An unresolved technical decision prevents progress | Blocked | Architect | Record the decision owner and Resume Status. |
+| A dependency, access failure, or conflicting claim prevents progress | Blocked | Explicit responsible role | Record the unblock condition and Resume Status. |
+| Approved revision, current sign-off, satisfied dependencies, and no competing claim | Ready | Build | Save the handoff packet and offer the exact Build prompt; stop. |
 
 Do not move In progress, In review, or Done work back to shaping
 on a sweep.
@@ -156,8 +173,8 @@ current owner, preserve implementation/review history, and invalidate only
 evidence affected by the new revision. Resolving a blocker does not itself
 make work Ready: recheck every gate.
 
-Before any mutation, reread the target's status, requirement revision, approval,
-dependencies, and assignment. Refresh or report concurrent changes rather than
+Before any mutation, reread the target's status, Action Owner, requirement revision,
+approval, dependencies, and existing claims. Refresh or report concurrent changes rather than
 overwriting newer work. Resolve current Project field IDs/options from GitHub.
 For drafts, field edits use the Project item ID (`PVTI_`); body edits use the
 content ID (`DI_`) and preserve the title and existing body.
@@ -172,13 +189,14 @@ Approval: <product owner, date, exact approved revision, or pending>
 Verification: <criterion-to-check mapping, expected results, environment>
 Architecture: <sign-off and revision, justified not applicable, or open questions>
 Dependencies: <linked cards, verified completion evidence, or explicit none>
-Assignment: <accepted owner/session and existing branch/PR, or unassigned>
+Action Owner: <Requirements | Architect | Build | Review | None>
+Assignment: <existing assignee/claim/branch/PR, or unassigned>
 Readiness: <each gate, remaining blockers, owner and unblock condition>
 Next action: <technical decision request, product clarification, or exact Build prompt>
 ```
 
 Save and read back the packet before field updates. Set Ready last, only after
-all gates pass, and read back the saved evidence and final Status/Stage. Do not
+all gates pass, and read back the saved evidence and final Status/Action Owner. Do not
 set Review Verdict to Accepted for requirements approval. Access or partial-write
 failures pause affected work: report which writes succeeded and which remain;
 there is no legacy inbox/backlog fallback. Reruns reuse current packets when
@@ -186,16 +204,15 @@ their scope revision and gates remain valid, appending only new evidence rather
 than duplicating records.
 
 Finish with one result per target: authoritative scope revision, approval and
-architecture state, dependencies, assignment, verified Status/Stage, remaining
+architecture state, dependencies, assignment, verified Status/Action Owner, remaining
 decision/owner, and next prompt. Stop at this handoff. Do not start implementation,
 merge, release, or close issues as part of the technical shaping loop.
 
 ## Repository Review Loop
 
 This is the user-authorized review and closeout procedure for this repository's
-Standard board. It overrides generic role instructions that reserve Done for
-Build or the Requirements session. It does not change installed consumer
-workflows, Lite ownership, or unresolved unified-product decisions.
+Standard board. Review owns the verdict, merge, landing verification, task
+closure, and final Done transition. There is no separate Deliver stage.
 
 ### Entry and authority
 
@@ -289,7 +306,7 @@ workflows, Lite ownership, or unresolved unified-product decisions.
 4. Perform the merge through authenticated GitHub tooling without another
    confirmation once these gates pass. Respect any required merge queue. A
    queued merge or enabled auto-merge is not a completed merge: keep the task
-   In review / Deliver / Accepted, record the queue/CI gate, and stop until
+   In review / Review / Accepted, record the queue/CI gate, and stop until
    GitHub confirms the merge. If the operation is rejected, report the actual
    reason and owner; never substitute issue closure for a failed merge.
 5. Read back merged state, merge/landed revision, and intended base, and verify
@@ -300,14 +317,14 @@ workflows, Lite ownership, or unresolved unified-product decisions.
 
 ### Outcomes and completion gates
 
-| Evidence | Status | Stage | Review Verdict | Action |
+| Evidence | Status | Action Owner | Review Verdict | Action |
 |---|---|---|---|---|
-| Current revision passes review; accepted work not yet landed | In review | Deliver | Accepted | Merge the eligible PR under the merge gates, verify landing, then continue closeout; if queued or gated, record the remaining action and keep the issue open. |
-| Accepted work landed, but required release evidence is pending | In review | Deliver | Accepted | Hand the missing delivery action to Build; keep the issue open. |
-| Fixable implementation findings within approved scope | In progress if a fix owner is assigned; otherwise In review | Build if assigned; otherwise Review | Changes requested | Record actionable findings and hand back the existing branch/PR; do not implement fixes in the reviewer session. |
+| Current revision passes review; accepted work not yet landed | In review | Review | Accepted | Merge the eligible PR, verify landing, and continue closeout. |
+| Accepted work landed, but required release evidence is pending | In review | Review | Accepted | Keep the task open and record the missing evidence owner. |
+| Fixable implementation findings within approved scope | In progress | Build | Changes requested | Record findings and hand back the existing branch/PR. |
 | Missing scope approval, implementation/PR evidence, required checks, independent review, or landing proof | Blocked | Review | Blocked | Record the missing evidence, responsible owner, and explicit unblock condition. |
 | Only part of the item landed | In progress if remaining work is assigned; otherwise Blocked | Build | Pending | Keep the issue open and identify uncovered criteria and the next owner. |
-| Full approved scope independently accepted at the verified revision, required checks/dependencies satisfied, intended-base landing verified, and applicable release evidence present | Done | Deliver | Accepted | Record closeout evidence, close the linked issue if any, and verify the final board state. |
+| Full scope accepted, checks/dependencies satisfied, landing verified, and applicable release evidence present | Done | None | Accepted | Close the linked task and verify final state. |
 
 The normal passing path is **review -> merge -> verify landing/delivery -> close
 issue and mark Done**. An accepted PR remains In review only while a merge,
@@ -341,8 +358,8 @@ public-safe implementation facts, not private requirement text or links.
 
 For eligible completion, first save the packet, merge any eligible open PR and
 verify its landing and delivery gates, then close an open linked issue
-with reason **completed**, and update Review Verdict, Stage, and Status to
-**Accepted**, **Deliver**, and **Done**, setting Done last. Draft cards have no
+with reason **completed**, and update Review Verdict, Action Owner, and Status to
+**Accepted**, **None**, and **Done**, setting Done last. Draft cards have no
 issue to close. An already-closed issue still requires all gates; its closed
 state is not completion evidence. If it was closed as not planned, report the
 conflict for resolution rather than silently treating it as completed or
@@ -399,3 +416,12 @@ cards were at Stage Architecture and retained their existing status option ID,
 renamed Technical shaping. User requirement shaping was inserted immediately
 before it. Other status option IDs, card fields, and Lite behavior were
 preserved.
+
+On 2026-11-10 the user approved the explicit ownership model in this policy.
+Requirement shaping and Technical shaping are separate statuses; Action Owner
+is the dispatch authority; Architect remains the technical authority; Build
+claims assignment during Ready to In progress; Review merges and closes without
+a Deliver stage. This supersedes earlier assignment-before-Ready and
+Requirements-owned-closeout text. Live Project migration is a separate verified
+operation: add the required fields, map existing cards, read back every value,
+and only then remove or retire legacy Stage-based dispatch.

@@ -101,10 +101,10 @@ class TestRepositoryReviewLoop:
         [
             ("Current revision passes review", "In review", "Accepted"),
             ("Accepted work landed", "In review", "Accepted"),
-            ("Fixable implementation findings", "In progress if", "Changes requested"),
+            ("Fixable implementation findings", "In progress", "Changes requested"),
             ("Missing scope approval", "Blocked", "Blocked"),
             ("Only part of the item landed", "In progress if", "Pending"),
-            ("Full approved scope independently accepted", "Done", "Accepted"),
+            ("Full scope accepted", "Done", "Accepted"),
         ],
     )
     def test_evidence_has_explicit_outcome(self, evidence, status, verdict):
@@ -202,20 +202,20 @@ class TestRepositoryRequirementsLoop:
         assert "stop-at-handoff rule" in content
 
     @pytest.mark.parametrize(
-        ("evidence", "status", "stage"),
+        ("evidence", "status", "owner"),
         [
             ("Missing approval or a material scope gap", "Blocked", "Requirements"),
-            ("Added feature has approved scope", "Technical shaping", "Architecture"),
-            ("Approval/sign-off complete", "Technical shaping", "Build"),
-            ("An unresolved decision", "Blocked", "Stage where blocked"),
-            ("Approved revision, applicable sign-off", "Ready", "Build"),
+            ("Approved scope awaits technical review", "Technical shaping", "Architect"),
+            ("An unresolved technical decision", "Blocked", "Architect"),
+            ("A dependency, access failure", "Blocked", "Explicit responsible role"),
+            ("Approved revision, current sign-off", "Ready", "Build"),
         ],
     )
-    def test_requirements_outcomes_are_explicit(self, evidence, status, stage):
+    def test_requirements_outcomes_are_explicit(self, evidence, status, owner):
         content = (ROOT_DIR / "_project" / "backlog-policy.md").read_text()
         row = next(line for line in content.splitlines() if line.startswith(f"| {evidence}"))
         columns = [column.strip() for column in row.strip("|").split("|")]
-        assert columns[1:3] == [status, stage]
+        assert columns[1:3] == [status, owner]
 
     def test_requirements_gates_and_safe_handoff(self):
         content = (ROOT_DIR / "_project" / "backlog-policy.md").read_text()
@@ -223,13 +223,13 @@ class TestRepositoryRequirementsLoop:
             "## Repository Review Loop\n", 1
         )[0]
         for requirement in [
-            "read all pages of Inbox",
+            "read all pages of Technical shaping cards owned by Architect",
             "capture that queue once",
             "authoritative requirement reference",
             "approved immutable revision",
             "A later material scope change needs renewed",
             "separate Review session",
-            "its accepted assignment",
+            "Build records assignment when it later claims Ready",
             "Before any mutation, reread",
             "Set Ready last",
             "set Review Verdict to Accepted",
@@ -249,9 +249,9 @@ class TestRepositoryRequirementsLoop:
         for requirement in [
             '"Run the technical shaping loop for <topic>"',
             '"Run the architecture loop"',
-            '"Run the requirements loop"** is a compatibility alias',
-            "must not restart product shaping",
-            "read all pages of Inbox and Technical shaping",
+            "A Requirements invocation remains owned by Requirements",
+            "silently changing roles",
+            "read all pages of Technical shaping cards owned by Architect",
             "do not\n   redraft them",
             "exact gap, owner, and unblock condition",
             "Stop at this handoff",

@@ -25,28 +25,27 @@ inbox, or backlog-scanning automation. Use GitHub directly; do not recreate or
 update the retired Markdown backlog. If access fails, report it and pause
 affected work rather than silently falling back to local status.
 
-Standard features enter Technical shaping with requirements already shaped
-and approved at feature creation. Technical shaping covers architecture and
-remaining Build readiness gates. No separate User requirement shaping pass is
-required; missing or changed scope is an explicit exception, not routine intake.
-Stage and Review Verdict support Status; legacy fields are historical only.
+Standard uses distinct Requirement shaping and Technical shaping queues.
+`Action Owner` is the automation dispatch authority: Requirements, Architect,
+Build, Review, or None. Stage is reporting-only and does not dispatch work.
+Legacy fields are historical only.
 
 When the user says **"Run the technical shaping loop"** or **"Run the architecture
 loop"**, follow the
 [repository technical shaping loop](_project/backlog-policy.md#repository-technical-shaping-loop).
-**"Run the requirements loop"** remains a compatibility alias for that Standard
-loop, not a request to repeat product shaping. Architect owns technical sign-off;
-product owns any missing or changed scope approval. Ready also requires satisfied
-dependencies and an accepted assignment. Stop at handoff, never automatic Build
-dispatch.
+Requirements and Architect remain distinct roles and invocations. Architect
+owns technical sign-off; Requirements owns product scope and approval. Ready
+requires approved scope, current sign-off, satisfied dependencies, and no
+competing implementation claim. Build records assignment when it claims Ready.
+Stop at handoff; never automatically dispatch Build.
 
 When the user says **"Run the review loop"**, follow the
 [repository review loop](_project/backlog-policy.md#repository-review-loop).
-With no target, inspect the active board's In review column. An independent
-review session merges a passing PR, verifies landing and applicable delivery
-gates, then marks the task Done and closes its linked issue under that
-procedure. Required checks, approvals, and branch protections still apply;
-queued or gated work stays open. Explicitly read-only reviews do not mutate.
+With no target, inspect `In review` work owned by Review. An independent Review
+session merges a passing PR, verifies landing and applicable delivery gates,
+then closes the task and marks it Done. There is no separate Deliver stage.
+Required checks, approvals, and branch protections still apply; queued or gated
+work stays open. Explicitly read-only reviews do not mutate.
 
 Approved scope lives in one revision-bound requirements document: a Feature
 PRD with scoped child Task documents for Standard, or a task document for Lite.

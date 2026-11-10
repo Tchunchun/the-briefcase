@@ -55,9 +55,8 @@ def test_current_role_roster_resolves_skills_and_preserves_closeout_override():
     assert "Lite uses three roles: Requirements, Build, and Review" in PLAYBOOK
     assert "There is no Delivery Manager role" in normalized(PLAYBOOK)
     assert "self-review exception" in PLAYBOOK
-    assert "Review session to merge passing PRs" in normalized(PLAYBOOK)
-    assert "Requirements closeout invocation is not required" in normalized(PLAYBOOK)
-    assert "backlog policy linked from the root `AGENTS.md`" in PLAYBOOK
+    assert "Review owns merge and verified closeout" in normalized(PLAYBOOK)
+    assert "Action Owner" in PLAYBOOK
 
 
 def test_current_guidance_uses_requirements_terminology():
@@ -93,7 +92,7 @@ def test_ready_gate_refuses_unapproved_or_competing_work():
         "canonical requirements revision is linked and approved",
         "Standard requires Architect sign-off",
         "Every native blocker is `Done`",
-        "current session is explicitly assigned",
+        "Action Owner` is `Build`",
         "No other active session, branch, worktree, or implementation PR",
         "do not start coding",
     ]
@@ -119,8 +118,8 @@ def test_claim_happens_before_code_and_requires_readback():
 
     assert claim < build
     assert "Move the Project status from `Ready` to `In progress`" in BUILD_SKILL
-    assert "Re-read both the claim and status" in BUILD_SKILL
-    assert "reconcile the concurrent change" in BUILD_SKILL
+    assert "re-read assignment, claim, owner, and status" in BUILD_SKILL
+    assert "reconcile the concurrent change" in normalized(BUILD_SKILL)
 
 
 def test_github_failure_never_falls_back_to_markdown():
@@ -150,7 +149,7 @@ def test_build_cannot_merge_close_or_mark_done():
         "Never review your own implementation",
         "Never merge or enable auto-merge",
         "Never move an item to `Done` or close its issue",
-        "Requirements verifies closeout",
+        "Review merges eligible accepted work",
     ]
 
     for phrase in required:
@@ -158,6 +157,43 @@ def test_build_cannot_merge_close_or_mark_done():
 
 
 def test_accepted_work_is_not_prematurely_done():
-    assert "Accepted work remains `In review`" in PLAYBOOK
+    assert "Accepted work remains `In review`" in STANDARD_PROFILE
     assert "completed child Task does not make its Feature Done" in STANDARD_PROFILE
-    assert "Deployment is separate" in STANDARD_PROFILE
+    assert "Deployment is separate" in normalized(STANDARD_PROFILE)
+
+
+def test_statuses_have_one_dispatch_owner_and_no_deliver_stage():
+    expected = {
+        "Inbox": "Requirements",
+        "Requirement shaping": "Requirements",
+        "Technical shaping": "Architect",
+        "Ready": "Build",
+        "In progress": "Build",
+        "In review": "Review",
+        "Done": "None",
+    }
+    for status, owner in expected.items():
+        assert f"| {status} | {owner} |" in PLAYBOOK
+    assert "There is no separate Deliver status, stage, or agent" in normalized(PLAYBOOK)
+
+
+def test_ready_does_not_require_preassignment():
+    architect = (
+        WORKFLOW_KIT / "profiles" / "standard" / "skills" / "architect" / "SKILL.md"
+    ).read_text()
+    assert "assignment is recorded atomically when Build claims `Ready`" in normalized(architect)
+    assert "not a prerequisite for Architect to set `Ready`" in normalized(architect)
+    assert "current session is explicitly assigned" not in BUILD_SKILL
+
+
+def test_repository_policy_defines_dispatch_fields():
+    policy = (ROOT / "_project" / "backlog-policy.md").read_text()
+    for field in [
+        "| Status | single select |",
+        "| Action Owner | single select |",
+        "| Assignees | native people field |",
+        "| Claim Session | text |",
+        "| Resume Status | single select |",
+    ]:
+        assert field in policy
+    assert "automation must never dispatch from it" in normalized(policy)

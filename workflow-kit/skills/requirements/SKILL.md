@@ -2,8 +2,8 @@
 name: requirements
 description: >
   On explicit user invocation, shape GitHub work into one approved,
-  revision-bound requirement, route Standard work through Architecture, and
-  verify delivery evidence before Done.
+  revision-bound requirement and route Standard work through Architecture or
+  Lite work to Build.
 ---
 
 # Requirements
@@ -14,18 +14,17 @@ changing scope or state.
 
 ## Trigger and selection
 
-For Standard feature readiness, route directly to
-[the technical shaping loop](../../profiles/standard/skills/architect/SKILL.md). The Requirements-loop
-prompt is a compatibility alias in Standard: reuse the feature's approved
-scope instead of repeating product shaping. The shaping procedure below applies
-to Lite and explicit product-gap clarification only. Explicit delivery closeout
-continues to use the delivery verification procedure below in both profiles.
+Requirements remains the product-shaping entry point in both profiles. For an
+already approved Standard Feature, report that product shaping is complete and
+hand it to [Architect](../../profiles/standard/skills/architect/SKILL.md); never
+silently execute the Architecture loop from a Requirements invocation.
 
 Run only when the user explicitly asks to run the Requirements loop. This is
 not a continuous scanner or automatic orchestrator.
 
 - If the user names an issue, process it first.
-- Otherwise query the configured Project for live `Inbox` and `Shaping` work.
+- Otherwise query the configured Project for live `Inbox` and
+  `Requirement shaping` work whose `Action Owner` is `Requirements`.
 - Reuse the existing issue and Project item. Search for duplicates before
   creating anything, and never publish private planning to a public target.
 - Process one item at a time. Skip work owned by another active session and
@@ -48,57 +47,38 @@ Record one canonical requirement location with:
 Use [the requirement template](../../templates/shared/requirement.md). Issue
 summaries may link to an approved committed document, but must not become a
 second independently editable scope. A material scope change invalidates the
-approval. Lite returns to `Shaping`; Standard records `Blocked` for the specific
-product decision, then returns to Technical shaping for renewed sign-off.
+approval. Lite returns to `Requirement shaping`; Standard records `Blocked`
+for the specific product decision, then returns to `Technical shaping` for
+renewed sign-off.
 
 ## Route to the Ready gate
 
 - Lite has no Architect role. A stopping technical question moves the item to
   `Blocked` with a Requirements-owned question and resume condition.
-- Standard routes approved scope to Architecture. It cannot become `Ready`
-  until Architect signs the exact same requirement revision and resolves
-  stopping technical questions.
-- Before `Ready`, verify all blockers are Done, the current session or named
-  Build owner accepts the assignment, and no competing claim, branch,
-  worktree, or implementation PR exists.
+- Standard moves approved scope to `Technical shaping` with
+  `Action Owner: Architect`. It cannot become `Ready` until Architect signs the
+  exact same requirement revision and resolves stopping technical questions.
+- Lite moves approved work to `Ready` with `Action Owner: Build` after blockers
+  and other readiness gates pass. Build assignment is recorded during the
+  later claim, not as a prerequisite for `Ready`.
 - Re-read every write. If the item changed concurrently, stop and reconcile it
   instead of overwriting the newer state.
 
-Requirements approval is not Build assignment, review acceptance, landing, or
-release evidence. Stop at the recorded handoff; the user invokes the next role.
+Requirements approval is not Architecture sign-off, Build assignment, review
+acceptance, landing, or release evidence. Stop at the recorded handoff; the
+user invokes the next role.
 
 ## Blocked work
 
 Use [the blocker template](../../templates/shared/blocker.md). Preserve the
-prior status and stage, name the responsible role, state the evidence needed to
-resume, and revalidate all gates before restoring the item. There is no
-unconditional `Blocked` to `Ready` shortcut.
-
-## Delivery verification
-
-On an explicit closeout invocation, use
-[the delivery template](../../templates/shared/delivery.md) and re-read live
-GitHub state. Mark an item `Done` and close its issue only when all applicable
-conditions are verified:
-
-1. Review accepted the approved requirement revision and exact implementation
-   head in a separate session.
-2. That accepted head landed on the intended base branch.
-3. Required checks pass and the issue or parent Feature has complete scope and
-   child coverage.
-4. Standard has linked release/version/readiness evidence; Lite follows the
-   application policy without inventing a Briefcase release record.
-5. Issue closure and Project `Done` both succeed and are read back.
-
-Accepted, landed, released, and deployed remain distinct. Deployment is never
-inferred from `Done`. If any closeout gate is missing, keep the item `In review`
-or record a specific `Blocked` packet; do not fabricate completion.
+prior status, set `Action Owner` to the role that must act, record `Resume
+Status`, state the evidence needed to resume, and revalidate all gates before
+restoring the item. There is no unconditional `Blocked` transition.
 
 ## Boundaries
 
 - Never approve scope on the user's behalf.
 - Never write architecture sign-off for Standard.
 - Never implement or review the change.
-- Never merge merely because review accepted; normal repository permissions
-  and delivery policy govern landing.
+- Never merge or close the change; Review owns verified closeout.
 - Never erase prior approval, blocker, review, or delivery evidence.

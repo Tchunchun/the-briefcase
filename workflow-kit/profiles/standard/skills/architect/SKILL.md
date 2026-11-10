@@ -15,15 +15,14 @@ item before recording sign-off or changing any state.
 ## Trigger and scope
 
 Run only when the user explicitly asks to run the Architecture loop, using
-**"Run the architecture loop"** or **"Run the technical shaping loop"**. For Standard readiness,
-**"Run the requirements loop"** is a compatibility alias. This is not an
-automatic orchestrator and applies only to Standard profile work.
-Explicit product clarification or delivery closeout uses
-[Requirements](../../../../skills/requirements/SKILL.md) instead.
+**"Run the architecture loop"** or **"Run the technical shaping loop"**. A
+Requirements invocation remains owned by Requirements. This is not an automatic
+orchestrator and applies only to Standard profile work.
 
 - If the user names an issue or card, process only that target.
-- Otherwise read every page of `Inbox` and `Technical shaping`, capture the queue
-  once, and process eligible Standard features without continuously polling.
+- Otherwise read every page of `Technical shaping` whose `Action Owner` is
+  `Architect`, capture the queue once, and process eligible Standard work
+  without continuously polling.
 - Reuse the existing issue. Never create a competing requirements document.
 - Process one item at a time.
 - Do not sweep active or completed work back into shaping or overwrite a claim.
@@ -38,8 +37,8 @@ profile. Verify:
 
 1. An approved requirement revision is linked — the exact committed document
    the user approved.
-2. The Project status is `Inbox` or `Technical shaping`, or the item is explicitly routed to
-   Architecture.
+2. The Project status is `Technical shaping` and `Action Owner` is `Architect`,
+   or the item is explicitly routed to Architecture.
 3. No competing sign-off names a different revision for this item.
 
 Feature creation already includes requirement shaping. Do not redraft approved
@@ -115,22 +114,25 @@ shaping loop; do not require a separate Requirements pass.
 
 Resolve field and option IDs from the live Project. Missing configuration
 blocks the transition; never fall back to a Markdown queue. Before any mutation,
-reread status, requirement revision, approval, blockers, assignment, sign-off,
+reread status, Action Owner, requirement revision, approval, blockers, sign-off,
 and existing branches/worktrees/PRs. Reconcile concurrent changes instead of
 overwriting them.
 
-- Approved scope awaiting sign-off: `Technical shaping` / Architecture.
-- Sign-off complete but no accepted assignment: `Technical shaping` / Build.
+- Approved scope awaiting sign-off: `Technical shaping` with
+  `Action Owner: Architect`.
 - An unresolved stopping gate: `Blocked`, with its owner and resume condition.
-- Only when approval, exact-revision sign-off, verified Done dependencies,
-  accepted Build assignment, and absence of competing claims all pass:
-  `Ready` / Build.
+- Only when approval, exact-revision sign-off, verified Done dependencies, and
+  absence of competing implementation claims all pass: `Ready` with
+  `Action Owner: Build`.
+
+Build assignment is recorded atomically when Build claims `Ready`; it is not a
+prerequisite for Architect to set `Ready`.
 
 Save a private handoff packet with scope revision/approval, technical decisions,
 sign-off, criterion-to-check verification, dependencies and completion evidence,
-assignment, existing branch/PR, remaining gates, and the exact next Build prompt.
+existing branch/PR conflicts, remaining gates, and the exact next Build prompt.
 Keep private planning out of public targets. Read back the packet and sign-off,
-set Ready last, and read back Status and Stage. Report partial-write failures
+set Ready last, and read back Status and Action Owner. Report partial-write failures
 precisely and reuse valid packets on rerun.
 
 Stop at handoff. Never automatically dispatch Build. Separate-session review

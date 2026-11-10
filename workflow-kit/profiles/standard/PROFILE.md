@@ -5,13 +5,10 @@ Feature/Task hierarchy, and release governance.
 
 ## Requirements authority
 
-Feature creation includes product shaping and revision-bound approval. Added
-features move directly to Technical shaping, not a second Requirements pass.
-Use [the technical shaping loop](skills/architect/SKILL.md) with
-**"Run the technical shaping loop"** or **"Run the architecture loop"**.
-For Standard readiness, **"Run the requirements loop"** is a compatibility alias
-for that same loop. Explicit product-gap clarification and delivery closeout
-remain Requirements responsibilities; Lite is unchanged.
+Requirements owns product shaping and revision-bound approval. Approved
+Features move to `Technical shaping` with `Action Owner: Architect`. A Feature
+created with an already approved revision may enter Technical shaping directly,
+but Requirements and Architect remain distinct roles and invocations.
 
 Each Task links one canonical approved Feature PRD revision and its own scoped
 acceptance criteria and verification. Issue text may summarize or link that
@@ -42,11 +39,17 @@ invalidate affected approval/sign-off, not only a changed document label.
 - Review and delivery verify complete Feature coverage without duplicating
   execution status in the PRD or release record.
 
+Architect moves technically eligible work to `Ready` with `Action Owner: Build`.
+Build assignment is recorded atomically when Build claims `Ready` and moves it
+to `In progress`; assignment is not a prerequisite for `Ready`.
+
 ## Release gate
 
-Accepted work remains `In review` until its reviewed head lands on the intended
-base and the Feature has complete scope coverage, required checks, applicable
-version evidence, and a linked release record. Deployment is separate.
+Accepted work remains `In review` until Review merges its reviewed head, verifies
+landing and applicable delivery evidence, closes the task, and sets `Done`.
+There is no separate Deliver stage. Feature completion additionally requires
+complete child coverage and applicable version/release evidence. Deployment is
+separate.
 
 Use the [release record](../../templates/standard/release.md). An approved
 no-release-note-required result waives only the note; version impact and all
