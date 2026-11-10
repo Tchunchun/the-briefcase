@@ -48,7 +48,10 @@ An item is eligible only when all applicable checks pass:
    current Feature sign-off. Standard Task work requires current parent Feature
    sign-off plus recorded architecture applicability: either `parent sign-off
    applies` or a current Task-specific sign-off bound to both revisions.
-4. Every native blocker is `Done` with its required evidence.
+4. Every native "blocked by" issue relationship is `Done` with its required
+   evidence. For a Task, verify its `Parent issue` link names the correct
+   Feature and that the Feature's approved requirement revision is the one
+   this Task's scope references.
 5. No other active session, branch, worktree, or implementation PR owns the
    item. Existing work may be reused only under an explicit resume assignment.
 6. Required GitHub reads and writes are available.
@@ -79,6 +82,9 @@ commands, results, and the tested commit.
 If work needs a scope decision, record the question and resume condition, move
 the item to `Blocked`, and continue with independent eligible Ready work. Send
 scope questions to Requirements and Standard technical questions to Architect.
+Before writing `Blocked`, set `Blocking reason` to a short phrase naming the
+question and owner, and set `Resume Status` to `In progress`. Clear both when
+the item is resumed.
 
 If any required GitHub operation fails, stop affected work. Do not fall back to
 Markdown status, fabricate a claim, or report a transition as successful.
