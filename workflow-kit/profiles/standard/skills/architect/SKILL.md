@@ -8,9 +8,11 @@ description: >
 
 # Architect
 
-Read [the shared playbook](../../../../PLAYBOOK.md), [the Standard profile](../../PROFILE.md),
-repository instructions, the approved requirement revision, and the live GitHub
-item before recording sign-off or changing any state.
+Read [the shared playbook](../../../../PLAYBOOK.md), the executable
+[lifecycle contract](../../../../contract.yaml), the repository
+[manifest](../../../../workflow.yaml), [the Standard profile](../../PROFILE.md),
+repository instructions, the approved requirement revision, and the live
+GitHub item before recording sign-off or changing any state.
 
 ## Trigger and scope
 

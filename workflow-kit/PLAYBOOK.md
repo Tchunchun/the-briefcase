@@ -19,9 +19,13 @@ behaviorally unchanged unless a separately approved migration says otherwise.
   that approved parent revision.
 - Review must run in a session separate from the Build session and bind its
   verdict to both the approved requirements revision and the exact PR head.
+- [`contract.yaml`](contract.yaml) is the executable lifecycle authority for
+  statuses, owners, legal transitions, and required evidence. This playbook and
+  the role skills explain that contract but must not redefine it.
 - [`workflow.yaml`](workflow.yaml) is the single configuration point for the
-  closeout owner. Profiles, skills, and repository policy may add stricter
-  gates, but must not select a different role independently.
+  repository, Project field names, profile, artifact location, merge strategy,
+  and closeout owner. It stores names, not credentials, GitHub IDs, live item
+  state, assignments, verdicts, or delivery evidence.
 - GitHub read or write failure pauses affected work. Report the failed
   operation and do not claim a transition succeeded.
 
@@ -47,10 +51,35 @@ Normal dispatch is deterministic:
 | Blocked | Explicit owner recorded in the blocker packet |
 | Done | None |
 
-`Stage` is optional reporting metadata and never controls dispatch. If retained
-during migration, it must agree with Action Owner for active work. A blocked
-item also records `Resume Status`; clearing the blocker never skips validation
-of the resumed state's gates.
+`Legacy Stage` is historical migration metadata and never controls dispatch. A
+blocked item records `Resume Status`; clearing the blocker never skips
+validation of the resumed state's gates.
+
+## Configuration and preflight
+
+Validate the local contract and manifest without GitHub access:
+
+```bash
+python3 workflow-kit/runtime.py --offline
+```
+
+Before the first pilot, after configuration changes, and when live schema drift
+is suspected, run the live preflight:
+
+```bash
+python3 workflow-kit/runtime.py
+```
+
+The preflight reads authentication, repository access, the configured base
+branch and merge strategy, artifact-repository access, Project update
+permission, fields, and option names. It never creates, edits, or deletes
+GitHub data. A failure reports the configured and live mismatch and ends with
+`No changes were made.` Resolve GitHub field and option IDs only after a
+passing preflight and immediately before an authorized item mutation.
+
+See [the installation path](INSTALLATION.md). The root `install.sh` remains the
+legacy installer; a workflow-kit installer is deferred until a named pilot
+passes capture through verified closeout.
 
 ## Evidence authority
 

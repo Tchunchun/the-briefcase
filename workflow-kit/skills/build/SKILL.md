@@ -9,9 +9,10 @@ description: >
 
 # Build
 
-Read [the shared playbook](../../PLAYBOOK.md), the active profile, the
-repository's agent instructions, and the approved requirement before changing
-state or code.
+Read [the shared playbook](../../PLAYBOOK.md), the executable
+[lifecycle contract](../../contract.yaml), the repository
+[manifest](../../workflow.yaml), the active profile, repository instructions,
+and the approved requirement before changing state or code.
 
 ## Trigger and assignment
 

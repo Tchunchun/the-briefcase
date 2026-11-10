@@ -1,0 +1,60 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://briefcase.dev/schema/workflow-manifest-v1.json",
+  "title": "Briefcase workflow instance manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "version",
+    "contract",
+    "mode",
+    "repository",
+    "project",
+    "artifacts",
+    "review",
+    "closeout_owner"
+  ],
+  "properties": {
+    "version": {"const": 1},
+    "contract": {"type": "string", "minLength": 1},
+    "mode": {"enum": ["lite", "standard"]},
+    "repository": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "base_branch"],
+      "properties": {
+        "name": {"type": "string", "pattern": "^[^/]+/[^/]+$"},
+        "base_branch": {"type": "string", "minLength": 1}
+      }
+    },
+    "project": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["owner", "number", "fields", "options"],
+      "properties": {
+        "owner": {"type": "string", "minLength": 1},
+        "number": {"type": "integer", "minimum": 1},
+        "fields": {"type": "object", "minProperties": 7},
+        "options": {"type": "object", "minProperties": 5}
+      }
+    },
+    "artifacts": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["repository", "root"],
+      "properties": {
+        "repository": {"type": "string", "pattern": "^[^/]+/[^/]+$"},
+        "root": {"type": "string", "minLength": 1}
+      }
+    },
+    "review": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["merge_strategy"],
+      "properties": {
+        "merge_strategy": {"enum": ["squash", "merge", "rebase"]}
+      }
+    },
+    "closeout_owner": {"const": "Review"}
+  }
+}

@@ -33,6 +33,15 @@ Done additionally requires complete required child coverage and Feature-level
 release evidence. Closeout ownership is configured once in
 [`workflow-kit/workflow.yaml`](workflow-kit/workflow.yaml).
 
+The machine-readable lifecycle is
+[`workflow-kit/contract.yaml`](workflow-kit/contract.yaml). Validate the local
+contract and repository manifest with `python3 workflow-kit/runtime.py
+--offline`; run `python3 workflow-kit/runtime.py` for the strictly read-only
+GitHub repository and Project preflight. The preflight reports schema or
+permission drift and never repairs the board. See the
+[workflow-kit installation path](workflow-kit/INSTALLATION.md); the root
+installer remains legacy until a named pilot validates the new contract.
+
 With no target, the loop captures Technical shaping work owned by Architect.
 The Requirements loop never silently becomes Architect. Missing approval or a
 material scope change returns to Requirements; approved Standard work moves to
