@@ -80,5 +80,6 @@ restoring the item. There is no unconditional `Blocked` transition.
 - Never approve scope on the user's behalf.
 - Never write architecture sign-off for Standard.
 - Never implement or review the change.
-- Never merge or close the change; Review owns verified closeout.
+- Never merge or close the change; the `closeout_owner` configured in
+  [`workflow.yaml`](../../workflow.yaml) owns verified closeout.
 - Never erase prior approval, blocker, review, or delivery evidence.

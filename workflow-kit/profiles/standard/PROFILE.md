@@ -14,17 +14,24 @@ Each Task links one canonical approved Feature PRD revision and its own scoped
 acceptance criteria and verification. Issue text may summarize or link that
 scope but must not become a second independently editable requirements source.
 
-## Architecture gate
+## Feature and Task architecture gates
 
-Before `Ready`, Architect records sign-off naming the exact approved Feature
-PRD revision, technical approach, resolved questions, relevant decisions,
-risks, and NFR verification. A material requirements change makes that sign-off
-stale and returns the item to Architecture.
+Before a Feature is `Ready`, Architect records sign-off naming the exact
+approved Feature PRD revision, technical approach, resolved questions, relevant
+decisions, risks, NFR verification, child-work boundaries, and Feature release
+obligations. A material requirements change makes that sign-off stale and
+returns the affected work to Architecture.
 Missing approval or a product-scope gap blocks the item for targeted product
 clarification; never manufacture approval or routinely reshape valid requirements.
 
-Build must refuse a Standard claim when sign-off is missing, names a different
-revision, or leaves a stopping technical question unresolved.
+A child Task inherits the current parent Feature sign-off. It needs a separate
+Task architecture assessment only when its approved slice introduces a new
+technical decision, changes an interface, dependency, NFR, approach assumption,
+or release obligation, or leaves a technical question unresolved. Architect
+records either the Task-specific sign-off or `parent sign-off applies`, naming
+both the parent and Task revisions. Build must refuse a Standard claim when the
+applicable evidence is missing, stale, names a different revision, or leaves a
+stopping technical question unresolved.
 
 Invoke [Architect](skills/architect/SKILL.md) explicitly and use the
 [Feature PRD template](../../templates/standard/brief.md). Material changes to
@@ -34,22 +41,36 @@ invalidate affected approval/sign-off, not only a changed document label.
 ## Task and Feature coordination
 
 - A Task references its parent Feature and approved scope revision.
+- A Task records architecture applicability as `parent sign-off applies` or
+  links its own Task-specific Architect sign-off.
 - Native blockers must be Done before a Task is claimed.
-- A completed child Task does not make its Feature Done.
-- Review and delivery verify complete Feature coverage without duplicating
-  execution status in the PRD or release record.
+- A Task can become Done after its own approved slice is independently accepted,
+  merged, landed, and its Task-level gates pass; it does not wait for sibling
+  Tasks or Feature release completion.
+- A completed child Task does not make its Feature Done. Feature Done requires
+  every required child slice to be Done or otherwise covered with approved
+  evidence, all Feature acceptance criteria satisfied, and applicable Feature
+  version, release-note, environment, and readiness evidence complete.
+- Review and closeout verify the applicable Task or Feature gate without
+  duplicating execution status in the PRD or release record.
 
 Architect moves technically eligible work to `Ready` with `Action Owner: Build`.
 Build assignment is recorded atomically when Build claims `Ready` and moves it
 to `In progress`; assignment is not a prerequisite for `Ready`.
 
-## Release gate
+## Delivery gates
 
-Accepted work remains `In review` until Review merges its reviewed head, verifies
-landing and applicable delivery evidence, closes the task, and sets `Done`.
-There is no separate Deliver stage. Feature completion additionally requires
-complete child coverage and applicable version/release evidence. Deployment is
-separate.
+Accepted work remains `In review` until the closeout owner configured in
+[`workflow.yaml`](../../workflow.yaml) merges its reviewed head, verifies
+landing and applicable delivery evidence, closes the item, and sets `Done`.
+There is no separate Deliver stage.
+
+| Work item | Done gate |
+|---|---|
+| Task | Its approved slice is accepted on the exact head, required Task checks and dependencies pass, landing is verified, and any release obligation allocated to the Task is complete. |
+| Feature | All required child slices are Done or covered by explicit accepted evidence, Feature-level acceptance passes, landing is complete, and applicable version, release-note, environment, and readiness evidence is complete. |
+
+Deployment is separate from both gates and is never inferred from Done.
 
 Use the [release record](../../templates/standard/release.md). An approved
 no-release-note-required result waives only the note; version impact and all

@@ -37,8 +37,10 @@ An item is eligible only when all applicable checks pass:
 
 1. The Project status is still `Ready`.
 2. One canonical requirements revision is linked and approved.
-3. The active profile's gates pass. Standard requires Architect sign-off for
-   the same requirements revision.
+3. The active profile's gates pass. Standard Feature work requires its own
+   current Feature sign-off. Standard Task work requires current parent Feature
+   sign-off plus recorded architecture applicability: either `parent sign-off
+   applies` or a current Task-specific sign-off bound to both revisions.
 4. Every native blocker is `Done` with its required evidence.
 5. No other active session, branch, worktree, or implementation PR owns the
    item. Existing work may be reused only under an explicit resume assignment.
@@ -118,5 +120,5 @@ and return it to `In review`. The new head requires a fresh Review verdict.
 - Never expand scope to make the implementation match a finding.
 - Never treat Accepted, landed, released, or deployed as synonyms.
 
-Review merges eligible accepted work, verifies landing and applicable release
-evidence, closes the task, and sets `Done` last.
+The `closeout_owner` configured in [`workflow.yaml`](../../workflow.yaml)
+performs eligible merge and verified closeout. Build never assumes that role.

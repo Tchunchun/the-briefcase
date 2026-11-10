@@ -29,6 +29,7 @@ def markdown_links(path):
 def test_all_deliverables_exist():
     expected = [
         "profiles/standard/skills/architect/SKILL.md",
+        "workflow.yaml",
         "profiles/lite/PROFILE.md",
         "templates/standard/brief.md",
         "templates/standard/decision.md",
@@ -281,7 +282,15 @@ def test_release_template_has_checks_table():
 
 def test_release_template_has_coverage_fields():
     assert "Child Tasks covered" in RELEASE_TEMPLATE
-    assert "Coverage complete" in RELEASE_TEMPLATE
+    assert "Applicable coverage complete" in RELEASE_TEMPLATE
+    assert "## Completion gate" in RELEASE_TEMPLATE
+
+
+def test_task_architecture_applicability_is_explicit():
+    for text in (ARCHITECT_SKILL, BRIEF_TEMPLATE, STANDARD_PROFILE):
+        assert "parent sign-off applies" in text
+        assert "Task-specific sign-off" in text
+    assert "explicit Architect determination" in normalized(ARCHITECT_SKILL)
 
 
 # ── Standard example ─────────────────────────────────────────────────────────
@@ -326,7 +335,7 @@ def test_standard_example_release_has_version_and_coverage():
     release_text = STANDARD_EXAMPLE[release_start:]
     assert "Version:" in release_text
     assert "Child Tasks covered:" in release_text
-    assert "Coverage complete: yes" in release_text
+    assert "Applicable coverage complete: yes" in release_text
 
 
 # ── Lite example ─────────────────────────────────────────────────────────────

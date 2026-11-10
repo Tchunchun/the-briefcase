@@ -24,6 +24,15 @@ requires that approval, technical sign-off (or justified non-applicability),
 satisfied dependencies, and no competing implementation claim. The loop ends with a
 verified handoff and an exact Build prompt; it does not start implementation.
 
+Feature and Task gates are intentionally different. Architect signs the full
+Feature architecture. A child Task records either `parent sign-off applies` or
+a Task-specific sign-off when it changes a technical decision, interface,
+dependency, NFR, approach assumption, or release obligation. A Task may become
+Done after its own accepted slice lands and its allocated gates pass; Feature
+Done additionally requires complete required child coverage and Feature-level
+release evidence. Closeout ownership is configured once in
+[`workflow-kit/workflow.yaml`](workflow-kit/workflow.yaml).
+
 With no target, the loop captures Technical shaping work owned by Architect.
 The Requirements loop never silently becomes Architect. Missing approval or a
 material scope change returns to Requirements; approved Standard work moves to

@@ -19,6 +19,9 @@ behaviorally unchanged unless a separately approved migration says otherwise.
   that approved parent revision.
 - Review must run in a session separate from the Build session and bind its
   verdict to both the approved requirements revision and the exact PR head.
+- [`workflow.yaml`](workflow.yaml) is the single configuration point for the
+  closeout owner. Profiles, skills, and repository policy may add stricter
+  gates, but must not select a different role independently.
 - GitHub read or write failure pauses affected work. Report the failed
   operation and do not claim a transition succeeded.
 
@@ -27,9 +30,9 @@ behaviorally unchanged unless a separately approved migration says otherwise.
 The shared statuses are `Inbox`, `Requirement shaping`, `Technical shaping`,
 `Ready`, `In progress`, `In review`, `Blocked`, and `Done`. Lite skips
 `Technical shaping`; Standard uses it for revision-bound Architect sign-off.
-There is no separate Deliver status, stage, or agent. Review merges an accepted
-PR, verifies landing and applicable delivery evidence, closes the task, and
-sets `Done` last.
+There is no separate Deliver status, stage, or agent. The configured closeout
+owner merges an accepted PR, verifies landing and applicable delivery evidence,
+closes the task, and sets `Done` last. The current configured owner is Review.
 
 Normal dispatch is deterministic:
 
@@ -82,9 +85,10 @@ Build is the implementation entry point. There is no Delivery Manager role,
 automatic dispatch, or self-review exception in this workflow.
 
 Repository instructions may add stricter gates but must not assign the same
-status to a second active role. Review owns merge and verified closeout; normal
-repository permissions and delivery gates still govern merge. No role may
-infer deployment from Done.
+status to a second active role or override `closeout_owner` outside
+[`workflow.yaml`](workflow.yaml). The configured Review role owns merge and
+verified closeout; normal repository permissions and delivery gates still
+govern merge. No role may infer deployment from Done.
 
 Use the shared [Requirements](skills/requirements/SKILL.md),
 [Build](skills/build/SKILL.md), and [Review](skills/review/SKILL.md) skills by

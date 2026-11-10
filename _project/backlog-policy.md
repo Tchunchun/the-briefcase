@@ -65,6 +65,25 @@ Requirements; Technical shaping to Architect; Ready and In progress to Build;
 In review to Review; Done to None. Blocked records an explicit Action Owner and
 Resume Status. There is no Deliver stage or agent.
 
+Closeout ownership is selected only by
+[`workflow-kit/workflow.yaml`](../workflow-kit/workflow.yaml); this repository
+adds gates but does not redefine the owner. The configured owner is Review.
+
+Feature architecture covers the approved parent revision, cross-cutting
+approach, child boundaries, interfaces, NFRs, risks, and release obligations.
+A child Task must record either `parent sign-off applies` or a Task-specific
+sign-off bound to both the parent and Task revisions. Task-specific sign-off is
+required when the slice adds or changes a technical decision, interface,
+dependency, NFR, approach assumption, release obligation, or unresolved
+technical question.
+
+A Task reaches Done independently when its approved slice is accepted on the
+exact head, required checks and dependencies pass, landing is verified, and its
+allocated release obligations are complete. A Feature reaches Done only when
+all required child slices are Done or explicitly covered, Feature acceptance
+passes, landing is complete, and applicable version, release-note, environment,
+and readiness evidence is complete.
+
 ### Required Project fields
 
 | Field | Type | Purpose |
@@ -425,3 +444,20 @@ a Deliver stage. This supersedes earlier assignment-before-Ready and
 Requirements-owned-closeout text. Live Project migration is a separate verified
 operation: add the required fields, map existing cards, read back every value,
 and only then remove or retire legacy Stage-based dispatch.
+
+### Pending live Project reconciliation
+
+The repository contract in this PR does not by itself mutate Project #5. The
+Project README has been updated to state the eight Status values, deterministic
+Action Owner mapping, Build claim-at-Ready rule, Review closeout ownership, and
+absence of a Deliver stage. Card reconciliation remains a separate verified
+live operation.
+
+Legacy cards must not be promoted merely because their former blocker text is
+stale. Re-evaluate their current requirement revision, architecture
+applicability, dependencies, claim, PR head, verdict, and landing evidence;
+record the correct Status, Action Owner, Resume Status, and Review Verdict. Keep
+the old body/history as evidence and append one reconciliation note rather than
+rewriting provenance. The migration is complete only when no active card relies
+on Stage for dispatch and a fresh board query reports no Status/Action Owner
+mismatches.

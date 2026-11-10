@@ -74,6 +74,20 @@ For the linked requirement revision, evaluate:
    `docs/plan/_reference/adr/ADR-NNN.md` and record the path in the sign-off.
    For minor decisions, `none` is acceptable.
 
+## Feature versus Task applicability
+
+- For a Feature, assess the complete approved revision, cross-cutting approach,
+  child boundaries, interfaces, NFRs, risks, and release obligations. Record a
+  Feature sign-off before any Feature-level Ready transition.
+- For a child Task, first verify the parent Feature sign-off is current. Record
+  `parent sign-off applies` when the Task is only an approved implementation
+  slice and introduces no new technical decision, interface, dependency, NFR,
+  approach assumption, release obligation, or unresolved technical question.
+- Record a Task-specific sign-off when any of those conditions changes. Bind it
+  to both the approved parent Feature revision and the approved Task revision.
+- `Parent sign-off applies` is an explicit Architect determination, not a Build
+  assumption or a waiver based only on the Task having a parent.
+
 ## Stopping questions
 
 If a technical question cannot be resolved without changing approved scope,
@@ -95,6 +109,8 @@ sign-off block naming:
 - Signed by: `<architect>`.
 - Signed at: `<timestamp>`.
 - Result: `approved` or `blocked`, with unresolved questions and resume criteria.
+- Architecture applicability: `Feature sign-off`, `Task-specific sign-off`, or
+  `parent sign-off applies`, with the reason.
 
 A sign-off is stale and Build must refuse the claim when:
 
@@ -121,8 +137,9 @@ overwriting them.
 - Approved scope awaiting sign-off: `Technical shaping` with
   `Action Owner: Architect`.
 - An unresolved stopping gate: `Blocked`, with its owner and resume condition.
-- Only when approval, exact-revision sign-off, verified Done dependencies, and
-  absence of competing implementation claims all pass: `Ready` with
+- Only when approval, applicable exact-revision Feature/Task architecture
+  evidence, verified Done dependencies, and absence of competing implementation
+  claims all pass: `Ready` with
   `Action Owner: Build`.
 
 Build assignment is recorded atomically when Build claims `Ready`; it is not a

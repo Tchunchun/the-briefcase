@@ -11,7 +11,9 @@ description: >
 
 Read [the shared playbook](../../PLAYBOOK.md), the active profile, repository
 instructions, approved requirement revision, live Project item, and current PR
-before reviewing.
+before reviewing. Confirm [`workflow.yaml`](../../workflow.yaml) names Review as
+`closeout_owner` before merging, closing an issue, or setting Done. If it does
+not, stop after the verdict and hand closeout to the configured role.
 
 ## Trigger and independence
 
@@ -34,7 +36,9 @@ Before evaluating behavior, verify:
 2. The PR is open, reviewable, and targets the intended base.
 3. The recorded implementation head equals the live PR head.
 4. The issue, Project item, checks, dependencies, and parent scope are readable.
-5. Standard Architecture sign-off names the same requirement revision.
+5. Standard architecture evidence is applicable and current: Feature work has
+   Feature sign-off; Task work has current parent Feature sign-off plus either
+   `parent sign-off applies` or a Task-specific sign-off naming both revisions.
 
 Missing or stale evidence blocks a verdict. GitHub read or write failure pauses
 the affected review; never fall back to Markdown status.
@@ -64,7 +68,11 @@ Re-read the recorded verdict after writing it.
 
 For `Accepted`, reread the approved scope and exact PR head immediately before
 merge. Require complete item coverage, satisfied dependencies, required checks,
-eligible approvals, mergeability, and applicable Standard release evidence.
+eligible approvals, mergeability, and the applicable Standard delivery gate.
+For a Task, verify its own approved slice and Task-allocated release obligations;
+the Task does not wait for sibling Tasks or Feature completion. For a Feature,
+verify all required child slices and Feature-level version, release-note,
+environment, and readiness evidence.
 Merge with an expected-head guard; never bypass protections or accept a changed
 head without renewed review.
 
