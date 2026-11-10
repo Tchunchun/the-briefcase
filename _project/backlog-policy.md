@@ -6,7 +6,8 @@ Effective 2026-11-09, by explicit user decision.
 
 Use [GitHub Project #5](https://github.com/users/Tchunchun/projects/5) as the
 only active Briefcase backlog. Its fields own execution status, priority, work
-type, stage, and review verdict. Card/issue discussion holds
+type, Action Owner, and review verdict. `Legacy Stage` is migration history
+only. Card/issue discussion holds
 coordination context. There is no parallel live Markdown backlog.
 
 The source-code repository is `Tchunchun/the-briefcase`. It is public, while
@@ -47,9 +48,9 @@ Consumer templates, supported backends, and other repositories are unchanged.
 
 Status is the execution axis: Inbox, Requirement shaping, Technical shaping,
 Ready, In progress, In review, Blocked, Done. `Action Owner` is the dispatch
-authority: Requirements, Architect, Build, Review, or None. Stage is optional
-reporting metadata and never controls dispatch. Review Verdict is Pending,
-Accepted, Changes requested, or Blocked.
+authority: Requirements, Architect, Build, Review, or None. `Legacy Stage` is
+retained only as historical migration metadata; automation must never dispatch
+from it. Review Verdict is Pending, Accepted, Changes requested, or Blocked.
 
 Requirements owns product scope and approval. Architect owns technical shaping
 and revision-bound sign-off. Ready requires approved scope, current applicable
@@ -97,9 +98,8 @@ and readiness evidence is complete.
 | Work Type | single select | Idea, Feature, or Task |
 
 Status transitions update Action Owner in the same operation sequence and read
-both fields back. Stage may remain temporarily for migration reporting, but an
-automation must never dispatch from it. A mismatch between Status and Action
-Owner is a blocker, not permission to guess the intended owner.
+both fields back. A mismatch between Status and Action Owner is a blocker, not
+permission to guess the intended owner.
 
 Use native parent/sub-issue and blocked-by relationships for issue-backed work.
 The unified initiative is public source issue #18; detailed feature/task issues
@@ -447,11 +447,13 @@ and only then remove or retire legacy Stage-based dispatch.
 
 ### Pending live Project reconciliation
 
-The repository contract in this PR does not by itself mutate Project #5. The
-Project README has been updated to state the eight Status values, deterministic
-Action Owner mapping, Build claim-at-Ready rule, Review closeout ownership, and
-absence of a Deliver stage. Card reconciliation remains a separate verified
-live operation.
+The repository contract in this PR does not by itself mutate Project #5. On
+2026-11-10 the live Project README and schema were reconciled to the eight
+Status values, deterministic Action Owner mapping, Build claim-at-Ready rule,
+Review closeout ownership, and absence of a Deliver stage. `Shaping` retained
+its option ID and was renamed `Technical shaping`; `Requirement shaping`,
+`Action Owner`, `Claim Session`, and `Resume Status` were added. `Stage` was
+renamed `Legacy Stage` so it cannot be mistaken for dispatch authority.
 
 Legacy cards must not be promoted merely because their former blocker text is
 stale. Re-evaluate their current requirement revision, architecture
@@ -459,5 +461,12 @@ applicability, dependencies, claim, PR head, verdict, and landing evidence;
 record the correct Status, Action Owner, Resume Status, and Review Verdict. Keep
 the old body/history as evidence and append one reconciliation note rather than
 rewriting provenance. The migration is complete only when no active card relies
-on Stage for dispatch and a fresh board query reports no Status/Action Owner
+on Legacy Stage for dispatch and a fresh board query reports no Status/Action Owner
 mismatches.
+
+The stale draft cards `Review Merge and Close Verified Work` and `Prepare
+Standard Requirements Before Building` were reconciled to `Done / None /
+Accepted` using independently reviewed PR #27, exact reviewed head
+`8889a20f3c536f4226bdfd61869108bdfb1488e7`, and landed main revision
+`b3b7aa14f7d9271b6596ac723e45466f5d6ab43c`. Their historical bodies remain
+unchanged and the immutable reconciliation evidence is recorded in Notes.
