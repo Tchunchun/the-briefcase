@@ -48,10 +48,10 @@ An item is eligible only when all applicable checks pass:
    current Feature sign-off. Standard Task work requires current parent Feature
    sign-off plus recorded architecture applicability: either `parent sign-off
    applies` or a current Task-specific sign-off bound to both revisions.
-4. Every native "blocked by" issue relationship is `Done` with its required
-   evidence. For a Task, verify its `Parent issue` link names the correct
-   Feature and that the Feature's approved requirement revision is the one
-   this Task's scope references.
+4. Every native blocker is `Done` with its required evidence. For a Task,
+   verify its `Parent issue` link names the correct Feature and that the
+   Feature's approved requirement revision is the one this Task's scope
+   references.
 5. No other active session, branch, worktree, or implementation PR owns the
    item. Existing work may be reused only under an explicit resume assignment.
 6. Required GitHub reads and writes are available.

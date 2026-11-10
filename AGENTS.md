@@ -59,14 +59,14 @@ competing implementation claim. Build records assignment when it claims Ready.
 Stop at handoff; never automatically dispatch Build.
 
 When the user explicitly activates a workflow mode for a target, including by
-saying **"Run the review loop for <target>"**, follow the
+saying **"Run the review loop"** for a named target, follow the
 [repository review loop](_project/backlog-policy.md#repository-review-loop).
 After bootstrap is explicitly ended, with no target inspect `In review` work
 owned by Review. An independent Review session merges a passing PR, verifies
 landing and applicable delivery gates, then closes the task and marks it Done.
 There is no separate Deliver stage. Required checks, approvals, and branch
-protections still apply; queued or gated work stays open. Explicitly read-only
-reviews do not mutate.
+protections still apply; queued or gated work stays open. Explicitly
+read-only reviews do not mutate.
 
 Approved scope lives in one revision-bound requirements document: a Feature
 PRD with scoped child Task documents for Standard, or a task document for Lite.

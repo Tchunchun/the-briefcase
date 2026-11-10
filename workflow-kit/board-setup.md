@@ -15,7 +15,7 @@ re-create or populate them for new boards.
 | Priority | Single select | Both | `High`, `Medium`, `Low` |
 | Stage | Single select | Both | `Requirements`, `Architecture`, `Build`, `Review`, `Deliver` |
 | Review Verdict | Single select | Both | `Pending`, `Accepted`, `Changes requested`, `Blocked` |
-| Brief Link | Text | Both | URL to the canonical approved requirements document |
+| Requirements Link | Text | Both | URL to the canonical approved requirements document |
 | Action Owner | Single select | Both | `Requirements`, `Architect`, `Build`, `Review`, `None` |
 | Claim Session | Text | Both | The session or agent that has accepted this item |
 | Blocking reason | Text | Both | One-line reason this item is Blocked; fill whenever Status → Blocked, clear on unblock |
