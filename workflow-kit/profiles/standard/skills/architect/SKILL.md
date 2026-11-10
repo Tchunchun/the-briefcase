@@ -63,6 +63,9 @@ For the linked requirement revision, evaluate:
    State the chosen approach, the key patterns or libraries, and the constraints
    it must satisfy.
 
+   When splitting, apply the **Task naming contract** below before recording
+   each child.
+
 2. **Alternatives considered** — List alternatives that were seriously evaluated.
    For each, state why it was rejected. Record at least one alternative when the
    chosen approach involves a meaningful trade-off or new dependency.
@@ -94,6 +97,42 @@ For the linked requirement revision, evaluate:
   to both the approved parent Feature revision and the approved Task revision.
 - `Parent sign-off applies` is an explicit Architect determination, not a Build
   assumption or a waiver based only on the Task having a parent.
+
+## Naming contract — Feature to Task
+
+Apply this contract to every child Task created or renamed during step 1 of the
+technical assessment (splitting independently deliverable work). A Task title
+and delivery line that pass this check let the PO understand the card's scope
+and done state without reading the full body.
+
+**Title** (3–7 words): name the concrete deliverable or state change, not the
+activity. Prefer "Implement installer for Lite/Standard mode selection" over
+"Build the installer". Use an action verb that names what lands: Implement,
+Define, Verify, Document, Run, Draft — not vague verbs like Build, Do, Handle.
+
+**Delivers**: one sentence naming the artefact, decision, or verified state that
+Build will hand to Review. Answers "what is Done?"
+
+**Slice of parent**: reference the parent Feature acceptance criterion or scope
+slice this Task satisfies. One line. This keeps the Task anchored to approved
+scope and prevents silent scope expansion.
+
+**Excludes**: at least one thing this Task does NOT cover that a reader might
+assume it does.
+
+Record these as a named block at the top of the Task document or private card
+body:
+
+```
+Title:             <concrete deliverable, 3–7 words>
+Delivers:          <artefact or verified state>
+Slice of parent:   <parent AC-ID or scope line>
+Excludes:          <at least one boundary>
+```
+
+A Task that cannot fill in all four lines is not independently deliverable.
+Either widen its scope to a meaningful slice, or flag the gap to Requirements
+before recording the split.
 
 ## Stopping questions
 

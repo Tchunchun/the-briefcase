@@ -41,6 +41,42 @@ transition evaluation, and readback procedure. Requirements may evaluate only
 `route-standard-scope`, `ready-lite-work`, `block-work`, or
 `resume-blocked-work`. A denied decision means no write.
 
+## Naming contract — Idea to Feature
+
+When promoting an Idea to a Feature, or creating a new Feature from scratch,
+apply this contract before writing the requirement body. A title and one-liner
+that pass this check let the PO understand the card without opening it.
+
+**Title** (3–7 words): name the user outcome, not the method or the activity.
+Prefer "Ship work faster from approval to merge" over "Improve pipeline velocity".
+Avoid leading verbs that describe internal work ("Build", "Implement", "Test")
+unless the deliverable genuinely is a build artefact the user touches.
+
+**One-liner**: complete the sentence `<role> can <do X> without <pain Y>`.
+This goes in the card body immediately after the title. It identifies who
+benefits and what friction disappears. If you cannot complete it, the Feature
+scope is not ready to record.
+
+**Excludes** (at least one explicit boundary): name one thing this Feature
+does NOT cover. This is the most important field for preventing shaping creep
+and surfacing scope disagreements early.
+
+**Ready when**: the simplest observable result that lets the PO say it is done.
+One sentence. Not a test command — a human-readable outcome.
+
+Record all four as a named block at the top of the requirement document, before
+the full scope and acceptance criteria:
+
+```
+Title:       <user outcome, 3–7 words>
+One-liner:   <role> can <do X> without <pain Y>
+Excludes:    <at least one explicit boundary>
+Ready when:  <simplest observable result>
+```
+
+A Feature that cannot fill in all four lines is not ready for shaping.
+Raise the gap as a product question rather than inventing an answer.
+
 ## Shape one requirement
 
 Record one canonical requirement location with:
