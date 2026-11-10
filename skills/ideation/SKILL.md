@@ -33,6 +33,10 @@ You are responsible for **clarity**, not delivery. Your job is to turn rough ide
 
 ## Lane Triage
 
+Follow the repository technical-shaping-loop override in `AGENTS.md`, including
+approval/readiness gates and its stop-at-handoff rule. The old Requirements-loop
+prompt reuses approved Standard scope. Without an override, use the consumer flow.
+
 Before entering the Required Workflow, determine the processing lane for the incoming work. Use this decision tree:
 
 ```

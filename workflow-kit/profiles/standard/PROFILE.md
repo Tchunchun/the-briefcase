@@ -5,6 +5,14 @@ Feature/Task hierarchy, and release governance.
 
 ## Requirements authority
 
+Feature creation includes product shaping and revision-bound approval. Added
+features move directly to Technical shaping, not a second Requirements pass.
+Use [the technical shaping loop](skills/architect/SKILL.md) with
+**"Run the technical shaping loop"** or **"Run the architecture loop"**.
+For Standard readiness, **"Run the requirements loop"** is a compatibility alias
+for that same loop. Explicit product-gap clarification and delivery closeout
+remain Requirements responsibilities; Lite is unchanged.
+
 Each Task links one canonical approved Feature PRD revision and its own scoped
 acceptance criteria and verification. Issue text may summarize or link that
 scope but must not become a second independently editable requirements source.
@@ -15,6 +23,8 @@ Before `Ready`, Architect records sign-off naming the exact approved Feature
 PRD revision, technical approach, resolved questions, relevant decisions,
 risks, and NFR verification. A material requirements change makes that sign-off
 stale and returns the item to Architecture.
+Missing approval or a product-scope gap blocks the item for targeted product
+clarification; never manufacture approval or routinely reshape valid requirements.
 
 Build must refuse a Standard claim when sign-off is missing, names a different
 revision, or leaves a stopping technical question unresolved.

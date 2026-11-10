@@ -25,6 +25,7 @@ def test_staged_shared_assets_and_relative_links_resolve(tmp_path):
     staged = stage_workflow_kit(tmp_path)
     expected = [
         "skills/requirements/SKILL.md",
+        "profiles/standard/skills/architect/SKILL.md",
         "skills/build/SKILL.md",
         "skills/review/SKILL.md",
         "templates/shared/requirement.md",
@@ -113,3 +114,38 @@ def test_templates_capture_revision_commit_evidence_and_verdict():
     assert "Reviewed head" in review
     assert "Criterion evidence" in review
     assert "## Verdict" in review
+
+
+def test_standard_technical_loop_reuses_scope_and_checks_every_ready_gate():
+    architect = normalized(
+        (SOURCE / "profiles/standard/skills/architect/SKILL.md").read_text()
+    )
+    for phrase in [
+        "applies only to Standard profile work",
+        '"Run the technical shaping loop"',
+        '"Run the architecture loop"',
+        '"Run the requirements loop"** is a compatibility alias',
+        "read every page of `Inbox` and `Technical shaping`",
+        "Do not redraft approved scope",
+        "never infer approval or restart all shaping",
+        "exact approved requirement revision",
+        "verified Done dependencies",
+        "accepted Build assignment",
+        "absence of competing claims",
+        "Before any mutation, reread",
+        "set Ready last",
+        "GitHub read or write failure pauses",
+        "Stop at handoff",
+        "Never automatically dispatch Build",
+    ]:
+        assert phrase in architect
+
+
+def test_standard_alias_does_not_change_lite_or_delivery():
+    requirements = normalized((SOURCE / "skills/requirements/SKILL.md").read_text())
+    profile = normalized((SOURCE / "profiles/standard/PROFILE.md").read_text())
+    assert "shaping procedure below applies to Lite and explicit product-gap" in requirements
+    assert "delivery verification procedure below in both profiles" in requirements
+    assert "Lite returns to `Shaping`; Standard records `Blocked`" in requirements
+    assert "Added features move directly to Technical shaping" in profile
+    assert "Lite is unchanged" in profile

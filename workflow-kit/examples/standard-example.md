@@ -7,6 +7,11 @@ or deployment evidence. Use the [Standard profile](../profiles/standard/PROFILE.
 [Architect](../profiles/standard/skills/architect/SKILL.md), and
 [full brief template](../templates/standard/brief.md).
 
+The Feature's requirement packet is shaped and approved at creation. It enters
+Technical shaping directly; Architect reuses that approved revision rather than
+running another Requirements pass, then verifies dependencies and an accepted
+Build assignment before Ready.
+
 ---
 
 ## Requirement packet (Feature)

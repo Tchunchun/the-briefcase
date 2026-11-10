@@ -22,11 +22,16 @@ behaviorally unchanged unless a separately approved migration says otherwise.
 
 ## Lifecycle
 
-Public stages are Capture, Requirements, Ready gate, Build, Review, Deliver,
-and Done. Standard inserts Architecture after Requirements.
+Lite stages are Capture, Requirements, Ready gate, Build, Review, Deliver,
+and Done. Standard features have requirements shaped and approved at creation:
+Feature creation -> Technical shaping (Architect) -> Ready gate -> Build ->
+Review -> Deliver -> Done. Do not run a second requirement-shaping pass.
 
-The Project statuses are `Inbox`, `Shaping`, `Ready`, `In progress`,
-`In review`, `Blocked`, and `Done`. Stages and statuses are separate fields.
+Lite Project statuses are `Inbox`, `Shaping`, `Ready`, `In progress`,
+`In review`, `Blocked`, and `Done`. Standard uses `Technical shaping` instead
+of `Shaping`; an existing `User requirement shaping` option is not a mandatory
+phase. Resolve live options and report missing configuration, not a successful
+transition. Stages and statuses are separate fields.
 Accepted work remains `In review` until delivery gates pass.
 
 ## Evidence authority
@@ -57,6 +62,9 @@ direct user invocation. There is no automatic role handoff. Apply the selected
 profile's additional gates: [Lite](profiles/lite/PROFILE.md) or
 [Standard](profiles/standard/PROFILE.md). Standard adds the
 [Architect skill](profiles/standard/skills/architect/SKILL.md); Lite does not.
+For Standard feature readiness, invoke that technical shaping loop directly.
+The old Requirements-loop prompt is a compatibility alias for that loop;
+Requirements still owns explicit product-gap clarification and delivery verification.
 
 Reusable records live under [templates/shared](templates/shared). They are
 evidence packets, not another execution queue. See the
