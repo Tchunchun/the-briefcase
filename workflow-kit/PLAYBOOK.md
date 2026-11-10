@@ -5,6 +5,24 @@ product. It is not an installed workflow by itself. The existing `install.sh`,
 `src/`, `skills/`, `template/`, and `lite/` paths are legacy and must remain
 behaviorally unchanged unless a separately approved migration says otherwise.
 
+## Repository bootstrap boundary
+
+The Briefcase repository may build this kit without using the kit on that same
+work. During its bootstrap phase, requests to build, repair, document, or test
+`workflow-kit/` are ordinary repository development unless the user explicitly
+says **"Use Standard mode for <target>"**, **"Use Lite mode for <target>"**, or
+invokes a named role or loop. Words such as "build", "implement", "fix", or
+"review", and an issue or Project link on their own, do not activate a profile
+or role.
+
+Bootstrap work continues to use the repository's authoritative GitHub Project
+and normal code safeguards; this boundary is not permission to create a second
+backlog or bypass tests and PR protections. Dogfooding is prospective and
+target-specific. It begins only on explicit activation for named pilot work and
+does not retroactively apply workflow evidence or transitions to existing kit
+development. The repository backlog policy controls the exact bootstrap scope;
+consumer repositories are unaffected.
+
 ## Product contract
 
 - Users invoke Requirements, Architect (Standard only), Build, and Review
@@ -111,6 +129,15 @@ Assignee, or Claim Session:
 Evidence flags are assertions backed by live reads and linked records; they are
 not permission to infer or manufacture evidence. The evaluator never mutates
 GitHub and does not replace expected-head merge guards or post-write readback.
+
+## Board configuration
+
+Required GitHub Projects fields and views — including the Dependency map
+(Roadmap layout grouped by Parent issue), the `Blocking reason` text field, and
+the dependency relationship protocol — are specified in
+[board-setup.md](board-setup.md). Follow that reference when creating a new
+board or auditing an existing one. The `Blocking reason` field must be filled
+whenever an item transitions to `Blocked` and cleared on unblock.
 
 ## Evidence authority
 

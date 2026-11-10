@@ -41,6 +41,42 @@ transition evaluation, and readback procedure. Requirements may evaluate only
 `route-standard-scope`, `ready-lite-work`, `block-work`, or
 `resume-blocked-work`. A denied decision means no write.
 
+## Naming contract — Idea to Feature
+
+When promoting an Idea to a Feature, or creating a new Feature from scratch,
+apply this contract before writing the requirement body. A title and one-liner
+that pass this check let the PO understand the card without opening it.
+
+**Title** (3–7 words): name the user outcome, not the method or the activity.
+Prefer "Ship work faster from approval to merge" over "Improve pipeline velocity".
+Avoid leading verbs that describe internal work ("Build", "Implement", "Test")
+unless the deliverable genuinely is a build artefact the user touches.
+
+**One-liner**: complete the sentence `<role> can <do X> without <pain Y>`.
+This goes in the card body immediately after the title. It identifies who
+benefits and what friction disappears. If you cannot complete it, the Feature
+scope is not ready to record.
+
+**Excludes** (at least one explicit boundary): name one thing this Feature
+does NOT cover. This is the most important field for preventing shaping creep
+and surfacing scope disagreements early.
+
+**Ready when**: the simplest observable result that lets the PO say it is done.
+One sentence. Not a test command — a human-readable outcome.
+
+Record all four as a named block at the top of the requirement document, before
+the full scope and acceptance criteria:
+
+```
+Title:       <user outcome, 3–7 words>
+One-liner:   <role> can <do X> without <pain Y>
+Excludes:    <at least one explicit boundary>
+Ready when:  <simplest observable result>
+```
+
+A Feature that cannot fill in all four lines is not ready for shaping.
+Raise the gap as a product question rather than inventing an answer.
+
 ## Shape one requirement
 
 Record one canonical requirement location with:
@@ -81,6 +117,38 @@ Use [the blocker template](../../templates/shared/blocker.md). Preserve the
 prior status, set `Action Owner` to the role that must act, record `Resume
 Status`, state the evidence needed to resume, and revalidate all gates before
 restoring the item. There is no unconditional `Blocked` transition.
+
+When transitioning an item to `Blocked`, set two Project fields **before** the
+status write:
+
+- `Blocking reason`: one short phrase naming the gap and owner, e.g.
+  `Product decision needed: scope boundary on mode switching (owner: PO)`.
+- `Resume Status`: the status to restore when the blocker is resolved (the
+  status the item held immediately before `Blocked`).
+
+When the blocker is resolved and the item transitions out of `Blocked`, clear
+`Blocking reason` (set to empty) and clear `Resume Status`. Revalidate all gates
+before moving the item to its restored status.
+
+## Delivery verification
+
+On an explicit closeout invocation, use
+[the delivery template](../../templates/shared/delivery.md) and re-read live
+GitHub state. Mark an item `Done` and close its issue only when all applicable
+conditions are verified:
+
+1. Review accepted the approved requirement revision and exact implementation
+   head in a separate session.
+2. That accepted head landed on the intended base branch.
+3. Required checks pass and the issue or parent Feature has complete scope and
+   child coverage.
+4. Standard has linked release/version/readiness evidence; Lite follows the
+   application policy without inventing a Briefcase release record.
+5. Issue closure and Project `Done` both succeed and are read back.
+
+Accepted, landed, released, and deployed remain distinct. Deployment is never
+inferred from `Done`. If any closeout gate is missing, keep the item `In review`
+or record a specific `Blocked` packet; do not fabricate completion.
 
 ## Boundaries
 

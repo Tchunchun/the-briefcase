@@ -9,6 +9,24 @@ The current roles are **Requirements, Architect (Standard only), Build, and
 Review**. Lite uses Requirements, Build, and Review. Users invoke the roles
 directly; there is no Delivery Manager or automatic role orchestration.
 
+## Bootstrap Phase
+
+The repository is currently building the workflow kit before dogfooding it.
+Changes whose primary purpose is to build, repair, document, or test
+`workflow-kit/` do **not** invoke the kit's Requirements, Architect, Build, or
+Review workflows unless the user explicitly says **"Use Standard mode for
+<target>"**, **"Use Lite mode for <target>"**, or invokes a named role or loop.
+Ordinary requests such as "build", "implement", "fix", "review this code", or
+an issue/Project link are not workflow-mode activation by themselves.
+
+Bootstrap work still uses GitHub Project #5 as the only backlog and follows
+normal repository testing and PR safeguards; it does not create a parallel
+queue. Dogfooding begins only after explicit user activation, applies
+prospectively to the named pilot work, and does not retrofit existing kit work.
+Until the user explicitly ends this phase, direct kit-development requests are
+handled as ordinary repository work without Standard/Lite role packets, gates,
+or status transitions inferred from the kit.
+
 This repository also maintains the legacy five-role framework, CLI tooling,
 and storage integrations. [The legacy playbook](skills/PLAYBOOK.md) and its
 role skills remain the source for `install.sh` consumers, not the active
@@ -30,8 +48,9 @@ Standard uses distinct Requirement shaping and Technical shaping queues.
 Build, Review, or None. Stage is reporting-only and does not dispatch work.
 Legacy fields are historical only.
 
-When the user says **"Run the technical shaping loop"** or **"Run the architecture
-loop"**, follow the
+When the user explicitly activates Standard mode for a target, including by
+saying **"Run the technical shaping loop for <target>"** or **"Run the
+architecture loop for <target>"**, follow the
 [repository technical shaping loop](_project/backlog-policy.md#repository-technical-shaping-loop).
 Requirements and Architect remain distinct roles and invocations. Architect
 owns technical sign-off; Requirements owns product scope and approval. Ready
@@ -39,13 +58,15 @@ requires approved scope, current sign-off, satisfied dependencies, and no
 competing implementation claim. Build records assignment when it claims Ready.
 Stop at handoff; never automatically dispatch Build.
 
-When the user says **"Run the review loop"**, follow the
+When the user explicitly activates a workflow mode for a target, including by
+saying **"Run the review loop"** for a named target, follow the
 [repository review loop](_project/backlog-policy.md#repository-review-loop).
-With no target, inspect `In review` work owned by Review. An independent Review
-session merges a passing PR, verifies landing and applicable delivery gates,
-then closes the task and marks it Done. There is no separate Deliver stage.
-Required checks, approvals, and branch protections still apply; queued or gated
-work stays open. Explicitly read-only reviews do not mutate.
+After bootstrap is explicitly ended, with no target inspect `In review` work
+owned by Review. An independent Review session merges a passing PR, verifies
+landing and applicable delivery gates, then closes the task and marks it Done.
+There is no separate Deliver stage. Required checks, approvals, and branch
+protections still apply; queued or gated work stays open. Explicitly
+read-only reviews do not mutate.
 
 Approved scope lives in one revision-bound requirements document: a Feature
 PRD with scoped child Task documents for Standard, or a task document for Lite.

@@ -21,6 +21,28 @@ documents in the Git artifact repository: Feature PRDs and scoped Task documents
 Document readiness is not a second execution backlog.
 Code, implementation revisions, and merge evidence remain in Git and PRs.
 
+## Workflow-Kit Bootstrap Phase
+
+Until the user explicitly ends this phase, work whose primary purpose is to
+build, repair, document, or test `workflow-kit/` is bootstrap work. It may be
+implemented as ordinary repository development without invoking the kit's
+Requirements, Architect, Build, or Review workflows and without producing
+Standard/Lite role packets or satisfying those profiles' lifecycle gates.
+
+Bootstrap does not change backlog authority: GitHub Project #5 remains the only
+execution backlog. Normal repository tests, PR rules, branch protections, and
+user-requested Project updates still apply. A direct implementation request
+does not by itself authorize or imply Project status transitions.
+
+Dogfooding is opt-in. It starts only when the user explicitly says **"Use
+Standard mode for <target>"**, **"Use Lite mode for <target>"**, or invokes a
+named role or loop for a target. Generic verbs such as "build", "implement",
+"fix", or "review", and an issue URL or Project card by itself, are context—not
+workflow activation. Activation is prospective and limited to the named pilot
+work; it does not retrofit existing bootstrap work. Ending bootstrap for the
+repository also requires an explicit user decision after the kit is ready for
+the intended pilot.
+
 ## Repository-Specific Override
 
 This policy overrides generic playbook and role instructions that would use
@@ -45,6 +67,10 @@ framework does not yet have a native GitHub Projects storage adapter.
 Consumer templates, supported backends, and other repositories are unchanged.
 
 ## Standard Board Contract
+
+This contract applies to work for which Standard mode has been explicitly
+activated. During the workflow-kit bootstrap phase, it does not turn ordinary
+kit-development requests into Standard workflow runs.
 
 Status is the execution axis: Inbox, Requirement shaping, Technical shaping,
 Ready, In progress, In review, Blocked, Done. `Action Owner` is the dispatch
@@ -142,8 +168,10 @@ that would promote backlog rows or continue directly into Build.
 ### Entry and authority
 
 - **"Run the technical shaping loop for <topic>"**, **"Run the architecture loop"**,
-  an issue URL, or a Project card
-  targets that work only. Resolve the repository and card; never infer public
+  or another explicit Standard-mode invocation targets that work only. An issue
+  URL or Project card may identify the target after explicit activation, but
+  does not activate this loop by itself during bootstrap. Resolve the repository
+  and card; never infer public
   versus private ownership from an issue number alone. Search all result pages
   for existing scope, children, dependencies, and competing work before creating
   anything. Reuse matching items rather than duplicating them.
@@ -153,6 +181,8 @@ that would promote backlog rows or continue directly into Build.
   that queue once, and process eligible features against their existing approved
   scope. Report missing evidence and decisions. Do not select or approve unrelated scope,
   continually poll, or claim every card as assigned work.
+  During bootstrap, this no-target sweep is available only after the user
+  explicitly ends bootstrap; pilot activation must name its target.
 - Read the current card/issue discussion, linked requirements and their
   revisions, approved amendments, product decisions, and relevant implementation.
   An older brief is provenance when an approved PRD supersedes it. Record one
@@ -208,6 +238,12 @@ that would promote backlog rows or continue directly into Build.
 | A dependency, access failure, or conflicting claim prevents progress | Blocked | Explicit responsible role | Record the unblock condition and Resume Status. |
 | Approved revision, current sign-off, satisfied dependencies, and no competing claim | Ready | Build | Save the handoff packet and offer the exact Build prompt; stop. |
 
+For every row that transitions to `Blocked`, set two Project fields before the
+status write: `Blocking reason` (one short phrase: gap + owner) and `Resume
+Status` (the status held before `Blocked`). Clear both when the item is
+unblocked and its status is restored. These fields drive the Dependency map
+view and let the PO scan blockers without opening individual cards.
+
 Do not move In progress, In review, or Done work back to shaping
 on a sweep.
 For explicitly targeted scope changes to active work, coordinate with its
@@ -255,6 +291,10 @@ merge, release, or close issues as part of the technical shaping loop.
 This is the user-authorized review and closeout procedure for this repository's
 Standard board. Review owns the verdict, merge, landing verification, task
 closure, and final Done transition. There is no separate Deliver stage.
+
+During bootstrap, invoking this loop must name an explicitly activated pilot
+target. A no-target sweep becomes available only after the user explicitly ends
+bootstrap for the repository.
 
 ### Entry and authority
 
@@ -367,6 +407,11 @@ closure, and final Done transition. There is no separate Deliver stage.
 | Missing scope approval, implementation/PR evidence, required checks, independent review, or landing proof | Blocked | Review | Blocked | Record the missing evidence, responsible owner, and explicit unblock condition. |
 | Only part of the item landed | In progress if remaining work is assigned; otherwise Blocked | Build | Pending | Keep the issue open and identify uncovered criteria and the next owner. |
 | Full scope accepted, checks/dependencies satisfied, landing verified, and applicable release evidence present | Done | None | Accepted | Close the linked task and verify final state. |
+
+For any row that transitions to `Blocked`, set `Blocking reason` (one short
+phrase: missing evidence + responsible owner) and `Resume Status` (`In review`)
+before the status write. Clear both when the item is unblocked and returned to
+review.
 
 The normal passing path is **review -> merge -> verify landing/delivery -> close
 issue and mark Done**. An accepted PR remains In review only while a merge,

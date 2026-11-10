@@ -68,7 +68,10 @@ Verdicts:
 - `Changes requested`: in-scope implementation defects have actionable
   findings. Keep the same issue, branch, and PR; Build resumes explicitly.
 - `Blocked`: scope, approval, architecture, access, or evidence is missing and
-  the responsible upstream role must act.
+  the responsible upstream role must act. Before writing `Blocked` status, set
+  `Blocking reason` to a short phrase naming the missing evidence and its owner,
+  and set `Resume Status` to `In review`. Clear both when the item is unblocked
+  and returned to Review.
 
 Any new commit invalidates the prior acceptance until the new head is reviewed.
 Re-read the recorded verdict after writing it.
