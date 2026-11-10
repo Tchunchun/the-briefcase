@@ -7,7 +7,6 @@ from pathlib import Path
 
 import pytest
 
-
 FRAMEWORK_DIR = str(Path(__file__).resolve().parents[3])
 
 
@@ -37,6 +36,7 @@ def run_install(consumer_dir, env_overrides=None):
 
     result = subprocess.run(
         ["bash", os.path.join(FRAMEWORK_DIR, "install.sh")],
+        check=False,
         capture_output=True, text=True,
         env=env,
         timeout=30,
@@ -151,6 +151,7 @@ class TestBriefcaseWrapperIntegration:
 
         result = subprocess.run(
             [str(consumer_dir / "briefcase"), "--help"],
+            check=False,
             capture_output=True, text=True,
             cwd=str(consumer_dir),
             timeout=15,
@@ -175,6 +176,7 @@ class TestBriefcaseWrapperIntegration:
 
         result = subprocess.run(
             [str(consumer_dir / "briefcase"), "inbox", "list"],
+            check=False,
             capture_output=True, text=True,
             cwd=str(consumer_dir),
             timeout=15,
@@ -278,6 +280,7 @@ class TestInstallerHardening:
 
         result = subprocess.run(
             ["bash", os.path.join(FRAMEWORK_DIR, "install.sh"), "--non-interactive"],
+            check=False,
             capture_output=True, text=True, env=env, timeout=30,
         )
         assert result.returncode == 0
@@ -350,6 +353,7 @@ class TestSafetyGuards:
 
         result = subprocess.run(
             ["bash", os.path.join(FRAMEWORK_DIR, "install.sh")],
+            check=False,
             capture_output=True,
             text=True,
             env=env,

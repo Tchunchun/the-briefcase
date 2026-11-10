@@ -1,6 +1,5 @@
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 WORKFLOW_KIT = ROOT / "workflow-kit"
 PLAYBOOK = (WORKFLOW_KIT / "PLAYBOOK.md").read_text()

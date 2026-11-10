@@ -8,7 +8,7 @@ from pathlib import Path
 
 import pytest
 
-from src.core.storage.config import save_config, StorageConfig
+from src.core.storage.config import StorageConfig, save_config
 
 
 def supported_python_env():
@@ -72,6 +72,7 @@ class TestAgentWrapper:
     def test_wrapper_shows_help(self, consumer_project):
         result = subprocess.run(
             ["./briefcase", "--help"],
+            check=False,
             capture_output=True, text=True,
             cwd=str(consumer_project),
             env=supported_python_env(),
@@ -83,6 +84,7 @@ class TestAgentWrapper:
     def test_wrapper_runs_inbox_list(self, consumer_project):
         result = subprocess.run(
             ["./briefcase", "inbox", "list"],
+            check=False,
             capture_output=True, text=True,
             cwd=str(consumer_project),
             env=supported_python_env(),
@@ -99,6 +101,7 @@ class TestAgentWrapper:
         wrapper = consumer_project / "briefcase"
         result = subprocess.run(
             [str(wrapper), "--help"],
+            check=False,
             capture_output=True, text=True,
             cwd=str(subdir),
             env=supported_python_env(),
@@ -121,6 +124,7 @@ class TestAgentWrapper:
 
         result = subprocess.run(
             ["./briefcase", "--help"],
+            check=False,
             capture_output=True, text=True,
             cwd=str(empty),
             timeout=15,

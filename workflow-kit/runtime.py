@@ -6,12 +6,12 @@ import argparse
 import json
 import subprocess
 import sys
+from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
 from pathlib import Path
-from typing import Any, Callable
+from typing import Any
 
 import yaml
-
 
 SUPPORTED_CLOSEOUT_OWNER = "Review"
 REQUIRED_FIELD_KEYS = {
@@ -48,7 +48,7 @@ def load_yaml(path: Path) -> dict[str, Any]:
     with path.open(encoding="utf-8") as stream:
         value = yaml.safe_load(stream)
     if not isinstance(value, dict):
-        raise ValueError(f"{path} must contain a YAML mapping")
+        raise TypeError(f"{path} must contain a YAML mapping")
     return value
 
 
