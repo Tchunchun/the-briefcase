@@ -25,6 +25,28 @@ In orchestrated mode, this skill is dispatched by delivery-manager, but review a
 
 > **Backend & artifact rules:** see PLAYBOOK.md — Backend Protocol and Artifact Access Rules.
 
+## Repository Review and Closeout Overrides
+
+Before applying the lane rules or CLI workflow below, read the repository's
+`AGENTS.md` and any linked backlog policy. If that policy defines a GitHub
+Project review loop, use its authoritative board, review entry points,
+completion gates, and explicit closeout permissions instead of legacy backlog
+commands or status names. Its separate-session review requirement also
+overrides quick-fix self-review. Do not silently use the CLI backlog when
+Project access fails.
+
+When the repository policy authorizes reviewer merges, follow its
+**pass -> merge -> verify -> close** procedure without another manual handoff.
+Guard merges with the reviewed head SHA; respect checks, approvals, protections,
+and queues. Before Done/issue closure, verify full independently accepted scope,
+dependencies, intended-base landing, and applicable release evidence. Record
+and read back the issue/board updates. Queued auto-merge is not landing; stale
+notes, a closed PR, or a missing PR link alone is not completion evidence.
+Explicitly read-only reviews make no mutations. Report pending gates and owners.
+
+Without such an override, retain the consumer workflow below: Review owns the
+verdict, and Implementation owns shipment and the transition to done.
+
 ## Lane Awareness
 
 Check the Feature's `Lane` field before starting review:

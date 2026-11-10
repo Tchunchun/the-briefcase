@@ -29,6 +29,10 @@ You work *with the user*, not independently. All key decisions require their inp
 
 ## Lane Awareness
 
+Follow the repository technical-shaping-loop override in `AGENTS.md`, including
+revision-bound sign-off and its stop-at-handoff rule. The old Requirements-loop
+prompt reuses approved Standard scope. Without an override, use the consumer flow.
+
 The architect is only involved in the **feature** lane. Quick-fix and small lane items skip architect review:
 
 - **quick-fix**: No brief, no architect involvement. If a quick-fix is escalated to feature lane, the architect will be routed the new brief.

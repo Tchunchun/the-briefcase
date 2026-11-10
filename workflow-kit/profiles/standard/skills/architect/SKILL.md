@@ -14,14 +14,19 @@ item before recording sign-off or changing any state.
 
 ## Trigger and scope
 
-Run only when the user explicitly asks to run the Architecture loop. This is not
-an automatic orchestrator and applies only to Standard profile work.
+Run only when the user explicitly asks to run the Architecture loop, using
+**"Run the architecture loop"** or **"Run the technical shaping loop"**. For Standard readiness,
+**"Run the requirements loop"** is a compatibility alias. This is not an
+automatic orchestrator and applies only to Standard profile work.
+Explicit product clarification or delivery closeout uses
+[Requirements](../../../../skills/requirements/SKILL.md) instead.
 
-- If the user names an issue, process it first.
-- Otherwise query the configured Project for live `Shaping` Standard work awaiting
-  Architecture.
+- If the user names an issue or card, process only that target.
+- Otherwise read every page of `Inbox` and `Technical shaping`, capture the queue
+  once, and process eligible Standard features without continuously polling.
 - Reuse the existing issue. Never create a competing requirements document.
 - Process one item at a time.
+- Do not sweep active or completed work back into shaping or overwrite a claim.
 
 GitHub read or write failure pauses the affected item. Report the failed
 operation and do not claim a transition succeeded.
@@ -33,9 +38,15 @@ profile. Verify:
 
 1. An approved requirement revision is linked — the exact committed document
    the user approved.
-2. The Project status is `Shaping` or the item is explicitly routed to
+2. The Project status is `Inbox` or `Technical shaping`, or the item is explicitly routed to
    Architecture.
 3. No competing sign-off names a different revision for this item.
+
+Feature creation already includes requirement shaping. Do not redraft approved
+scope or require a second approval for unchanged requirements. Reuse approval
+evidence; never infer approval or restart all shaping when that evidence is
+missing. Record `Blocked` for the exact product gap, responsible owner, and
+resume condition. Materially changed scope requires renewed approval.
 
 ## Technical assessment
 
@@ -93,23 +104,43 @@ A sign-off is stale and Build must refuse the claim when:
 - Any acceptance criterion, scope inclusion, or exclusion changes.
 - Constraints, NFRs, approach assumptions, or release obligations materially change.
 
-Requirements returns the item to Architecture when a material change is detected.
+Requirements returns the item to Architecture when a material change is detected,
+after resolving only the affected scope and recording renewed approval.
 Architect re-evaluates and records a new sign-off naming the updated revision.
 
 ## After sign-off
 
-After recording sign-off, the item is eligible for the Ready gate under Standard
-profile rules. Architecture does not move the item to `Ready` — Requirements
-verifies the remaining gate conditions and routes it.
+After recording sign-off, verify the remaining Ready gates in this technical
+shaping loop; do not require a separate Requirements pass.
 
-Re-read the sign-off after writing it. If the recorded value differs from the
-intended sign-off, reconcile before reporting success.
+Resolve field and option IDs from the live Project. Missing configuration
+blocks the transition; never fall back to a Markdown queue. Before any mutation,
+reread status, requirement revision, approval, blockers, assignment, sign-off,
+and existing branches/worktrees/PRs. Reconcile concurrent changes instead of
+overwriting them.
+
+- Approved scope awaiting sign-off: `Technical shaping` / Architecture.
+- Sign-off complete but no accepted assignment: `Technical shaping` / Build.
+- An unresolved stopping gate: `Blocked`, with its owner and resume condition.
+- Only when approval, exact-revision sign-off, verified Done dependencies,
+  accepted Build assignment, and absence of competing claims all pass:
+  `Ready` / Build.
+
+Save a private handoff packet with scope revision/approval, technical decisions,
+sign-off, criterion-to-check verification, dependencies and completion evidence,
+assignment, existing branch/PR, remaining gates, and the exact next Build prompt.
+Keep private planning out of public targets. Read back the packet and sign-off,
+set Ready last, and read back Status and Stage. Report partial-write failures
+precisely and reuse valid packets on rerun.
+
+Stop at handoff. Never automatically dispatch Build. Separate-session review
+and Standard release gates are unchanged.
 
 ## Boundaries
 
 - Never approve requirements scope on the user's behalf.
 - Never implement or review the change.
-- Never move an item to `Ready`, `In progress`, or `Done`.
+- Never move an item to `In progress` or `Done`, merge, or close an issue.
 - Never create a replacement requirements document.
 - Never erase prior sign-off, blocker, or review evidence.
 - Do not copy or re-implement the shared Requirements or Review skills.

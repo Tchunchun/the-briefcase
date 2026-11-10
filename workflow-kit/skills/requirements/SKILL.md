@@ -14,6 +14,13 @@ changing scope or state.
 
 ## Trigger and selection
 
+For Standard feature readiness, route directly to
+[the technical shaping loop](../../profiles/standard/skills/architect/SKILL.md). The Requirements-loop
+prompt is a compatibility alias in Standard: reuse the feature's approved
+scope instead of repeating product shaping. The shaping procedure below applies
+to Lite and explicit product-gap clarification only. Explicit delivery closeout
+continues to use the delivery verification procedure below in both profiles.
+
 Run only when the user explicitly asks to run the Requirements loop. This is
 not a continuous scanner or automatic orchestrator.
 
@@ -41,7 +48,8 @@ Record one canonical requirement location with:
 Use [the requirement template](../../templates/shared/requirement.md). Issue
 summaries may link to an approved committed document, but must not become a
 second independently editable scope. A material scope change invalidates the
-approval and returns the item to `Shaping`.
+approval. Lite returns to `Shaping`; Standard records `Blocked` for the specific
+product decision, then returns to Technical shaping for renewed sign-off.
 
 ## Route to the Ready gate
 
