@@ -2,23 +2,30 @@
 name: requirements
 description: >
   On explicit user invocation, shape GitHub work into one approved,
-  revision-bound requirement, route Standard work through Architecture, and
-  verify delivery evidence before Done.
+  revision-bound requirement and route Standard work through Architecture or
+  Lite work to Build.
 ---
 
 # Requirements
 
-Read [the shared playbook](../../PLAYBOOK.md), the active profile, the
-repository instructions, and the live GitHub issue and Project item before
-changing scope or state.
+Read [the shared playbook](../../PLAYBOOK.md), the executable
+[lifecycle contract](../../contract.yaml), the repository
+[manifest](../../workflow.yaml), the active profile, repository instructions,
+and the live GitHub issue and Project item before changing scope or state.
 
 ## Trigger and selection
+
+Requirements remains the product-shaping entry point in both profiles. For an
+already approved Standard Feature, report that product shaping is complete and
+hand it to [Architect](../../profiles/standard/skills/architect/SKILL.md); never
+silently execute the Architecture loop from a Requirements invocation.
 
 Run only when the user explicitly asks to run the Requirements loop. This is
 not a continuous scanner or automatic orchestrator.
 
 - If the user names an issue, process it first.
-- Otherwise query the configured Project for live `Inbox` and `Shaping` work.
+- Otherwise query the configured Project for live `Inbox` and
+  `Requirement shaping` work whose `Action Owner` is `Requirements`.
 - Reuse the existing issue and Project item. Search for duplicates before
   creating anything, and never publish private planning to a public target.
 - Process one item at a time. Skip work owned by another active session and
@@ -27,6 +34,48 @@ not a continuous scanner or automatic orchestrator.
 Resolve Project field and option IDs from the live board. GitHub read or write
 failure pauses the affected item. Never fall back to a Markdown status queue or
 claim that an unverified transition succeeded.
+
+Before every Project mutation, follow the playbook's mandatory live preflight,
+transition evaluation, and readback procedure. Requirements may evaluate only
+`begin-requirement-shaping`, `standard-approved-at-creation`,
+`route-standard-scope`, `ready-lite-work`, `block-work`, or
+`resume-blocked-work`. A denied decision means no write.
+
+## Naming contract — Idea to Feature
+
+When promoting an Idea to a Feature, or creating a new Feature from scratch,
+apply this contract before writing the requirement body. A title and one-liner
+that pass this check let the PO understand the card without opening it.
+
+**Title** (3–7 words): name the user outcome, not the method or the activity.
+Prefer "Ship work faster from approval to merge" over "Improve pipeline velocity".
+Avoid leading verbs that describe internal work ("Build", "Implement", "Test")
+unless the deliverable genuinely is a build artefact the user touches.
+
+**One-liner**: complete the sentence `<role> can <do X> without <pain Y>`.
+This goes in the card body immediately after the title. It identifies who
+benefits and what friction disappears. If you cannot complete it, the Feature
+scope is not ready to record.
+
+**Excludes** (at least one explicit boundary): name one thing this Feature
+does NOT cover. This is the most important field for preventing shaping creep
+and surfacing scope disagreements early.
+
+**Ready when**: the simplest observable result that lets the PO say it is done.
+One sentence. Not a test command — a human-readable outcome.
+
+Record all four as a named block at the top of the requirement document, before
+the full scope and acceptance criteria:
+
+```
+Title:       <user outcome, 3–7 words>
+One-liner:   <role> can <do X> without <pain Y>
+Excludes:    <at least one explicit boundary>
+Ready when:  <simplest observable result>
+```
+
+A Feature that cannot fill in all four lines is not ready for shaping.
+Raise the gap as a product question rather than inventing an answer.
 
 ## Shape one requirement
 
@@ -41,30 +90,45 @@ Record one canonical requirement location with:
 Use [the requirement template](../../templates/shared/requirement.md). Issue
 summaries may link to an approved committed document, but must not become a
 second independently editable scope. A material scope change invalidates the
-approval and returns the item to `Shaping`.
+approval. Lite returns to `Requirement shaping`; Standard records `Blocked`
+for the specific product decision, then returns to `Technical shaping` for
+renewed sign-off.
 
 ## Route to the Ready gate
 
 - Lite has no Architect role. A stopping technical question moves the item to
   `Blocked` with a Requirements-owned question and resume condition.
-- Standard routes approved scope to Architecture. It cannot become `Ready`
-  until Architect signs the exact same requirement revision and resolves
-  stopping technical questions.
-- Before `Ready`, verify all blockers are Done, the current session or named
-  Build owner accepts the assignment, and no competing claim, branch,
-  worktree, or implementation PR exists.
+- Standard moves approved scope to `Technical shaping` with
+  `Action Owner: Architect`. It cannot become `Ready` until Architect signs the
+  exact same requirement revision and resolves stopping technical questions.
+- Lite moves approved work to `Ready` with `Action Owner: Build` after blockers
+  and other readiness gates pass. Build assignment is recorded during the
+  later claim, not as a prerequisite for `Ready`.
 - Re-read every write. If the item changed concurrently, stop and reconcile it
   instead of overwriting the newer state.
 
-Requirements approval is not Build assignment, review acceptance, landing, or
-release evidence. Stop at the recorded handoff; the user invokes the next role.
+Requirements approval is not Architecture sign-off, Build assignment, review
+acceptance, landing, or release evidence. Stop at the recorded handoff; the
+user invokes the next role.
 
 ## Blocked work
 
 Use [the blocker template](../../templates/shared/blocker.md). Preserve the
-prior status and stage, name the responsible role, state the evidence needed to
-resume, and revalidate all gates before restoring the item. There is no
-unconditional `Blocked` to `Ready` shortcut.
+prior status, set `Action Owner` to the role that must act, record `Resume
+Status`, state the evidence needed to resume, and revalidate all gates before
+restoring the item. There is no unconditional `Blocked` transition.
+
+When transitioning an item to `Blocked`, set two Project fields **before** the
+status write:
+
+- `Blocking reason`: one short phrase naming the gap and owner, e.g.
+  `Product decision needed: scope boundary on mode switching (owner: PO)`.
+- `Resume Status`: the status to restore when the blocker is resolved (the
+  status the item held immediately before `Blocked`).
+
+When the blocker is resolved and the item transitions out of `Blocked`, clear
+`Blocking reason` (set to empty) and clear `Resume Status`. Revalidate all gates
+before moving the item to its restored status.
 
 ## Delivery verification
 
@@ -91,6 +155,6 @@ or record a specific `Blocked` packet; do not fabricate completion.
 - Never approve scope on the user's behalf.
 - Never write architecture sign-off for Standard.
 - Never implement or review the change.
-- Never merge merely because review accepted; normal repository permissions
-  and delivery policy govern landing.
+- Never merge or close the change; the `closeout_owner` configured in
+  [`workflow.yaml`](../../workflow.yaml) owns verified closeout.
 - Never erase prior approval, blocker, review, or delivery evidence.

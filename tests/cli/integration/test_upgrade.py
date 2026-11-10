@@ -65,6 +65,7 @@ FULL_BACKLOG_PROPS = {
                                           "review-ready", "review-accepted", "done", "shipped"]),
     "Task Status": _make_select_prop(["to-do", "in-progress", "blocked", "done"]),
     "Priority": _make_select_prop(["High", "Medium", "Low"]),
+    "Project": _make_select_prop([]),
     "Review Verdict": _make_select_prop(["pending", "accepted", "changes-requested"]),
     "Route State": _make_select_prop(["routed", "returned", "blocked"]),
     "Lane": _make_select_prop(["quick-fix", "small", "feature"]),

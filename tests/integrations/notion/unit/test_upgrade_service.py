@@ -87,6 +87,7 @@ FULL_BACKLOG_PROPS = {
                                           "review-ready", "review-accepted", "done", "shipped"]),
     "Task Status": _make_select_prop(["to-do", "in-progress", "blocked", "done"]),
     "Priority": _make_select_prop(["High", "Medium", "Low"]),
+    "Project": _make_select_prop([]),
     "Review Verdict": _make_select_prop(["pending", "accepted", "changes-requested"]),
     "Route State": _make_select_prop(["routed", "returned", "blocked"]),
     "Lane": _make_select_prop(["quick-fix", "small", "feature"]),
@@ -160,6 +161,38 @@ class TestHealthyWorkspace:
 
 
 class TestMissingProperties:
+    @pytest.mark.parametrize("apply", [False, True])
+    def test_missing_project_is_reported_or_repaired(
+        self, mock_client, healthy_config, monkeypatch, apply
+    ):
+        monkeypatch.setenv("NOTION_API_KEY", "test-key")
+        partial = {
+            name: prop for name, prop in FULL_BACKLOG_PROPS.items()
+            if name != "Project"
+        }
+        mock_client.get_page.return_value = {"id": "parent-abc"}
+        mock_client.get_database.side_effect = [
+            _db_response(partial),
+            _db_response(FULL_DECISIONS_PROPS),
+            _db_response(FULL_BRIEFS_PROPS),
+        ]
+        service = NotionUpgradeService(mock_client, healthy_config)
+
+        report = service.upgrade() if apply else service.inspect()
+
+        expected = FindingStatus.FIXED if apply else FindingStatus.MANUAL
+        assert any(
+            "'Project'" in finding.description and finding.status == expected
+            for finding in report.findings
+        )
+        assert report.exit_code == (1 if apply else 2)
+        if apply:
+            mock_client.update_database.assert_called_once_with(
+                "db-backlog", properties={"Project": {"select": {"options": []}}}
+            )
+        else:
+            mock_client.update_database.assert_not_called()
+
     def test_inspect_detects_missing_props(self, mock_client, healthy_config, monkeypatch):
         monkeypatch.setenv("NOTION_API_KEY", "test-key")
 

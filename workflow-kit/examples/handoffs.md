@@ -5,13 +5,14 @@ they are not a second status queue.
 
 ## Happy path
 
-Requirement `req-abc123` is approved. Standard Architect signs `req-abc123`,
-all blockers are Done, and session `build-7` has no competing branch or PR.
-Build records its claim, reads back `In progress`, implements in a dedicated
-worktree, and hands off PR head `def456`. A separate Review session accepts
-`def456` against `req-abc123`. Requirements later verifies that `def456` landed
-on the intended base with complete checks, scope coverage, and Standard release
-evidence before closing the issue and reading back Project `Done`.
+Requirements approves revision `req-abc123` and moves the Feature to
+`Technical shaping / Architect`. Architect signs that revision, verifies Done
+dependencies and no competing implementation, then moves it to `Ready / Build`.
+Build atomically records assignment and Claim Session while moving it to
+`In progress`, implements in a dedicated worktree, and hands off PR head
+`def456` as `In review / Review`. A separate Review session accepts `def456`,
+merges it, verifies landing and release evidence, closes the task, and writes
+`Done / None` last.
 
 ## Refused self-review
 
@@ -23,8 +24,9 @@ Review session. This applies even when the item is a bug or tech-debt change.
 
 The issue links requirement draft `req-abc123`, but no user approval record
 exists. Result: do not move to `Ready` and do not claim Build work. Keep the
-item `Shaping` or record a blocker owned by Requirements with the approval
-evidence needed to resume.
+Lite item in `Requirement shaping`; for Standard, record `Blocked` with
+`Action Owner: Requirements`, `Resume Status: Technical shaping`, and the
+approval evidence needed to resume.
 
 ## Refused competing ownership
 

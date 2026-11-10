@@ -1,26 +1,91 @@
 # AGENTS.md
 
-Read `skills/PLAYBOOK.md` fully before taking any action.
+Read [the current workflow playbook](workflow-kit/PLAYBOOK.md) and
+[this repository's backlog policy](_project/backlog-policy.md) before taking
+any action. The repository policy takes precedence where it defines a
+repository-specific procedure, including Review-owned merge and closeout.
 
-Upstream source for the 0-to-1 Agent Skills framework (five roles, workflow playbook, CLI tooling, Notion integration).
+The current roles are **Requirements, Architect (Standard only), Build, and
+Review**. Lite uses Requirements, Build, and Review. Users invoke the roles
+directly; there is no Delivery Manager or automatic role orchestration.
 
-Note: In this repo, skills live at `skills/` and paths in the PLAYBOOK are correct as-is. The `install.sh` script rewrites them to `.briefcase/skills/` for consumer projects.
+## Bootstrap Phase
+
+The repository is currently building the workflow kit before dogfooding it.
+Changes whose primary purpose is to build, repair, document, or test
+`workflow-kit/` do **not** invoke the kit's Requirements, Architect, Build, or
+Review workflows unless the user explicitly says **"Use Standard mode for
+<target>"**, **"Use Lite mode for <target>"**, or invokes a named role or loop.
+Ordinary requests such as "build", "implement", "fix", "review this code", or
+an issue/Project link are not workflow-mode activation by themselves.
+
+Bootstrap work still uses GitHub Project #5 as the only backlog and follows
+normal repository testing and PR safeguards; it does not create a parallel
+queue. Dogfooding begins only after explicit user activation, applies
+prospectively to the named pilot work, and does not retrofit existing kit work.
+Until the user explicitly ends this phase, direct kit-development requests are
+handled as ordinary repository work without Standard/Lite role packets, gates,
+or status transitions inferred from the kit.
+
+This repository also maintains the legacy five-role framework, CLI tooling,
+and storage integrations. [The legacy playbook](skills/PLAYBOOK.md) and its
+role skills remain the source for `install.sh` consumers, not the active
+repository agent roster. The installer rewrites legacy skill paths to
+`.briefcase/skills/`; it does not install `workflow-kit/`.
 
 ## This Repository's Backlog
 
 Read [_project/backlog-policy.md](_project/backlog-policy.md).
-[GitHub Project #4](https://github.com/users/Tchunchun/projects/4) is the only
+[GitHub Project #5](https://github.com/users/Tchunchun/projects/5) is the only
 active backlog and owns execution status. This repository-specific policy
 overrides generic playbook instructions to use CLI backlog rows, the legacy
 inbox, or backlog-scanning automation. Use GitHub directly; do not recreate or
 update the retired Markdown backlog. If access fails, report it and pause
 affected work rather than silently falling back to local status.
 
-The configured Git backend still stores briefs, decisions, releases, and
-history; no GitHub storage adapter is implied. This override is for framework
-development only, not a change to the installed consumer workflow.
+Standard uses distinct Requirement shaping and Technical shaping queues.
+`Action Owner` is the automation dispatch authority: Requirements, Architect,
+Build, Review, or None. Stage is reporting-only and does not dispatch work.
+Legacy fields are historical only.
 
-## Commands
+When the user explicitly activates Standard mode for a target, including by
+saying **"Run the technical shaping loop for <target>"** or **"Run the
+architecture loop for <target>"**, follow the
+[repository technical shaping loop](_project/backlog-policy.md#repository-technical-shaping-loop).
+Requirements and Architect remain distinct roles and invocations. Architect
+owns technical sign-off; Requirements owns product scope and approval. Ready
+requires approved scope, current sign-off, satisfied dependencies, and no
+competing implementation claim. Build records assignment when it claims Ready.
+Stop at handoff; never automatically dispatch Build.
+
+When the user explicitly activates a workflow mode for a target, including by
+saying **"Run the review loop"** for a named target, follow the
+[repository review loop](_project/backlog-policy.md#repository-review-loop).
+After bootstrap is explicitly ended, with no target inspect `In review` work
+owned by Review. An independent Review session merges a passing PR, verifies
+landing and applicable delivery gates, then closes the task and marks it Done.
+There is no separate Deliver stage. Required checks, approvals, and branch
+protections still apply; queued or gated work stays open. Explicitly
+read-only reviews do not mutate.
+
+Approved scope lives in one revision-bound requirements document: a Feature
+PRD with scoped child Task documents for Standard, or a task document for Lite.
+The Project owns execution status, not the requirements document.
+The configured Git artifact backend still stores planning documents, decisions,
+release records, and history; no GitHub storage adapter is implied. This policy
+is for framework development, not a change to the legacy installed consumer
+workflow.
+
+For an explicitly invoked workflow role, every Project transition must pass the
+live preflight and executable transition gate in
+[the workflow playbook](workflow-kit/PLAYBOOK.md#mandatory-transition-gate).
+`--offline` validation alone never authorizes a Project write.
+
+## Development Commands
+
+The CLI commands below maintain the legacy framework and its supported storage
+backends. They are not the entry points for the current Requirements, Architect,
+Build, or Review loops. Use GitHub directly for this repository's backlog.
 
 | Task | Command |
 |------|---------|
@@ -32,12 +97,12 @@ development only, not a change to the installed consumer workflow.
 | Run CLI (consumer project) | `./briefcase <command>` |
 | Format | `ruff format src/ tests/` |
 
-Load `.env` before CLI commands that hit Notion:
+For legacy Notion integration only, load `.env` before CLI commands that hit Notion:
 ```
 export $(grep -v '^#' .env | xargs)
 ```
 
-## Project Root Resolution
+## Legacy CLI Project Root Resolution
 
 Always resolve the project root before running any `briefcase` command.
 In Git, this is the current checkout or linked worktree, not necessarily the
@@ -63,7 +128,8 @@ config, initialize it explicitly; never assume the local backend.
 ## Key Conventions
 
 - All folders use `kebab-case`
-- Titles (inbox, backlog, brief): **3–7 words**. Longer context goes in `--notes`.
+- Issue and task titles: **3–7 words**. Put longer context in the issue discussion
+  or linked requirements document, not a second status queue.
 - Python: PEP 8 via `ruff`. Config in YAML. Secrets in `.env`, never committed.
 - See `_project/tech-stack.md` for full stack. See `_project/testing-strategy.md` for test policy.
 

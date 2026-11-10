@@ -2,7 +2,6 @@ import re
 import shutil
 from pathlib import Path
 
-
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "workflow-kit"
 
@@ -25,6 +24,7 @@ def test_staged_shared_assets_and_relative_links_resolve(tmp_path):
     staged = stage_workflow_kit(tmp_path)
     expected = [
         "skills/requirements/SKILL.md",
+        "profiles/standard/skills/architect/SKILL.md",
         "skills/build/SKILL.md",
         "skills/review/SKILL.md",
         "templates/shared/requirement.md",
@@ -53,7 +53,7 @@ def test_requirements_is_direct_revision_bound_and_failure_safe():
         "not a continuous scanner or automatic orchestrator",
         "exact approved revision",
         "material scope change invalidates the approval",
-        "Standard routes approved scope to Architecture",
+        "Standard moves approved scope to `Technical shaping`",
         "GitHub read or write failure pauses",
         "Never fall back to a Markdown status queue",
     ]
@@ -78,10 +78,10 @@ def test_review_refuses_self_review_and_binds_current_head():
 
 
 def test_delivery_template_preserves_completion_distinctions():
-    requirements = (SOURCE / "skills/requirements/SKILL.md").read_text()
+    review = (SOURCE / "skills/review/SKILL.md").read_text()
     delivery = (SOURCE / "templates/shared/delivery.md").read_text()
 
-    assert "Accepted, landed, released, and deployed remain distinct" in requirements
+    assert "Never treat `Accepted` as landed, released, deployed, or `Done`" in review
     assert "Standard release evidence" in delivery
     assert "Deployment" in delivery
     assert "Project `Done` verified" in delivery
@@ -113,3 +113,36 @@ def test_templates_capture_revision_commit_evidence_and_verdict():
     assert "Reviewed head" in review
     assert "Criterion evidence" in review
     assert "## Verdict" in review
+
+
+def test_standard_technical_loop_reuses_scope_and_checks_every_ready_gate():
+    architect = normalized(
+        (SOURCE / "profiles/standard/skills/architect/SKILL.md").read_text()
+    )
+    for phrase in [
+        "applies only to Standard profile work",
+        '"Run the technical shaping loop"',
+        '"Run the architecture loop"',
+        "A Requirements invocation remains owned by Requirements",
+        "read every page of `Technical shaping`",
+        "Do not redraft approved scope",
+        "never infer approval or restart all shaping",
+        "exact approved requirement revision",
+        "verified Done dependencies",
+        "Build assignment is recorded atomically",
+        "absence of competing implementation claims",
+        "Before any mutation, reread",
+        "set Ready last",
+        "GitHub read or write failure pauses",
+        "Stop at handoff",
+        "Never automatically dispatch Build",
+    ]:
+        assert phrase in architect
+
+
+def test_standard_roles_remain_distinct_and_lite_is_unchanged():
+    requirements = normalized((SOURCE / "skills/requirements/SKILL.md").read_text())
+    profile = normalized((SOURCE / "profiles/standard/PROFILE.md").read_text())
+    assert "never silently execute the Architecture loop" in requirements
+    assert "Requirements and Architect remain distinct roles" in profile
+    assert "Build assignment is recorded atomically" in profile

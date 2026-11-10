@@ -1,12 +1,11 @@
 import re
-import shutil
 from pathlib import Path
-
 
 ROOT = Path(__file__).resolve().parents[2]
 SOURCE = ROOT / "workflow-kit"
 
-ARCHITECT_SKILL = (SOURCE / "architect" / "SKILL.md").read_text()
+ARCHITECT_PATH = SOURCE / "profiles" / "standard" / "skills" / "architect" / "SKILL.md"
+ARCHITECT_SKILL = ARCHITECT_PATH.read_text()
 BRIEF_TEMPLATE = (SOURCE / "templates" / "standard" / "brief.md").read_text()
 DECISION_TEMPLATE = (SOURCE / "templates" / "standard" / "decision.md").read_text()
 RELEASE_TEMPLATE = (SOURCE / "templates" / "standard" / "release.md").read_text()
@@ -28,7 +27,9 @@ def markdown_links(path):
 
 def test_all_deliverables_exist():
     expected = [
-        "architect/SKILL.md",
+        "profiles/standard/skills/architect/SKILL.md",
+        "workflow.yaml",
+        "profiles/lite/PROFILE.md",
         "templates/standard/brief.md",
         "templates/standard/decision.md",
         "templates/standard/release.md",
@@ -48,7 +49,7 @@ def test_no_new_src_directory():
 
 def test_all_standard_asset_links_resolve():
     for markdown in [
-        SOURCE / "architect" / "SKILL.md",
+        ARCHITECT_PATH,
         SOURCE / "templates" / "standard" / "brief.md",
         SOURCE / "templates" / "standard" / "decision.md",
         SOURCE / "templates" / "standard" / "release.md",
@@ -132,11 +133,17 @@ def test_architect_github_failure_rule():
 
 def test_brief_template_has_all_required_sections():
     required_sections = [
+        "## Context and expected experience",
+        "## Scope and exclusions",
+        "## Acceptance and verification",
+        "## Constraints and compatibility",
         "## Technical approach",
         "## Alternatives considered",
         "## Risk assessment",
         "## NFR verification",
         "## Architect sign-off",
+        "## Decisions and child Tasks",
+        "## Release obligations",
     ]
     for section in required_sections:
         assert section in BRIEF_TEMPLATE
@@ -224,6 +231,45 @@ def test_release_template_has_no_release_note_representation():
     assert "Approval:" in RELEASE_TEMPLATE
 
 
+def test_note_exemption_cannot_waive_version_or_readiness():
+    version_section = RELEASE_TEMPLATE.split("## Version")[1].split("## Scope")[0]
+    assert "Version impact:" in version_section
+    assert "independent reason" in version_section
+    assert "no-release-note-required" not in version_section
+    assert "exemption never waives version impact" in normalized(RELEASE_TEMPLATE)
+    assert "## Environment and readiness" in RELEASE_TEMPLATE
+    assert "Remaining obligations:" in RELEASE_TEMPLATE
+
+
+def test_architect_is_discoverable_only_as_standard_extension():
+    assert not (SOURCE / "architect" / "SKILL.md").exists()
+    assert "(skills/architect/SKILL.md)" in STANDARD_PROFILE
+    assert "(profiles/standard/skills/architect/SKILL.md)" in (
+        SOURCE / "PLAYBOOK.md"
+    ).read_text()
+
+
+def test_profiles_reference_the_same_shared_role_files():
+    for profile in ("lite", "standard"):
+        path = SOURCE / "profiles" / profile / "PROFILE.md"
+        links = markdown_links(path)
+        for role in ("requirements", "build", "review"):
+            expected = (SOURCE / "skills" / role / "SKILL.md").resolve()
+            assert expected in [(path.parent / link).resolve() for link in links]
+    lite = (SOURCE / "profiles/lite/PROFILE.md").read_text()
+    assert "no Architect role" in normalized(lite)
+    assert "Requirements-owned blocker" in lite
+    assert "Standard release record requirement" in lite
+
+
+def test_signoff_invalidation_covers_all_material_constraints():
+    for text in (ARCHITECT_SKILL, BRIEF_TEMPLATE, STANDARD_PROFILE):
+        for category in ("constraints", "NFRs", "approach assumptions", "release obligations"):
+            assert category.casefold() in text.casefold()
+    assert "Result:" in BRIEF_TEMPLATE
+    assert "Approved Task revision:" in BRIEF_TEMPLATE
+
+
 def test_release_template_separates_deployment():
     assert "Deployment" in RELEASE_TEMPLATE
     assert "separate record" in RELEASE_TEMPLATE or "not be inferred" in normalized(RELEASE_TEMPLATE)
@@ -235,7 +281,15 @@ def test_release_template_has_checks_table():
 
 def test_release_template_has_coverage_fields():
     assert "Child Tasks covered" in RELEASE_TEMPLATE
-    assert "Coverage complete" in RELEASE_TEMPLATE
+    assert "Applicable coverage complete" in RELEASE_TEMPLATE
+    assert "## Completion gate" in RELEASE_TEMPLATE
+
+
+def test_task_architecture_applicability_is_explicit():
+    for text in (ARCHITECT_SKILL, BRIEF_TEMPLATE, STANDARD_PROFILE):
+        assert "parent sign-off applies" in text
+        assert "Task-specific sign-off" in text
+    assert "explicit Architect determination" in normalized(ARCHITECT_SKILL)
 
 
 # ── Standard example ─────────────────────────────────────────────────────────
@@ -244,7 +298,7 @@ def test_release_template_has_coverage_fields():
 def test_standard_example_has_all_required_artifacts():
     required = [
         "## Requirement packet (Feature)",
-        "## Standard brief (Architect sign-off)",
+        "## Feature PRD (Architect sign-off)",
         "## Requirement packet (child Task",
         "## Standard release record",
     ]
@@ -280,7 +334,7 @@ def test_standard_example_release_has_version_and_coverage():
     release_text = STANDARD_EXAMPLE[release_start:]
     assert "Version:" in release_text
     assert "Child Tasks covered:" in release_text
-    assert "Coverage complete: yes" in release_text
+    assert "Applicable coverage complete: yes" in release_text
 
 
 # ── Lite example ─────────────────────────────────────────────────────────────

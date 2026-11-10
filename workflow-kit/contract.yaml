@@ -1,0 +1,191 @@
+version: 1
+
+roles:
+  requirements: Requirements
+  architect: Architect
+  build: Build
+  review: Review
+  none: None
+
+statuses:
+  inbox:
+    label: Inbox
+    owner: Requirements
+  requirement-shaping:
+    label: Requirement shaping
+    owner: Requirements
+  technical-shaping:
+    label: Technical shaping
+    owner: Architect
+    profiles: [standard]
+  ready:
+    label: Ready
+    owner: Build
+  in-progress:
+    label: In progress
+    owner: Build
+  in-review:
+    label: In review
+    owner: Review
+  blocked:
+    label: Blocked
+    owner: explicit
+  done:
+    label: Done
+    owner: None
+    terminal: true
+
+profiles: [lite, standard]
+work-types: [Idea, Feature, Task]
+review-verdicts: [Pending, Accepted, Changes requested, Blocked]
+
+evidence:
+  approved-requirement: Approved requirement revision is linked.
+  current-feature-signoff: Current Feature architecture sign-off is linked.
+  current-task-architecture: Task records parent sign-off applies or a current Task sign-off.
+  completed-dependencies: Every required dependency is Done with evidence.
+  no-competing-work: No active competing session, branch, worktree, or PR exists.
+  claim-writable: Assignee and Claim Session can be recorded atomically with the transition.
+  implementation-pr: The tested implementation head is pushed in the intended PR.
+  changes-requested: Review recorded actionable in-scope findings for the exact head.
+  independent-acceptance: A separate Review session accepted the exact PR head.
+  reviewed-head-current: The live PR head still equals the independently reviewed head.
+  required-checks: All applicable required checks passed.
+  landing-verified: The accepted change landed on the intended base.
+  task-coverage-complete: The approved Task slice is fully covered.
+  task-release-obligations: Release obligations allocated to the Task are complete.
+  feature-coverage-complete: All required child slices and Feature criteria are covered.
+  feature-release-evidence: Feature version, release-note, environment, and readiness evidence is complete.
+  blocker-owner: The responsible Action Owner is explicit.
+  resume-status: Resume Status is recorded.
+  resume-condition: The evidence needed to resume is recorded.
+  blocker-resolved: The recorded blocker has been resolved.
+  target-gates-revalidated: Every gate for the Resume Status was revalidated.
+
+transitions:
+  - id: begin-requirement-shaping
+    from: inbox
+    to: requirement-shaping
+    actor: Requirements
+    profiles: [lite, standard]
+    requires: []
+
+  - id: standard-approved-at-creation
+    from: inbox
+    to: technical-shaping
+    actor: Requirements
+    profiles: [standard]
+    requires: [approved-requirement]
+
+  - id: route-standard-scope
+    from: requirement-shaping
+    to: technical-shaping
+    actor: Requirements
+    profiles: [standard]
+    requires: [approved-requirement]
+
+  - id: ready-lite-work
+    from: requirement-shaping
+    to: ready
+    actor: Requirements
+    profiles: [lite]
+    requires: [approved-requirement, completed-dependencies, no-competing-work]
+
+  - id: ready-standard-feature
+    from: technical-shaping
+    to: ready
+    actor: Architect
+    profiles: [standard]
+    work-types: [Feature]
+    requires:
+      - approved-requirement
+      - current-feature-signoff
+      - completed-dependencies
+      - no-competing-work
+
+  - id: ready-standard-task
+    from: technical-shaping
+    to: ready
+    actor: Architect
+    profiles: [standard]
+    work-types: [Task]
+    requires:
+      - approved-requirement
+      - current-feature-signoff
+      - current-task-architecture
+      - completed-dependencies
+      - no-competing-work
+
+  - id: claim-build-work
+    from: ready
+    to: in-progress
+    actor: Build
+    profiles: [lite, standard]
+    requires: [claim-writable, no-competing-work]
+    effects: [record-assignee, record-claim-session]
+
+  - id: handoff-for-review
+    from: in-progress
+    to: in-review
+    actor: Build
+    profiles: [lite, standard]
+    requires: [implementation-pr, required-checks]
+
+  - id: request-build-fixes
+    from: in-review
+    to: in-progress
+    actor: Review
+    profiles: [lite, standard]
+    requires: [changes-requested]
+
+  - id: accept-review
+    from: in-review
+    to: in-review
+    actor: Review
+    profiles: [lite, standard]
+    requires: [independent-acceptance, reviewed-head-current, required-checks]
+    effects: [set-review-verdict-accepted]
+
+  - id: complete-task
+    from: in-review
+    to: done
+    actor: Review
+    profiles: [lite, standard]
+    work-types: [Task]
+    requires:
+      - independent-acceptance
+      - reviewed-head-current
+      - required-checks
+      - landing-verified
+      - task-coverage-complete
+      - task-release-obligations
+
+  - id: complete-feature
+    from: in-review
+    to: done
+    actor: Review
+    profiles: [standard]
+    work-types: [Feature]
+    requires:
+      - independent-acceptance
+      - reviewed-head-current
+      - required-checks
+      - landing-verified
+      - feature-coverage-complete
+      - feature-release-evidence
+
+  - id: block-work
+    from: [inbox, requirement-shaping, technical-shaping, ready, in-progress, in-review]
+    to: blocked
+    actor: current-owner
+    result-owner: explicit
+    profiles: [lite, standard]
+    requires: [blocker-owner, resume-status, resume-condition]
+
+  - id: resume-blocked-work
+    from: blocked
+    to: $resume-status
+    actor: action-owner
+    result-owner: target-default
+    profiles: [lite, standard]
+    requires: [blocker-resolved, target-gates-revalidated]

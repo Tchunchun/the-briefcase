@@ -4,12 +4,100 @@ A multi-agent workflow framework that takes a software idea from raw thought to 
 
 Start with [Briefcase Lite](lite/README.md) for the requirements, build, and
 review loops using Markdown and Git, with an optional GitHub Projects board.
-For the full workflow with five roles, a CLI, and configurable storage, see
-the [installation guide](#quick-start).
+For the current GitHub-first workflow, see the
+[workflow playbook](workflow-kit/PLAYBOOK.md): Requirements, Architect
+(Standard only), Build, and Review, invoked directly without a Delivery Manager.
+For the legacy workflow with five roles, a CLI, and configurable storage, see
+the [installation guide](#quick-start). The installer still installs that
+legacy workflow, not the additive workflow kit.
 
-## What This Does
+### Technically shape Standard features
 
-Five specialized AI agent roles, a strict handoff protocol between them, and a CLI toolchain (`briefcase`) that manages every planning artifact against a pluggable storage backend (local files or Notion).
+For framework development on the Standard board, say **"Run the technical shaping
+loop for <topic>"**, **"Run the architecture loop"**, or supply an issue URL or
+Project card. Requirements and Architect remain distinct: Requirements shapes
+and approves product scope, while Architect owns Technical shaping. An already
+approved Feature may enter Technical shaping directly. The session reuses that
+approved revision, resolves the technical approach,
+dependencies, risks, and verification details, and records technical sign-off. Ready
+requires that approval, technical sign-off (or justified non-applicability),
+satisfied dependencies, and no competing implementation claim. The loop ends with a
+verified handoff and an exact Build prompt; it does not start implementation.
+
+Feature and Task gates are intentionally different. Architect signs the full
+Feature architecture. A child Task records either `parent sign-off applies` or
+a Task-specific sign-off when it changes a technical decision, interface,
+dependency, NFR, approach assumption, or release obligation. A Task may become
+Done after its own accepted slice lands and its allocated gates pass; Feature
+Done additionally requires complete required child coverage and Feature-level
+release evidence. Closeout ownership is configured once in
+[`workflow-kit/workflow.yaml`](workflow-kit/workflow.yaml).
+
+The machine-readable lifecycle is
+[`workflow-kit/contract.yaml`](workflow-kit/contract.yaml). Validate the local
+contract and repository manifest with `python3 workflow-kit/runtime.py
+--offline`; run `python3 workflow-kit/runtime.py` for the strictly read-only
+GitHub repository and Project preflight. The preflight reports schema or
+permission drift and never repairs the board. See the
+[workflow-kit installation path](workflow-kit/INSTALLATION.md); the root
+installer remains legacy until a named pilot validates the new contract.
+
+Before an invoked role writes Project state, it must run the live preflight and
+an allowed `runtime.py --transition ...` decision, preserve that decision, and
+verify every resulting field by readback. The
+[Workflow Kit CI](.github/workflows/workflow-kit.yml) enforces offline contract
+validation, scenario tests, focused lint, and the complete non-live test suite.
+
+After bootstrap is explicitly ended, with no target the loop captures Technical
+shaping work owned by Architect. The Requirements loop never silently becomes
+Architect. Missing approval or a material scope change returns to Requirements;
+approved Standard work moves to Technical shaping with Architect as Action
+Owner. **"Run the requirements loop"** remains a compatibility alias; it does
+not repeat product shaping for existing features. Lite is unchanged.
+See the [repository technical shaping loop](_project/backlog-policy.md#repository-technical-shaping-loop)
+for authority, handoff packets, blockers, and safe reruns. This is a
+repository-specific Standard entry point, not a new CLI command or a change to
+installed consumer/Lite behavior.
+
+### Build the kit before dogfooding
+
+This repository is currently in a bootstrap phase. Requests to build, repair,
+document, or test `workflow-kit/` are handled as ordinary repository work; they
+do not activate Standard or Lite mode merely because they say "build", "fix",
+or "review", or include an issue or Project link. Project #5 remains the only
+backlog, and normal tests and PR safeguards still apply.
+
+To dogfood the completed flow, explicitly say **"Use Standard mode for
+<target>"**, **"Use Lite mode for <target>"**, or directly invoke a named role or
+loop for that target. Activation is prospective and limited to that named pilot
+work. Existing kit-development work is not retroactively routed through the
+workflow. No-target backlog sweeps remain disabled until bootstrap is explicitly
+ended.
+
+### Review this repository's backlog
+
+For framework development, [Project #5](https://github.com/users/Tchunchun/projects/5)
+is the authoritative backlog. During bootstrap, invoke the review loop only for
+a named, explicitly activated pilot target. After bootstrap is explicitly ended,
+in a session separate from implementation say **"Run the review loop"** to
+assess its In review column, or supply a specific PR, issue URL, or card. After
+a pass, the reviewer merges the eligible PR, verifies intended-base landing and
+applicable release evidence, then closes the task and marks it Done without a
+separate Deliver stage. Full scope,
+independent revision-specific acceptance, required checks, eligible approvals,
+and branch protections remain mandatory. Queued or otherwise gated work stays
+In review; missing evidence is reported with an owner and unblock condition.
+An explicitly read-only review does not merge or update the board.
+
+See the [repository review loop](_project/backlog-policy.md#repository-review-loop)
+for closeout permissions, legacy-card reconciliation, and verified GitHub
+updates. This is a repository-specific workflow, not a change to Lite or the
+legacy installed consumer workflow. It is an agent-invoked
+**pass -> merge -> verify -> close** loop, not an unattended background service.
+
+## Legacy Installed Workflow
+
+The legacy installed workflow uses five specialized AI agent roles, a strict handoff protocol between them, and a CLI toolchain (`briefcase`) that manages every planning artifact against a pluggable storage backend (local files or Notion). This is not the current repository agent roster.
 
 | Skill | Responsibility |
 |---|---|
