@@ -118,6 +118,38 @@ prior status, set `Action Owner` to the role that must act, record `Resume
 Status`, state the evidence needed to resume, and revalidate all gates before
 restoring the item. There is no unconditional `Blocked` transition.
 
+When transitioning an item to `Blocked`, set two Project fields **before** the
+status write:
+
+- `Blocking reason`: one short phrase naming the gap and owner, e.g.
+  `Product decision needed: scope boundary on mode switching (owner: PO)`.
+- `Resume Status`: the status to restore when the blocker is resolved (the
+  status the item held immediately before `Blocked`).
+
+When the blocker is resolved and the item transitions out of `Blocked`, clear
+`Blocking reason` (set to empty) and clear `Resume Status`. Revalidate all gates
+before moving the item to its restored status.
+
+## Delivery verification
+
+On an explicit closeout invocation, use
+[the delivery template](../../templates/shared/delivery.md) and re-read live
+GitHub state. Mark an item `Done` and close its issue only when all applicable
+conditions are verified:
+
+1. Review accepted the approved requirement revision and exact implementation
+   head in a separate session.
+2. That accepted head landed on the intended base branch.
+3. Required checks pass and the issue or parent Feature has complete scope and
+   child coverage.
+4. Standard has linked release/version/readiness evidence; Lite follows the
+   application policy without inventing a Briefcase release record.
+5. Issue closure and Project `Done` both succeed and are read back.
+
+Accepted, landed, released, and deployed remain distinct. Deployment is never
+inferred from `Done`. If any closeout gate is missing, keep the item `In review`
+or record a specific `Blocked` packet; do not fabricate completion.
+
 ## Boundaries
 
 - Never approve scope on the user's behalf.

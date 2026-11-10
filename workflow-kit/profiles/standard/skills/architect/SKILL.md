@@ -64,7 +64,9 @@ For the linked requirement revision, evaluate:
    it must satisfy.
 
    When splitting, apply the **Task naming contract** below before recording
-   each child.
+   each child. For each new child Task issue, set the GitHub `Parent issue`
+   relationship to the parent Feature so it appears correctly in the
+   Dependency map view and the `Sub-issues progress` roll-up on the Feature card.
 
 2. **Alternatives considered** — List alternatives that were seriously evaluated.
    For each, state why it was rejected. Record at least one alternative when the
@@ -143,6 +145,15 @@ record it as a blocker using
 not record sign-off. Build must not claim the item while a stopping question
 is open.
 
+Before writing `Blocked` status, set:
+
+- `Blocking reason`: one short phrase naming the unresolved question and owner,
+  e.g. `Technical question unresolved: NFR X incompatible with approach Y (owner: Architect)`.
+- `Resume Status`: the status the item held before it was blocked (`Technical shaping`
+  in almost all cases).
+
+Clear both fields when the question is resolved and the item is restored.
+
 ## Sign-off
 
 Use [the Feature PRD template](../../../../templates/standard/brief.md). Record the
@@ -183,10 +194,11 @@ overwriting them.
 - Approved scope awaiting sign-off: `Technical shaping` with
   `Action Owner: Architect`.
 - An unresolved stopping gate: `Blocked`, with its owner and resume condition.
+  Set `Blocking reason` and `Resume Status` before the status write (see
+  Stopping questions above).
 - Only when approval, applicable exact-revision Feature/Task architecture
   evidence, verified Done dependencies, and absence of competing implementation
-  claims all pass: `Ready` with
-  `Action Owner: Build`.
+  claims all pass: `Ready` with `Action Owner: Build`.
 
 Build assignment is recorded atomically when Build claims `Ready`; it is not a
 prerequisite for Architect to set `Ready`.
