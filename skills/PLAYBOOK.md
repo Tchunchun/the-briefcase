@@ -354,7 +354,7 @@ All planning artifacts are accessed through CLI commands. The CLI routes to the 
 
 ### On Session Start
 1. Read this file fully.
-2. **Resolve the project root.** If `./briefcase` or `_project/storage.yaml` is not in the current directory, you may be in a git worktree or subdirectory. Run `git rev-parse --show-toplevel` and `cd` to the result before proceeding. A missing `./briefcase` script means you need to resolve the root — it does **not** mean the CLI is unavailable.
+2. **Resolve the project root.** Run `git rev-parse --show-toplevel` in Git and keep the current checkout/worktree as the data root. A linked worktree may share the main checkout's `.briefcase/` code and environment, but must have its own `_project/storage.yaml`; never inherit the main checkout's config or assume a backend. If the launcher or shared skill files are missing here, locate the initialized main checkout with `git worktree list`, read its framework instructions, and invoke its launcher by absolute path from this worktree. The launcher defaults `--project-dir` to this checkout root without changing the caller's directory. An explicit `--project-dir` overrides that default. Do not switch to the main checkout merely to find the CLI.
 3. Determine the correct agent role for the current request.
 4. Read skills/{role}/SKILL.md for that role.
 5. If `_project/` does not exist, route to the architect agent for project setup before any implementation work.

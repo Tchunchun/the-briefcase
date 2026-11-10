@@ -270,8 +270,8 @@ def brief_write(
             with open(file_path) as fh:
                 content = fh.read()
             data = {
-                "title": title or name,
-                "status": status or "draft",
+                "title": title if title is not None else existing.get("title", name),
+                "status": status if status is not None else existing.get("status", "draft"),
                 "project": (
                     project
                     if project is not None
@@ -286,10 +286,11 @@ def brief_write(
                     data[key] = existing[key]
             data.update(file_sections)
             # Extract status from file if present
-            data["status"] = extract_brief_status(content, data["status"])
+            if status is None:
+                data["status"] = extract_brief_status(content, data["status"])
             data["project"] = extract_brief_project(content, data["project"])
             # Extract title from heading if not provided
-            if not title:
+            if title is None:
                 title_match = re.match(r"^#\s+(.+)", content)
                 if title_match:
                     data["title"] = title_match.group(1).strip()

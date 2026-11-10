@@ -9,6 +9,7 @@ from pathlib import Path
 import click
 import yaml
 
+from src.cli.helpers import project_dir_option
 from src.sync.to_local import sync_to_local, sync_templates_to_local
 
 
@@ -20,12 +21,7 @@ def sync():
 
 @sync.command(name="local")
 @click.option("--dry-run", is_flag=True, help="Preview changes without writing.")
-@click.option(
-    "--project-dir",
-    type=click.Path(exists=True, file_okay=False, resolve_path=True),
-    default=".",
-    help="Project root directory.",
-)
+@project_dir_option
 def sync_local(dry_run: bool, project_dir: str) -> None:
     """Pull from cloud backend to local markdown files (Notion → local)."""
     try:
@@ -70,12 +66,7 @@ def sync_local(dry_run: bool, project_dir: str) -> None:
 
 @sync.command(name="notion")
 @click.option("--dry-run", is_flag=True, help="Preview changes without writing.")
-@click.option(
-    "--project-dir",
-    type=click.Path(exists=True, file_okay=False, resolve_path=True),
-    default=".",
-    help="Project root directory.",
-)
+@project_dir_option
 def sync_notion(dry_run: bool, project_dir: str) -> None:
     """Push local markdown files to cloud backend (local → Notion)."""
     from src.sync.to_notion import sync_to_notion
@@ -101,12 +92,7 @@ def sync_notion(dry_run: bool, project_dir: str) -> None:
 
 @sync.command(name="templates")
 @click.option("--dry-run", is_flag=True, help="Preview changes without writing.")
-@click.option(
-    "--project-dir",
-    type=click.Path(exists=True, file_okay=False, resolve_path=True),
-    default=".",
-    help="Project root directory.",
-)
+@project_dir_option
 def sync_templates(dry_run: bool, project_dir: str) -> None:
     """Pull updated templates from the cloud backend to local template/ files."""
     try:
@@ -126,12 +112,7 @@ def sync_templates(dry_run: bool, project_dir: str) -> None:
 
 @sync.command(name="push")
 @click.option("--dry-run", is_flag=True, help="Preview changes without committing or pushing.")
-@click.option(
-    "--project-dir",
-    type=click.Path(exists=True, file_okay=False, resolve_path=True),
-    default=".",
-    help="Project root directory.",
-)
+@project_dir_option
 def sync_push(dry_run: bool, project_dir: str) -> None:
     """Stage and push artifacts to git remote (git backend only)."""
     from pathlib import Path
@@ -164,12 +145,7 @@ def sync_push(dry_run: bool, project_dir: str) -> None:
 
 @sync.command(name="pull")
 @click.option("--dry-run", is_flag=True, help="Preview incoming changes without applying them.")
-@click.option(
-    "--project-dir",
-    type=click.Path(exists=True, file_okay=False, resolve_path=True),
-    default=".",
-    help="Project root directory.",
-)
+@project_dir_option
 def sync_pull(dry_run: bool, project_dir: str) -> None:
     """Fetch and merge artifacts from git remote (git backend only)."""
     from pathlib import Path
@@ -242,12 +218,7 @@ def sync_pull(dry_run: bool, project_dir: str) -> None:
     is_flag=True,
     help="Keep the temporary clean consumer workspace for inspection.",
 )
-@click.option(
-    "--project-dir",
-    type=click.Path(exists=True, file_okay=False, resolve_path=True),
-    default=".",
-    help="Project root directory.",
-)
+@project_dir_option
 def sync_shakedown_git(
     brief_name: str,
     feature_title: str,
@@ -378,4 +349,3 @@ def _assert_expected(actual: str, expected: str, field_name: str) -> None:
         raise click.ClickException(
             f"{field_name} mismatch: expected {expected!r}, got {actual!r}"
         )
-

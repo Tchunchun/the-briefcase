@@ -247,6 +247,35 @@ key or external service. Artifact commands emit JSON; successful reads include:
 
 This works for both local and Notion backends because all commands route through the same CLI contract.
 
+### Use Git worktrees
+
+Linked worktrees can share the main checkout's `.briefcase/` code and Python
+environment. Their `_project/storage.yaml` and planning artifacts remain local
+to each worktree; a missing worktree config is an error, not permission to use
+the main checkout's backend.
+
+Run the committed launcher from the worktree or one of its subdirectories:
+
+```bash
+/absolute/path/to/worktree/briefcase brief read my-feature
+```
+
+If that branch does not contain the launcher, invoke the initialized main
+checkout's launcher by absolute path while staying in the worktree. Use
+`git worktree list` to locate the main checkout. Do not change directory to it
+merely to find the framework.
+
+The launcher defaults `--project-dir` to the current checkout root. Relative
+inputs such as `--file partial.md` still resolve from the caller's directory,
+and explicit `--project-dir` options take precedence. Non-Git projects retain
+the nearest `.briefcase/` root behavior. Framework installation/update commands
+must target a checkout with its own `.briefcase/` installation.
+
+Refresh existing launchers by rerunning the installer against the main
+checkout and bringing the updated committed launcher into the worktree branch.
+Existing agent entrypoints are preserved by the installer, so merge the updated
+worktree guidance into them manually.
+
 ### Enable Notion backend (optional)
 
 To use Notion as your planning surface instead of local files:
@@ -301,6 +330,11 @@ All commands output JSON (`{"success": true, "data": ...}`) to stdout, errors to
 ./briefcase brief revision my-feature <revision-id>       # Read one stored revision
 ./briefcase brief restore my-feature <revision-id> --change-summary "..."
 ```
+
+Partial writes preserve omitted fields. For `--file` updates, omitted title
+and status retain their existing values; new briefs default to the slug and
+`draft`. Explicit `--title` and `--status` options override file metadata, which
+in turn overrides stored metadata.
 
 ### Backlog
 

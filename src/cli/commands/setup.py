@@ -15,6 +15,7 @@ from src.core.storage.config import (
     VALID_BACKENDS,
 )
 from src.core.gitignore import ensure_gitignore, entries_for_backend
+from src.cli.helpers import project_dir_option
 
 
 @click.command()
@@ -24,12 +25,7 @@ from src.core.gitignore import ensure_gitignore, entries_for_backend
     default=None,
     help="Storage backend to use. If not specified, prompts interactively.",
 )
-@click.option(
-    "--project-dir",
-    type=click.Path(exists=True, file_okay=False, resolve_path=True),
-    default=".",
-    help="Project root directory (default: current directory).",
-)
+@project_dir_option
 def setup(backend: str | None, project_dir: str) -> None:
     """Initialize project storage configuration.
 

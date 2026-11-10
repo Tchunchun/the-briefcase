@@ -105,16 +105,25 @@ export $(grep -v '^#' .env | xargs)
 ## Legacy CLI Project Root Resolution
 
 Always resolve the project root before running any `briefcase` command.
-If you are in a git worktree (e.g. `.claude/worktrees/<name>/`), a subdirectory, or any path where `./briefcase` does not exist, you are **not** missing the CLI — you are not at the project root.
+In Git, this is the current checkout or linked worktree, not necessarily the
+main checkout that holds the framework installation:
 
 ```bash
 PROJECT_ROOT="$(git rev-parse --show-toplevel)"
 cd "$PROJECT_ROOT"
 ```
 
-Then run `briefcase` commands from the project root, or pass `--project-dir "$PROJECT_ROOT"` explicitly.
+Keep `_project/storage.yaml` and artifacts in this checkout. The installed
+launcher can share the main checkout's `.briefcase/` code and Python environment
+without inheriting its config or changing the caller's directory. It defaults
+`--project-dir` to the current checkout root; explicit options still win.
 
-> **Never treat a missing `./briefcase` as "CLI not available."** It means you need to resolve the project root first.
+If `./briefcase` is missing, use `git worktree list` to locate the initialized
+main checkout and invoke its launcher by absolute path **from this worktree**.
+Read shared framework instructions there if `.briefcase/skills/` is absent
+here. Do not `cd` to the main checkout or point `--project-dir` there unless
+you intend to operate on its artifacts. If this worktree has no canonical
+config, initialize it explicitly; never assume the local backend.
 
 ## Key Conventions
 
