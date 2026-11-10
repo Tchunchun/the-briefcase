@@ -43,6 +43,14 @@ Feature folder names must be identical across docs/plan/, src/, tests/, and docs
 
 ## Agent Routing
 
+Repository-specific instructions in `AGENTS.md` and its linked backlog policy
+take precedence over the generic routing, artifact-access, status, and ownership
+rules below. In particular, a repository may use a GitHub Project as its only
+backlog and explicitly authorize independent Review to merge passing PRs and
+perform verified closeout. Follow that policy's completion gates; do not run legacy backlog
+commands or infer Done from acceptance alone. Without an override, consumer
+behavior is unchanged.
+
 ### 1. Ideation Agent
 
 Use when the request is exploratory, ambiguous, or still shaping scope.

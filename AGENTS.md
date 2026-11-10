@@ -9,12 +9,20 @@ Note: In this repo, skills live at `skills/` and paths in the PLAYBOOK are corre
 ## This Repository's Backlog
 
 Read [_project/backlog-policy.md](_project/backlog-policy.md).
-[GitHub Project #4](https://github.com/users/Tchunchun/projects/4) is the only
+[GitHub Project #5](https://github.com/users/Tchunchun/projects/5) is the only
 active backlog and owns execution status. This repository-specific policy
 overrides generic playbook instructions to use CLI backlog rows, the legacy
 inbox, or backlog-scanning automation. Use GitHub directly; do not recreate or
 update the retired Markdown backlog. If access fails, report it and pause
 affected work rather than silently falling back to local status.
+
+When the user says **"Run the review loop"**, follow the
+[repository review loop](_project/backlog-policy.md#repository-review-loop).
+With no target, inspect the active board's In review column. An independent
+review session merges a passing PR, verifies landing and applicable delivery
+gates, then marks the task Done and closes its linked issue under that
+procedure. Required checks, approvals, and branch protections still apply;
+queued or gated work stays open. Explicitly read-only reviews do not mutate.
 
 The configured Git backend still stores briefs, decisions, releases, and
 history; no GitHub storage adapter is implied. This override is for framework

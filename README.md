@@ -7,6 +7,25 @@ review loops using Markdown and Git, with an optional GitHub Projects board.
 For the full workflow with five roles, a CLI, and configurable storage, see
 the [installation guide](#quick-start).
 
+### Review this repository's backlog
+
+For framework development, [Project #5](https://github.com/users/Tchunchun/projects/5)
+is the authoritative backlog. In a session separate from implementation, say
+**"Run the review loop"** to assess its In review column, or supply a specific
+PR, issue URL, or card. After a pass, the reviewer merges the eligible PR,
+verifies intended-base landing and applicable release evidence, then marks work
+Done and closes its linked issue without a separate manual handoff. Full scope,
+independent revision-specific acceptance, required checks, eligible approvals,
+and branch protections remain mandatory. Queued or otherwise gated work stays
+In review; missing evidence is reported with an owner and unblock condition.
+An explicitly read-only review does not merge or update the board.
+
+See the [repository review loop](_project/backlog-policy.md#repository-review-loop)
+for closeout permissions, legacy-card reconciliation, and verified GitHub
+updates. This is a repository-specific workflow, not a change to Lite or the
+legacy installed consumer workflow. It is an agent-invoked
+**pass -> merge -> verify -> close** loop, not an unattended background service.
+
 ## What This Does
 
 Five specialized AI agent roles, a strict handoff protocol between them, and a CLI toolchain (`briefcase`) that manages every planning artifact against a pluggable storage backend (local files or Notion).
