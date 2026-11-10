@@ -9,8 +9,9 @@ or deployment evidence. Use the [Standard profile](../profiles/standard/PROFILE.
 
 The Feature's requirement packet is shaped and approved at creation. It enters
 Technical shaping directly; Architect reuses that approved revision rather than
-running another Requirements pass, then verifies dependencies and an accepted
-Build assignment before Ready.
+running another Requirements pass, then verifies dependencies and the absence
+of a competing implementation claim before Ready. Build records assignment
+when it claims Ready.
 
 ---
 
@@ -98,6 +99,8 @@ design system; no new dependency is introduced.
 
 ### Architect sign-off
 
+- Work item type: Feature
+- Architecture applicability: Feature sign-off
 - Approved requirement revision: `docs/requirements/feat-42.md @ sha:a1b2c3d`
 - Decision record: none
 - Signed by: architect-session-12
@@ -143,6 +146,13 @@ only the Task-specific scope boundary and verification.
 - Open questions: none
 - Privacy/visibility: internal only
 
+### Architecture applicability
+
+- Parent Feature sign-off: `docs/requirements/feat-42.md @ sha:a1b2c3d`
+- Approved Task revision: `docs/requirements/task-43.md @ sha:b2c3d4e`
+- Result: parent sign-off applies; this slice adds no technical decision,
+  interface, dependency, NFR, approach assumption, or release obligation.
+
 ---
 
 ## Requirement packet (child Task - date picker)
@@ -164,6 +174,7 @@ only the Task-specific scope boundary and verification.
 ## Standard release record
 
 - Work item: `https://github.com/owner/repo/issues/42`
+- Work item type: Feature
 - Profile: `Standard`
 - Approved requirement revision: `docs/requirements/feat-42.md @ sha:a1b2c3d`
 - Review verdict: `https://github.com/owner/repo/pull/55#issuecomment-300`
@@ -180,7 +191,7 @@ only the Task-specific scope boundary and verification.
 
 - Feature: `https://github.com/owner/repo/issues/42`
 - Child Tasks covered: `#43 (API), #44 (UI)`
-- Coverage complete: yes
+- Applicable coverage complete: yes
 
 ### Required checks
 
@@ -200,3 +211,9 @@ Added a date-range filter to the audit log. Admin users can now specify
 - Readiness evidence: passing UI smoke and CI latency evidence linked by Build.
 - Remaining obligations: none in this illustrative completed record.
 - Deployment: not claimed.
+
+### Completion gate
+
+- Task: not applicable
+- Feature: all required child slices covered; Feature acceptance, landing,
+  version, release note, environment, and readiness evidence complete.

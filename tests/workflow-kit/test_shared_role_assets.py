@@ -54,7 +54,7 @@ def test_requirements_is_direct_revision_bound_and_failure_safe():
         "not a continuous scanner or automatic orchestrator",
         "exact approved revision",
         "material scope change invalidates the approval",
-        "Standard routes approved scope to Architecture",
+        "Standard moves approved scope to `Technical shaping`",
         "GitHub read or write failure pauses",
         "Never fall back to a Markdown status queue",
     ]
@@ -79,10 +79,10 @@ def test_review_refuses_self_review_and_binds_current_head():
 
 
 def test_delivery_template_preserves_completion_distinctions():
-    requirements = (SOURCE / "skills/requirements/SKILL.md").read_text()
+    review = (SOURCE / "skills/review/SKILL.md").read_text()
     delivery = (SOURCE / "templates/shared/delivery.md").read_text()
 
-    assert "Accepted, landed, released, and deployed remain distinct" in requirements
+    assert "Never treat `Accepted` as landed, released, deployed, or `Done`" in review
     assert "Standard release evidence" in delivery
     assert "Deployment" in delivery
     assert "Project `Done` verified" in delivery
@@ -124,14 +124,14 @@ def test_standard_technical_loop_reuses_scope_and_checks_every_ready_gate():
         "applies only to Standard profile work",
         '"Run the technical shaping loop"',
         '"Run the architecture loop"',
-        '"Run the requirements loop"** is a compatibility alias',
-        "read every page of `Inbox` and `Technical shaping`",
+        "A Requirements invocation remains owned by Requirements",
+        "read every page of `Technical shaping`",
         "Do not redraft approved scope",
         "never infer approval or restart all shaping",
         "exact approved requirement revision",
         "verified Done dependencies",
-        "accepted Build assignment",
-        "absence of competing claims",
+        "Build assignment is recorded atomically",
+        "absence of competing implementation claims",
         "Before any mutation, reread",
         "set Ready last",
         "GitHub read or write failure pauses",
@@ -141,11 +141,9 @@ def test_standard_technical_loop_reuses_scope_and_checks_every_ready_gate():
         assert phrase in architect
 
 
-def test_standard_alias_does_not_change_lite_or_delivery():
+def test_standard_roles_remain_distinct_and_lite_is_unchanged():
     requirements = normalized((SOURCE / "skills/requirements/SKILL.md").read_text())
     profile = normalized((SOURCE / "profiles/standard/PROFILE.md").read_text())
-    assert "shaping procedure below applies to Lite and explicit product-gap" in requirements
-    assert "delivery verification procedure below in both profiles" in requirements
-    assert "Lite returns to `Shaping`; Standard records `Blocked`" in requirements
-    assert "Added features move directly to Technical shaping" in profile
-    assert "Lite is unchanged" in profile
+    assert "never silently execute the Architecture loop" in requirements
+    assert "Requirements and Architect remain distinct roles" in profile
+    assert "Build assignment is recorded atomically" in profile

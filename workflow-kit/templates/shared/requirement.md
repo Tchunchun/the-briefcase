@@ -5,6 +5,7 @@
 - Parent: `<Feature or none>`
 - Canonical requirement: `<location and immutable revision>`
 - Approval: `<approver, timestamp, and approval link>`
+- Status / Action Owner: `<Requirement shaping / Requirements>`
 
 ## Context and outcome
 

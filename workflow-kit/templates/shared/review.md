@@ -7,6 +7,7 @@
 - Intended base: `<branch>`
 - Reviewer session: `<identity; separate from Build>`
 - Formal GitHub approval available: `<yes | no, with limitation>`
+- Status / Action Owner: `<In review / Review>`
 
 ## Criterion evidence
 
@@ -27,3 +28,6 @@
 Reason: `<evidence-backed summary>`
 
 Any new PR head invalidates this verdict until reviewed again.
+
+For an accepted eligible PR, Review records merge and landing evidence, closes
+the task, and sets `Done / None` only after every completion gate passes.

@@ -1,0 +1,6 @@
+version: 1
+
+# Single authority for the role allowed to merge, verify landing, close the
+# issue, and perform the final Done transition. Profiles and repositories may
+# add gates, but must not redefine this owner elsewhere.
+closeout_owner: Review

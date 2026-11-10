@@ -67,6 +67,8 @@ trade-off or introduces a new dependency.
 
 ## Architect sign-off
 
+- Work item type: `<Feature | Task>`
+- Architecture applicability: `<Feature sign-off | Task-specific sign-off | parent sign-off applies, with reason>`
 - Approved requirement revision: `<same location and revision as "Canonical requirement" above>`
 - Approved Task revision: `<child scope revision when applicable; otherwise none>`
 - Decision record: `<path to ADR, e.g. docs/plan/_reference/adr/ADR-NNN.md, or "none">`
@@ -78,6 +80,9 @@ This sign-off is bound to the exact requirement revision listed above.
 A material change to acceptance criteria, scope inclusions, or exclusions
 invalidates this sign-off and requires a new Architecture review.
 The same applies to constraints, NFRs, approach assumptions, and release obligations.
+For a child Task, `parent sign-off applies` is valid only when Architect records
+that the approved Task slice introduces none of those changes or a new technical
+decision, interface, dependency, or unresolved technical question.
 
 ## Decisions and child Tasks
 

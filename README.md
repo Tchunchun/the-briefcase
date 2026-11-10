@@ -15,19 +15,28 @@ legacy workflow, not the additive workflow kit.
 
 For framework development on the Standard board, say **"Run the technical shaping
 loop for <topic>"**, **"Run the architecture loop"**, or supply an issue URL or
-Project card. Features arrive with requirements already shaped and approved at
-creation: **Feature creation -> Technical shaping -> Implementation**.
-The session reuses that approved revision, resolves the technical approach,
+Project card. Requirements and Architect remain distinct: Requirements shapes
+and approves product scope, while Architect owns Technical shaping. An already
+approved Feature may enter Technical shaping directly. The session reuses that
+approved revision, resolves the technical approach,
 dependencies, risks, and verification details, and records technical sign-off. Ready
 requires that approval, technical sign-off (or justified non-applicability),
-satisfied dependencies, and an accepted assignment. The loop ends with a
+satisfied dependencies, and no competing implementation claim. The loop ends with a
 verified handoff and an exact Build prompt; it does not start implementation.
 
-With no target, the loop captures the Inbox/Technical shaping queue once.
-**"Run the requirements loop"** remains a compatibility alias; it does not
-repeat product shaping for existing features. Missing approval or a material
-scope change is handled as an explicit product clarification, not a mandatory
-second shaping phase. Lite is unchanged.
+Feature and Task gates are intentionally different. Architect signs the full
+Feature architecture. A child Task records either `parent sign-off applies` or
+a Task-specific sign-off when it changes a technical decision, interface,
+dependency, NFR, approach assumption, or release obligation. A Task may become
+Done after its own accepted slice lands and its allocated gates pass; Feature
+Done additionally requires complete required child coverage and Feature-level
+release evidence. Closeout ownership is configured once in
+[`workflow-kit/workflow.yaml`](workflow-kit/workflow.yaml).
+
+With no target, the loop captures Technical shaping work owned by Architect.
+The Requirements loop never silently becomes Architect. Missing approval or a
+material scope change returns to Requirements; approved Standard work moves to
+Technical shaping with Architect as Action Owner. Lite is unchanged.
 See the [repository technical shaping loop](_project/backlog-policy.md#repository-technical-shaping-loop)
 for authority, handoff packets, blockers, and safe reruns. This is a
 repository-specific Standard entry point, not a new CLI command or a change to
@@ -39,8 +48,8 @@ For framework development, [Project #5](https://github.com/users/Tchunchun/proje
 is the authoritative backlog. In a session separate from implementation, say
 **"Run the review loop"** to assess its In review column, or supply a specific
 PR, issue URL, or card. After a pass, the reviewer merges the eligible PR,
-verifies intended-base landing and applicable release evidence, then marks work
-Done and closes its linked issue without a separate manual handoff. Full scope,
+verifies intended-base landing and applicable release evidence, then closes the
+task and marks it Done without a separate Deliver stage. Full scope,
 independent revision-specific acceptance, required checks, eligible approvals,
 and branch protections remain mandatory. Queued or otherwise gated work stays
 In review; missing evidence is reported with an owner and unblock condition.
