@@ -8,7 +8,7 @@ description: >
 
 # Architect
 
-Read [the shared playbook](../PLAYBOOK.md), [the Standard profile](../profiles/standard/PROFILE.md),
+Read [the shared playbook](../../../../PLAYBOOK.md), [the Standard profile](../../PROFILE.md),
 repository instructions, the approved requirement revision, and the live GitHub
 item before recording sign-off or changing any state.
 
@@ -68,27 +68,30 @@ For the linked requirement revision, evaluate:
 
 If a technical question cannot be resolved without changing approved scope,
 record it as a blocker using
-[the blocker template](../templates/shared/blocker.md) with
+[the blocker template](../../../../templates/shared/blocker.md) with
 `Responsible role: Requirements`, state the evidence needed to resume, and do
 not record sign-off. Build must not claim the item while a stopping question
 is open.
 
 ## Sign-off
 
-Use [the Standard brief template](../templates/standard/brief.md). Record the
+Use [the Standard brief template](../../../../templates/standard/brief.md). Record the
 sign-off block naming:
 
 - The exact approved requirement revision (location and immutable revision).
+- The parent Feature revision and approved Task revision for a scoped child.
 - Technical approach summary.
 - Decision record path or `none`.
 - Signed by: `<architect>`.
 - Signed at: `<timestamp>`.
+- Result: `approved` or `blocked`, with unresolved questions and resume criteria.
 
 A sign-off is stale and Build must refuse the claim when:
 
 - The linked requirement's approved revision changes after the sign-off was
   recorded.
 - Any acceptance criterion, scope inclusion, or exclusion changes.
+- Constraints, NFRs, approach assumptions, or release obligations materially change.
 
 Requirements returns the item to Architecture when a material change is detected.
 Architect re-evaluates and records a new sign-off naming the updated revision.

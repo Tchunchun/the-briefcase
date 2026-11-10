@@ -2,6 +2,10 @@
 
 This example shows all required artifacts for one Standard Feature with two
 child Tasks. A single requirement revision is the only scope authority throughout.
+This is illustrative source-only material, not actual approval, check, release,
+or deployment evidence. Use the [Standard profile](../profiles/standard/PROFILE.md),
+[Architect](../profiles/standard/skills/architect/SKILL.md), and
+[full brief template](../templates/standard/brief.md).
 
 ---
 
@@ -17,6 +21,9 @@ child Tasks. A single requirement revision is the only scope authority throughou
 
 Admin users cannot filter the audit log by date range. They must scroll through
 hundreds of rows to find relevant entries.
+
+Actors: administrators investigating an event. Before: scroll manually through
+the full log. After: choose dates and see only matching events.
 
 ### Scope
 
@@ -39,6 +46,15 @@ hundreds of rows to find relevant entries.
 - Blockers: none
 - Open questions: none
 - Privacy/visibility: audit log data is internal only
+
+### Constraints, children, and release obligations
+
+- Preserve existing authorization, pagination, and requests without date filters.
+- Use existing dependencies; no added licensing or service cost.
+- NFR: p95 below 500 ms over 10 000 rows; verify in the supported CI environment.
+- Child Tasks: #43 API and #44 UI; both reference this approved Feature revision.
+- Require unit/integration, UI smoke, and latency evidence before delivery.
+- Version impact: minor; release note required; no deployment claim.
 
 ---
 
@@ -81,6 +97,7 @@ design system; no new dependency is introduced.
 - Decision record: none
 - Signed by: architect-session-12
 - Signed at: 2026-11-02T09:30Z
+- Result: approved; no unresolved stopping questions
 
 ---
 
@@ -123,6 +140,22 @@ only the Task-specific scope boundary and verification.
 
 ---
 
+## Requirement packet (child Task - date picker)
+
+- Work item: `https://github.com/owner/repo/issues/44`
+- Profile: `Standard`
+- Parent: `https://github.com/owner/repo/issues/42`
+- Approved parent revision: `docs/requirements/feat-42.md @ sha:a1b2c3d`
+- Canonical requirement: `docs/requirements/task-44.md @ sha:c3d4e5f`
+- Approval: `@user, 2026-11-02T11:00Z, https://github.com/owner/repo/issues/44#issuecomment-201`
+- Scope boundary: date-picker UI only; parent scope remains in the Feature.
+- Exclusions: API implementation belongs to #43.
+- Acceptance: picker supplies start/end dates and updates the displayed results.
+- Verification: supported-browser smoke test, recorded by Build for independent Review.
+- Dependencies/questions: native blocker #43; no unresolved product question.
+
+---
+
 ## Standard release record
 
 - Work item: `https://github.com/owner/repo/issues/42`
@@ -134,6 +167,7 @@ only the Task-specific scope boundary and verification.
 
 ### Version
 
+- Version impact: minor, additive date-range filtering
 - Version: v1.5.0
 - Version approval: `@user, 2026-11-10T14:00Z, https://github.com/owner/repo/issues/42#issuecomment-400`
 
@@ -154,3 +188,10 @@ only the Task-specific scope boundary and verification.
 
 Added a date-range filter to the audit log. Admin users can now specify
 `start_date` and `end_date` to narrow audit entries without scrolling.
+
+### Environment and readiness
+
+- Required environments: supported API CI and browser smoke environment.
+- Readiness evidence: passing UI smoke and CI latency evidence linked by Build.
+- Remaining obligations: none in this illustrative completed record.
+- Deployment: not claimed.

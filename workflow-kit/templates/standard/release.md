@@ -9,8 +9,12 @@
 
 ## Version
 
-- Version: `<vX.Y.Z or N/A — approved no-release-note-required>`
-- Version approval: `<approver, timestamp, and link to the approval record; or "not applicable">`
+- Version impact: `<major | minor | patch | none, with rationale>`
+- Version: `<resulting vX.Y.Z, or not applicable with an independent reason>`
+- Version approval: `<approver, timestamp, and evidence link for the impact/applicability>`
+
+Version applicability is independent of the release-note outcome. A note
+exemption never waives version impact, checks, coverage, or readiness evidence.
 
 ## Scope coverage
 
@@ -30,6 +34,13 @@
 
 Release note: N/A — approved no-release-note-required
 Approval: `<approver, timestamp, and link to the approval record>`
+Reason: `<why the note exemption is appropriate>`
+
+## Environment and readiness
+
+- Required environments: `<from the approved Feature; evidence per environment>`
+- Readiness evidence: `<links and results, or justified non-applicability>`
+- Remaining obligations: `<none, or explicit missing evidence/owner/resume condition>`
 
 ---
 
