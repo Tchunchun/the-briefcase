@@ -11,6 +11,8 @@ from pathlib import Path
 
 import click
 
+from src.cli.helpers import project_dir_option
+
 
 @click.group()
 def migrate() -> None:
@@ -37,12 +39,7 @@ def migrate() -> None:
     show_default=True,
     help="Git remote name.",
 )
-@click.option(
-    "--project-dir",
-    type=click.Path(exists=True, file_okay=False, resolve_path=True),
-    default=".",
-    help="Project root directory.",
-)
+@project_dir_option
 def notion_to_git(
     dry_run: bool,
     remote_url: str | None,

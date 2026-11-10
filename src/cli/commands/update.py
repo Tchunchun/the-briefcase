@@ -7,6 +7,8 @@ from pathlib import Path
 
 import click
 
+from src.cli.helpers import project_dir_option
+
 
 @click.command()
 @click.option("--check", "check_only", is_flag=True, default=False,
@@ -17,9 +19,7 @@ import click
               help="Overwrite locally customized framework files.")
 @click.option("--source", default=None,
               help="Override update source (local path or GitHub repo).")
-@click.option("--project-dir", type=click.Path(exists=True, file_okay=False,
-              resolve_path=True), default=".",
-              help="Project root directory.")
+@project_dir_option
 def update(check_only: bool, skip_confirm: bool, force: bool,
            source: str | None, project_dir: str) -> None:
     """Update the briefcase framework to the latest version.

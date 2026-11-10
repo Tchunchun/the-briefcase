@@ -62,10 +62,31 @@ def output_error(message: str) -> None:
     sys.exit(1)
 
 
+def _validate_project_dir(
+    ctx: click.Context, param: click.Parameter, value: str
+) -> str:
+    root = Path(value)
+    if (
+        ctx.command.name != "setup"
+        and (root / ".git").is_file()
+        and not (root / "_project" / "storage.yaml").is_file()
+        and not (root / ".briefcase" / "storage.yaml").is_file()
+    ):
+        raise click.BadParameter(
+            "worktree is missing _project/storage.yaml. Initialize its config "
+            "with briefcase setup; the main checkout's config is not inherited.",
+            ctx=ctx,
+            param=param,
+        )
+    return value
+
+
 # Common Click option for project directory
 project_dir_option = click.option(
     "--project-dir",
     type=click.Path(exists=True, file_okay=False, resolve_path=True),
     default=".",
+    envvar="BRIEFCASE_PROJECT_ROOT",
+    callback=_validate_project_dir,
     help="Project root directory.",
 )

@@ -702,3 +702,78 @@ def test_brief_write_file_preserves_existing_sections_not_in_file(
     assert brief["goal"] == "Original goal."
     assert brief["acceptance_criteria"] == "- [ ] AC1"
     assert brief["out_of_scope"] == "- Original OOS"
+
+
+@pytest.mark.parametrize(
+    ("metadata", "options", "expected_title", "expected_status"),
+    [
+        ("", [], "Approved Example Title", "implementation-ready"),
+        (
+            "# Imported Title\n\n**Status: draft**\n\n",
+            [],
+            "Imported Title",
+            "draft",
+        ),
+        (
+            "# Imported Title\n\n**Status: draft**\n\n",
+            ["--title", "Explicit Title", "--status", "review-ready"],
+            "Explicit Title",
+            "review-ready",
+        ),
+    ],
+)
+def test_partial_file_metadata_precedence(
+    runner, project, tmp_path, metadata, options, expected_title, expected_status
+):
+    created = runner.invoke(
+        cli,
+        [
+            "brief", "write", "example",
+            "--title", "Approved Example Title",
+            "--status", "implementation-ready",
+            "--problem", "Original problem",
+            "--goal", "Original goal",
+            "--acceptance-criteria", "Original criteria",
+            "--project-dir", str(project),
+        ],
+    )
+    assert created.exit_code == 0, created.output
+    source = tmp_path / "partial.md"
+    source.write_text(f"{metadata}## Problem\nUpdated problem only\n")
+    updated = runner.invoke(
+        cli,
+        [
+            "brief", "write", "example", "--file", str(source),
+            *options, "--project-dir", str(project),
+        ],
+    )
+    assert updated.exit_code == 0, updated.output
+    result = runner.invoke(
+        cli, ["brief", "read", "example", "--project-dir", str(project)]
+    )
+    assert result.exit_code == 0, result.output
+    data = json.loads(result.output)["data"]
+    assert data["title"] == expected_title
+    assert data["status"] == expected_status
+    assert data["problem"] == "Updated problem only"
+    assert data["goal"] == "Original goal"
+    assert data["acceptance_criteria"] == "Original criteria"
+
+
+def test_partial_file_new_brief_uses_default_metadata(runner, project, tmp_path):
+    source = tmp_path / "partial.md"
+    source.write_text("## Problem\nNew problem\n")
+    result = runner.invoke(
+        cli,
+        [
+            "brief", "write", "new-example", "--file", str(source),
+            "--project-dir", str(project),
+        ],
+    )
+    assert result.exit_code == 0, result.output
+    result = runner.invoke(
+        cli, ["brief", "read", "new-example", "--project-dir", str(project)]
+    )
+    data = json.loads(result.output)["data"]
+    assert data["title"] == "new-example"
+    assert data["status"] == "draft"
