@@ -48,23 +48,42 @@ verify every resulting field by readback. The
 [Workflow Kit CI](.github/workflows/workflow-kit.yml) enforces offline contract
 validation, scenario tests, focused lint, and the complete non-live test suite.
 
-With no target, the loop captures Technical shaping work owned by Architect.
-The Requirements loop never silently becomes Architect. Missing approval or a
-material scope change returns to Requirements; approved Standard work moves to
-Technical shaping with Architect as Action Owner. Lite is unchanged.
+After bootstrap is explicitly ended, with no target the loop captures Technical
+shaping work owned by Architect. The Requirements loop never silently becomes
+Architect. Missing approval or a material scope change returns to Requirements;
+approved Standard work moves to Technical shaping with Architect as Action
+Owner. **"Run the requirements loop"** remains a compatibility alias; it does
+not repeat product shaping for existing features. Lite is unchanged.
 See the [repository technical shaping loop](_project/backlog-policy.md#repository-technical-shaping-loop)
 for authority, handoff packets, blockers, and safe reruns. This is a
 repository-specific Standard entry point, not a new CLI command or a change to
 installed consumer/Lite behavior.
 
+### Build the kit before dogfooding
+
+This repository is currently in a bootstrap phase. Requests to build, repair,
+document, or test `workflow-kit/` are handled as ordinary repository work; they
+do not activate Standard or Lite mode merely because they say "build", "fix",
+or "review", or include an issue or Project link. Project #5 remains the only
+backlog, and normal tests and PR safeguards still apply.
+
+To dogfood the completed flow, explicitly say **"Use Standard mode for
+<target>"**, **"Use Lite mode for <target>"**, or directly invoke a named role or
+loop for that target. Activation is prospective and limited to that named pilot
+work. Existing kit-development work is not retroactively routed through the
+workflow. No-target backlog sweeps remain disabled until bootstrap is explicitly
+ended.
+
 ### Review this repository's backlog
 
 For framework development, [Project #5](https://github.com/users/Tchunchun/projects/5)
-is the authoritative backlog. In a session separate from implementation, say
-**"Run the review loop"** to assess its In review column, or supply a specific
-PR, issue URL, or card. After a pass, the reviewer merges the eligible PR,
-verifies intended-base landing and applicable release evidence, then closes the
-task and marks it Done without a separate Deliver stage. Full scope,
+is the authoritative backlog. During bootstrap, invoke the review loop only for
+a named, explicitly activated pilot target. After bootstrap is explicitly ended,
+in a session separate from implementation say **"Run the review loop"** to
+assess its In review column, or supply a specific PR, issue URL, or card. After
+a pass, the reviewer merges the eligible PR, verifies intended-base landing and
+applicable release evidence, then closes the task and marks it Done without a
+separate Deliver stage. Full scope,
 independent revision-specific acceptance, required checks, eligible approvals,
 and branch protections remain mandatory. Queued or otherwise gated work stays
 In review; missing evidence is reported with an owner and unblock condition.
