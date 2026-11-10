@@ -9,11 +9,13 @@ description: >
 
 # Review
 
-Read [the shared playbook](../../PLAYBOOK.md), the active profile, repository
-instructions, approved requirement revision, live Project item, and current PR
-before reviewing. Confirm [`workflow.yaml`](../../workflow.yaml) names Review as
-`closeout_owner` before merging, closing an issue, or setting Done. If it does
-not, stop after the verdict and hand closeout to the configured role.
+Read [the shared playbook](../../PLAYBOOK.md), the executable
+[lifecycle contract](../../contract.yaml), the repository
+[manifest](../../workflow.yaml), the active profile, repository instructions,
+approved requirement revision, live Project item, and current PR before
+reviewing. Confirm the manifest names Review as `closeout_owner` before merging,
+closing an issue, or setting Done. Any other value is invalid configuration;
+stop before the verdict or mutation rather than silently changing role semantics.
 
 ## Trigger and independence
 

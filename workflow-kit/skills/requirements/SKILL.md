@@ -8,9 +8,10 @@ description: >
 
 # Requirements
 
-Read [the shared playbook](../../PLAYBOOK.md), the active profile, the
-repository instructions, and the live GitHub issue and Project item before
-changing scope or state.
+Read [the shared playbook](../../PLAYBOOK.md), the executable
+[lifecycle contract](../../contract.yaml), the repository
+[manifest](../../workflow.yaml), the active profile, repository instructions,
+and the live GitHub issue and Project item before changing scope or state.
 
 ## Trigger and selection
 

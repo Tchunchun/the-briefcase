@@ -101,6 +101,21 @@ Status transitions update Action Owner in the same operation sequence and read
 both fields back. A mismatch between Status and Action Owner is a blocker, not
 permission to guess the intended owner.
 
+### Executable contract and preflight
+
+[`workflow-kit/contract.yaml`](../workflow-kit/contract.yaml) is the
+machine-readable transition authority. The Markdown policy and role skills may
+add repository-specific safety detail but must not contradict its statuses,
+owners, transitions, or evidence gates. Repository instance names live in
+[`workflow-kit/workflow.yaml`](../workflow-kit/workflow.yaml); it contains no
+credentials, GitHub IDs, item state, claims, verdicts, or delivery evidence.
+
+Run `python3 workflow-kit/runtime.py --offline` after editing either file. Run
+the live, read-only `python3 workflow-kit/runtime.py` before the first named
+pilot, after Project schema changes, and whenever drift is suspected. A failed
+preflight blocks affected workflow operations. It never authorizes field
+creation, option renaming, backlog conversion, or any other repair mutation.
+
 Use native parent/sub-issue and blocked-by relationships for issue-backed work.
 The unified initiative is public source issue #18; detailed feature/task issues
 remain private. A private parent/child reference is not permission to publish

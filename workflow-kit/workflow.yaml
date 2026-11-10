@@ -1,6 +1,54 @@
 version: 1
 
+# Repository-instance configuration. It contains names, never GitHub field or
+# option IDs, credentials, current item state, claims, verdicts, or evidence.
+contract: contract.yaml
+mode: standard
+
+repository:
+  name: Tchunchun/the-briefcase
+  base_branch: main
+
+project:
+  owner: Tchunchun
+  number: 5
+  fields:
+    status: Status
+    action_owner: Action Owner
+    assignees: Assignees
+    claim_session: Claim Session
+    resume_status: Resume Status
+    review_verdict: Review Verdict
+    work_type: Work Type
+  options:
+    status:
+      - Inbox
+      - Requirement shaping
+      - Technical shaping
+      - Ready
+      - In progress
+      - In review
+      - Blocked
+      - Done
+    action_owner: [Requirements, Architect, Build, Review, None]
+    resume_status:
+      - Inbox
+      - Requirement shaping
+      - Technical shaping
+      - Ready
+      - In progress
+      - In review
+    review_verdict: [Pending, Accepted, Changes requested, Blocked]
+    work_type: [Idea, Feature, Task]
+
+artifacts:
+  repository: Tchunchun/thebriefcase-artifacts
+  root: projects/0-to-1-agent-guidelines
+
+review:
+  merge_strategy: squash
+
 # Single authority for the role allowed to merge, verify landing, close the
-# issue, and perform the final Done transition. Profiles and repositories may
-# add gates, but must not redefine this owner elsewhere.
+# issue, and perform the final Done transition. The current product contract
+# permits Review; a manifest cannot silently assign closeout to another role.
 closeout_owner: Review
