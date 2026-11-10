@@ -42,6 +42,12 @@ permission drift and never repairs the board. See the
 [workflow-kit installation path](workflow-kit/INSTALLATION.md); the root
 installer remains legacy until a named pilot validates the new contract.
 
+Before an invoked role writes Project state, it must run the live preflight and
+an allowed `runtime.py --transition ...` decision, preserve that decision, and
+verify every resulting field by readback. The
+[Workflow Kit CI](.github/workflows/workflow-kit.yml) enforces offline contract
+validation, scenario tests, focused lint, and the complete non-live test suite.
+
 With no target, the loop captures Technical shaping work owned by Architect.
 The Requirements loop never silently becomes Architect. Missing approval or a
 material scope change returns to Requirements; approved Standard work moves to

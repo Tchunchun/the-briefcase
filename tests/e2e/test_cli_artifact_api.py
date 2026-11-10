@@ -3,11 +3,24 @@ import os
 import sys
 import json
 import subprocess
+from pathlib import Path
+
+import pytest
 
 PA_ROOT = os.path.dirname(os.path.abspath(__file__))
 UPSTREAM_ROOT = os.path.dirname(os.path.dirname(PA_ROOT))
-CONSUMER_ROOT = "/Users/chunchun/Documents/Playground - Code/consumer project - notion"
+CONSUMER_ROOT = os.environ.get("BRIEFCASE_E2E_CONSUMER_ROOT", "")
 os.environ['NOTION_API_TOKEN'] = os.environ.get('NOTION_API_TOKEN', '')
+
+if (
+    not CONSUMER_ROOT
+    or not Path(CONSUMER_ROOT).is_dir()
+    or not os.environ["NOTION_API_TOKEN"]
+):
+    pytest.skip(
+        "BRIEFCASE_E2E_CONSUMER_ROOT and NOTION_API_TOKEN are required",
+        allow_module_level=True,
+    )
 
 # Use the consumer project which has Notion storage.yaml configured
 PROJECT_DIR = CONSUMER_ROOT

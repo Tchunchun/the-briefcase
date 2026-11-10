@@ -55,6 +55,11 @@ release records, and history; no GitHub storage adapter is implied. This policy
 is for framework development, not a change to the legacy installed consumer
 workflow.
 
+For an explicitly invoked workflow role, every Project transition must pass the
+live preflight and executable transition gate in
+[the workflow playbook](workflow-kit/PLAYBOOK.md#mandatory-transition-gate).
+`--offline` validation alone never authorizes a Project write.
+
 ## Development Commands
 
 The CLI commands below maintain the legacy framework and its supported storage

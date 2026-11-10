@@ -45,7 +45,7 @@ def _clone_remote(remote: Path, destination: Path) -> Path:
 @pytest.fixture()
 def project_repo(tmp_path: Path) -> tuple[Path, Path]:
 	remote = tmp_path / "artifacts-remote.git"
-	_git(tmp_path, "init", "--bare", str(remote))
+	_git(tmp_path, "init", "--bare", "-b", "main", str(remote))
 
 	project = tmp_path / "project"
 	project.mkdir()

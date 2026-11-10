@@ -116,6 +116,14 @@ pilot, after Project schema changes, and whenever drift is suspected. A failed
 preflight blocks affected workflow operations. It never authorizes field
 creation, option renaming, backlog conversion, or any other repair mutation.
 
+Immediately before a role changes Status, Action Owner, Resume Status, Review
+Verdict, Assignee, or Claim Session, it must reread the live item and pass the
+corresponding transition through `workflow-kit/runtime.py --transition ...`
+with live preflight enabled. Preserve the decision with the evidence packet,
+perform only the evaluated write, and read every changed field back. A denied
+decision, missing gate, preflight failure, or readback mismatch blocks the
+mutation; `--offline` is never sufficient for a live Project write.
+
 Use native parent/sub-issue and blocked-by relationships for issue-backed work.
 The unified initiative is public source issue #18; detailed feature/task issues
 remain private. A private parent/child reference is not permission to publish

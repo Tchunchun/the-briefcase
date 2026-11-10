@@ -30,6 +30,13 @@ session must review it. A GitHub account that cannot formally approve its own
 PR may record an evidence-backed review comment, but must disclose that
 limitation rather than fabricate an approval.
 
+Before every Project mutation, follow the playbook's mandatory live preflight,
+transition evaluation, and readback procedure. Review may evaluate only
+`accept-review`, `request-build-fixes`, `complete-task`, `complete-feature`,
+`block-work`, or `resume-blocked-work`. Set Review Verdict to Accepted only as
+the verified effect of an allowed `accept-review` decision. A denied decision
+means no write or merge.
+
 ## Evidence gate
 
 Before evaluating behavior, verify:

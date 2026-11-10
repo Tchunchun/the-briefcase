@@ -138,6 +138,14 @@ transitions:
     profiles: [lite, standard]
     requires: [changes-requested]
 
+  - id: accept-review
+    from: in-review
+    to: in-review
+    actor: Review
+    profiles: [lite, standard]
+    requires: [independent-acceptance, reviewed-head-current, required-checks]
+    effects: [set-review-verdict-accepted]
+
   - id: complete-task
     from: in-review
     to: done

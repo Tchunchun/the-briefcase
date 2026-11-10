@@ -3,11 +3,20 @@
 import os
 import stat
 import subprocess
+import sys
 from pathlib import Path
 
 import pytest
 
-from src.core.storage.config import save_config, StorageConfig
+from src.core.storage.config import StorageConfig, save_config
+
+
+def supported_python_env():
+    """Put pytest's supported interpreter ahead of an older system python3."""
+    env = os.environ.copy()
+    python_bin = str(Path(sys.executable).parent)
+    env["PATH"] = python_bin + os.pathsep + env.get("PATH", "")
+    return env
 
 
 @pytest.fixture
@@ -63,8 +72,10 @@ class TestAgentWrapper:
     def test_wrapper_shows_help(self, consumer_project):
         result = subprocess.run(
             ["./briefcase", "--help"],
+            check=False,
             capture_output=True, text=True,
             cwd=str(consumer_project),
+            env=supported_python_env(),
             timeout=15,
         )
         assert result.returncode == 0
@@ -73,8 +84,10 @@ class TestAgentWrapper:
     def test_wrapper_runs_inbox_list(self, consumer_project):
         result = subprocess.run(
             ["./briefcase", "inbox", "list"],
+            check=False,
             capture_output=True, text=True,
             cwd=str(consumer_project),
+            env=supported_python_env(),
             timeout=15,
         )
         assert result.returncode == 0
@@ -88,8 +101,10 @@ class TestAgentWrapper:
         wrapper = consumer_project / "briefcase"
         result = subprocess.run(
             [str(wrapper), "--help"],
+            check=False,
             capture_output=True, text=True,
             cwd=str(subdir),
+            env=supported_python_env(),
             timeout=15,
         )
         # Should find .briefcase/ by walking up and show help
@@ -109,6 +124,7 @@ class TestAgentWrapper:
 
         result = subprocess.run(
             ["./briefcase", "--help"],
+            check=False,
             capture_output=True, text=True,
             cwd=str(empty),
             timeout=15,

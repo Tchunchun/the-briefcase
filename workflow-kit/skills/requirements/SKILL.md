@@ -35,6 +35,12 @@ Resolve Project field and option IDs from the live board. GitHub read or write
 failure pauses the affected item. Never fall back to a Markdown status queue or
 claim that an unverified transition succeeded.
 
+Before every Project mutation, follow the playbook's mandatory live preflight,
+transition evaluation, and readback procedure. Requirements may evaluate only
+`begin-requirement-shaping`, `standard-approved-at-creation`,
+`route-standard-scope`, `ready-lite-work`, `block-work`, or
+`resume-blocked-work`. A denied decision means no write.
+
 ## Shape one requirement
 
 Record one canonical requirement location with:
