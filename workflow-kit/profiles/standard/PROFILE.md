@@ -19,6 +19,11 @@ stale and returns the item to Architecture.
 Build must refuse a Standard claim when sign-off is missing, names a different
 revision, or leaves a stopping technical question unresolved.
 
+Invoke [Architect](skills/architect/SKILL.md) explicitly and use the
+[full Feature brief](../../templates/standard/brief.md). Material changes to
+scope, AC, constraints, NFRs, approach assumptions, or release obligations
+invalidate affected approval/sign-off, not only a changed document label.
+
 ## Task and Feature coordination
 
 - A Task references its parent Feature and approved scope revision.
@@ -33,5 +38,10 @@ Accepted work remains `In review` until its reviewed head lands on the intended
 base and the Feature has complete scope coverage, required checks, applicable
 version evidence, and a linked release record. Deployment is separate.
 
-Use [the shared Build skill](../../skills/build/SKILL.md). This profile adds
-gates; it does not copy or replace the shared skill.
+Use the [release record](../../templates/standard/release.md). An approved
+no-release-note-required result waives only the note; version impact and all
+other applicable delivery evidence must still be verified.
+
+Use the shared [Requirements](../../skills/requirements/SKILL.md),
+[Build](../../skills/build/SKILL.md), and [Review](../../skills/review/SKILL.md)
+skills. This profile adds gates; it does not copy or replace the shared skills.

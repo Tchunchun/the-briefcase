@@ -54,8 +54,9 @@ Accepted work remains `In review` until delivery gates pass.
 Use the shared [Requirements](skills/requirements/SKILL.md),
 [Build](skills/build/SKILL.md), and [Review](skills/review/SKILL.md) skills by
 direct user invocation. There is no automatic role handoff. Apply the selected
-profile's additional gates; for Standard, read
-[the Standard profile](profiles/standard/PROFILE.md).
+profile's additional gates: [Lite](profiles/lite/PROFILE.md) or
+[Standard](profiles/standard/PROFILE.md). Standard adds the
+[Architect skill](profiles/standard/skills/architect/SKILL.md); Lite does not.
 
 Reusable records live under [templates/shared](templates/shared). They are
 evidence packets, not another execution queue. See the

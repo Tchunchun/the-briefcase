@@ -3,6 +3,8 @@
 This example shows the concise artifact set for one Lite task. There is no
 Architect role, no Feature/Task hierarchy, and no release record beyond the
 application's normal policy.
+Use the [Lite profile](../profiles/lite/PROFILE.md), which references the same
+shared roles as Standard rather than installing an Architect skill.
 
 ---
 
