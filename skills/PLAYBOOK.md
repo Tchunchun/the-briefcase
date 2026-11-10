@@ -1,7 +1,26 @@
-# Playbook: 0-to-1 Agent Workflow
+# Legacy Playbook: 0-to-1 Agent Workflow
 
-This is the single source of truth for agent routing, file ownership, and handoff rules.
-Read this file fully before taking any action.
+This is the source of truth for the **legacy installed consumer workflow**:
+agent routing, file ownership, and handoff rules. Read this file fully when
+using that workflow.
+
+## Workflow Selection
+
+For development in the Briefcase framework repository, follow the root
+[AGENTS.md](../AGENTS.md), the
+[current workflow playbook](../workflow-kit/PLAYBOOK.md), and the
+[repository backlog policy](../_project/backlog-policy.md) instead of the
+legacy role routing below. The current roles are **Requirements, Architect
+(Standard only), Build, and Review**; Lite uses Requirements, Build, and Review.
+There is no Delivery Manager or automatic role orchestration in that model.
+Repository-specific procedures take precedence, including independent
+Review-owned merge and verified closeout.
+
+The five-role definitions, Delivery Manager handoffs, processing lanes,
+self-review exceptions, and CLI backlog rules below apply only to legacy
+consumers. They do not define the active repository workflow. `install.sh`
+still installs this legacy workflow; the separate `workflow-kit/` source is
+not installed by it. Existing consumer behavior is unchanged.
 
 ---
 

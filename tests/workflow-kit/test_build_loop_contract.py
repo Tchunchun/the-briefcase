@@ -22,6 +22,59 @@ def test_new_build_assets_are_additive_and_links_resolve():
     assert not (WORKFLOW_KIT / "src").exists()
 
 
+def test_repository_entrypoint_selects_current_roles_before_legacy_workflow():
+    agents = (ROOT / "AGENTS.md").read_text()
+    legacy = (ROOT / "skills" / "PLAYBOOK.md").read_text()
+    readme = (ROOT / "README.md").read_text()
+
+    assert agents.index("workflow-kit/PLAYBOOK.md") < agents.index("skills/PLAYBOOK.md")
+    assert "repository policy takes precedence" in normalized(agents)
+    assert "Legacy Playbook" in legacy
+    assert legacy.index("## Workflow Selection") < legacy.index("## Agent Routing")
+    assert "current workflow playbook" in legacy
+    assert "Existing consumer behavior is unchanged" in legacy
+    assert "## Legacy Installed Workflow" in readme
+    assert "workflow-kit/PLAYBOOK.md" in readme
+
+
+def test_current_role_roster_resolves_skills_and_preserves_closeout_override():
+    role_rows = [
+        line for line in PLAYBOOK.splitlines()
+        if line.startswith("| ") and "skills/" in line
+    ]
+    assert len(role_rows) == 4
+    skill_paths = [
+        "skills/requirements/SKILL.md",
+        "profiles/standard/skills/architect/SKILL.md",
+        "skills/build/SKILL.md",
+        "skills/review/SKILL.md",
+    ]
+    for path in skill_paths:
+        assert f"({path})" in PLAYBOOK
+        assert (WORKFLOW_KIT / path).is_file()
+    assert "Lite uses three roles: Requirements, Build, and Review" in PLAYBOOK
+    assert "There is no Delivery Manager role" in normalized(PLAYBOOK)
+    assert "self-review exception" in PLAYBOOK
+    assert "Review session to merge passing PRs" in normalized(PLAYBOOK)
+    assert "Requirements closeout invocation is not required" in normalized(PLAYBOOK)
+    assert "backlog policy linked from the root `AGENTS.md`" in PLAYBOOK
+
+
+def test_current_guidance_uses_requirements_terminology():
+    agents = (ROOT / "AGENTS.md").read_text()
+    assert "brief" not in agents.lower().replace("briefcase", "")
+    assert "Feature\nPRD" in agents
+    assert "task document for Lite" in agents
+    assert "## Legacy CLI Project Root Resolution" in agents
+    assert "Use GitHub directly for this repository's backlog" in agents
+
+    template = WORKFLOW_KIT / "templates" / "standard" / "brief.md"
+    assert template.read_text().startswith("# Standard Feature PRD\n")
+    for path in WORKFLOW_KIT.rglob("*.md"):
+        prose = path.read_text().replace("brief.md", "").replace("Briefcase", "")
+        assert "brief" not in prose.lower(), path
+
+
 def test_explicit_invocation_scans_every_ready_item_sequentially():
     required = [
         "user explicitly asks to run the Build loop",

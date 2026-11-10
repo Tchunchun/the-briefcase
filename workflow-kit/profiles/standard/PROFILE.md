@@ -30,7 +30,7 @@ Build must refuse a Standard claim when sign-off is missing, names a different
 revision, or leaves a stopping technical question unresolved.
 
 Invoke [Architect](skills/architect/SKILL.md) explicitly and use the
-[full Feature brief](../../templates/standard/brief.md). Material changes to
+[Feature PRD template](../../templates/standard/brief.md). Material changes to
 scope, AC, constraints, NFRs, approach assumptions, or release obligations
 invalidate affected approval/sign-off, not only a changed document label.
 

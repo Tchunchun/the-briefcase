@@ -290,7 +290,7 @@ def test_release_template_has_coverage_fields():
 def test_standard_example_has_all_required_artifacts():
     required = [
         "## Requirement packet (Feature)",
-        "## Standard brief (Architect sign-off)",
+        "## Feature PRD (Architect sign-off)",
         "## Requirement packet (child Task",
         "## Standard release record",
     ]

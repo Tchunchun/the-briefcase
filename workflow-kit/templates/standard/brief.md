@@ -1,4 +1,4 @@
-# Standard Feature brief
+# Standard Feature PRD
 
 - Work item: `<issue URL and stable ID>`
 - Profile: `Standard`

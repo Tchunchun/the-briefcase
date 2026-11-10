@@ -1,10 +1,19 @@
 # AGENTS.md
 
-Read `skills/PLAYBOOK.md` fully before taking any action.
+Read [the current workflow playbook](workflow-kit/PLAYBOOK.md) and
+[this repository's backlog policy](_project/backlog-policy.md) before taking
+any action. The repository policy takes precedence where it defines a
+repository-specific procedure, including Review-owned merge and closeout.
 
-Upstream source for the 0-to-1 Agent Skills framework (five roles, workflow playbook, CLI tooling, Notion integration).
+The current roles are **Requirements, Architect (Standard only), Build, and
+Review**. Lite uses Requirements, Build, and Review. Users invoke the roles
+directly; there is no Delivery Manager or automatic role orchestration.
 
-Note: In this repo, skills live at `skills/` and paths in the PLAYBOOK are correct as-is. The `install.sh` script rewrites them to `.briefcase/skills/` for consumer projects.
+This repository also maintains the legacy five-role framework, CLI tooling,
+and storage integrations. [The legacy playbook](skills/PLAYBOOK.md) and its
+role skills remain the source for `install.sh` consumers, not the active
+repository agent roster. The installer rewrites legacy skill paths to
+`.briefcase/skills/`; it does not install `workflow-kit/`.
 
 ## This Repository's Backlog
 
@@ -39,11 +48,19 @@ gates, then marks the task Done and closes its linked issue under that
 procedure. Required checks, approvals, and branch protections still apply;
 queued or gated work stays open. Explicitly read-only reviews do not mutate.
 
-The configured Git backend still stores briefs, decisions, releases, and
-history; no GitHub storage adapter is implied. This override is for framework
-development only, not a change to the installed consumer workflow.
+Approved scope lives in one revision-bound requirements document: a Feature
+PRD with scoped child Task documents for Standard, or a task document for Lite.
+The Project owns execution status, not the requirements document.
+The configured Git artifact backend still stores planning documents, decisions,
+release records, and history; no GitHub storage adapter is implied. This policy
+is for framework development, not a change to the legacy installed consumer
+workflow.
 
-## Commands
+## Development Commands
+
+The CLI commands below maintain the legacy framework and its supported storage
+backends. They are not the entry points for the current Requirements, Architect,
+Build, or Review loops. Use GitHub directly for this repository's backlog.
 
 | Task | Command |
 |------|---------|
@@ -55,12 +72,12 @@ development only, not a change to the installed consumer workflow.
 | Run CLI (consumer project) | `./briefcase <command>` |
 | Format | `ruff format src/ tests/` |
 
-Load `.env` before CLI commands that hit Notion:
+For legacy Notion integration only, load `.env` before CLI commands that hit Notion:
 ```
 export $(grep -v '^#' .env | xargs)
 ```
 
-## Project Root Resolution
+## Legacy CLI Project Root Resolution
 
 Always resolve the project root before running any `briefcase` command.
 If you are in a git worktree (e.g. `.claude/worktrees/<name>/`), a subdirectory, or any path where `./briefcase` does not exist, you are **not** missing the CLI — you are not at the project root.
@@ -77,7 +94,8 @@ Then run `briefcase` commands from the project root, or pass `--project-dir "$PR
 ## Key Conventions
 
 - All folders use `kebab-case`
-- Titles (inbox, backlog, brief): **3–7 words**. Longer context goes in `--notes`.
+- Issue and task titles: **3–7 words**. Put longer context in the issue discussion
+  or linked requirements document, not a second status queue.
 - Python: PEP 8 via `ruff`. Config in YAML. Secrets in `.env`, never committed.
 - See `_project/tech-stack.md` for full stack. See `_project/testing-strategy.md` for test policy.
 

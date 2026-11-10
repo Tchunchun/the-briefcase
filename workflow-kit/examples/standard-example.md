@@ -5,7 +5,7 @@ child Tasks. A single requirement revision is the only scope authority throughou
 This is illustrative source-only material, not actual approval, check, release,
 or deployment evidence. Use the [Standard profile](../profiles/standard/PROFILE.md),
 [Architect](../profiles/standard/skills/architect/SKILL.md), and
-[full brief template](../templates/standard/brief.md).
+[Feature PRD template](../templates/standard/brief.md).
 
 The Feature's requirement packet is shaped and approved at creation. It enters
 Technical shaping directly; Architect reuses that approved revision rather than
@@ -63,7 +63,7 @@ the full log. After: choose dates and see only matching events.
 
 ---
 
-## Standard brief (Architect sign-off)
+## Feature PRD (Architect sign-off)
 
 - Work item: `https://github.com/owner/repo/issues/42`
 - Profile: `Standard`

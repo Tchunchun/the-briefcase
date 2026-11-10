@@ -50,11 +50,29 @@ Accepted work remains `In review` until delivery gates pass.
 
 ## Role routing
 
-- Requirements owns scope approval and verifies closeout.
-- Architect owns Standard technical decisions and revision-bound sign-off.
-- Build owns implementation, checks, the implementation PR, and review fixes.
-- Review independently verifies the current PR head and owns the verdict.
-- Repository permissions govern merge. No role may infer deployment from Done.
+The current agent roster is **Requirements, Architect (Standard only), Build,
+and Review**. Lite uses three roles: Requirements, Build, and Review.
+
+| Role | Responsibility | Skill |
+|---|---|---|
+| Requirements | Shapes scope, records explicit user approval, and verifies delivery closeout | [Requirements](skills/requirements/SKILL.md) |
+| Architect (Standard only) | Owns technical shaping and sign-off against the approved requirements revision | [Architect](profiles/standard/skills/architect/SKILL.md) |
+| Build | Owns implementation, checks, the implementation PR, and review fixes | [Build](skills/build/SKILL.md) |
+| Review | Independently verifies the current PR head and owns the revision-bound verdict | [Review](skills/review/SKILL.md) |
+
+These are not the legacy Ideation, Architect, Implementation, Review, and
+Delivery Manager agents. Requirements replaces the scope-shaping entry point;
+Build is the implementation entry point. There is no Delivery Manager role,
+automatic dispatch, or self-review exception in this workflow.
+
+Repository instructions and their linked policy take precedence over generic
+role ownership and handoff rules. In the Briefcase framework repository,
+the backlog policy linked from the root `AGENTS.md` authorizes an independent
+Review session to merge passing PRs and perform verified closeout; a separate
+Requirements closeout invocation is not required under that override. Without
+such an override, Requirements verifies closeout on explicit invocation.
+Repository permissions and delivery gates still govern merge. No role may
+infer deployment from Done.
 
 Use the shared [Requirements](skills/requirements/SKILL.md),
 [Build](skills/build/SKILL.md), and [Review](skills/review/SKILL.md) skills by

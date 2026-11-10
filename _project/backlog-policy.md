@@ -15,8 +15,9 @@ private `Tchunchun/thebriefcase-artifacts` issues or Project draft cards.
 Do not publish private requirements to the public source repository without approval.
 Existing issue-backed work stays linked to its existing issue.
 
-Approved scope and verification stay in linked briefs in the Git artifact
-repository. Brief document readiness is not a second execution backlog.
+Approved scope and verification stay in linked, revision-bound requirements
+documents in the Git artifact repository: Feature PRDs and scoped Task documents.
+Document readiness is not a second execution backlog.
 Code, implementation revisions, and merge evidence remain in Git and PRs.
 
 ## Repository-Specific Override
@@ -37,7 +38,7 @@ inbox, or derive dispatch from the Markdown backlog in THIS repository.
 - Report access or update failures explicitly and pause affected work. Never
   silently switch status authority to a local file.
 
-The configured `backend: git` remains valid for briefs, decisions, release
+The configured `backend: git` remains valid for requirements documents, decisions, release
 notes, and historical artifacts. No `backend: github` was introduced; the
 framework does not yet have a native GitHub Projects storage adapter.
 Consumer templates, supported backends, and other repositories are unchanged.
@@ -119,10 +120,10 @@ that would promote backlog rows or continue directly into Build.
    Map existing criteria and NFRs to concrete checks, expected results, and
    environments without changing product intent. Split independently deliverable
    work into linked children referencing the approved parent scope.
-3. Use the configured Git artifact CLI for briefs and history; keep linked
+3. Use the configured Git artifact transport for requirements documents and history; keep linked
    PRDs/task documents at their established authoritative locations. Preserve
    existing sections and revision history. The Project alone owns execution
-   status; a brief's document-readiness field is not a parallel backlog.
+   status; a requirements document's readiness field is not a parallel backlog.
    Keep private requirements and approval evidence in the private artifact
    repository or Project, never in public implementation issues or PRs.
 4. Reuse approval identity/date and the approved immutable revision. Only missing,
@@ -193,7 +194,7 @@ merge, release, or close issues as part of the technical shaping loop.
 
 This is the user-authorized review and closeout procedure for this repository's
 Standard board. It overrides generic role instructions that reserve Done for
-Implementation or the product session. It does not change installed consumer
+Build or the Requirements session. It does not change installed consumer
 workflows, Lite ownership, or unresolved unified-product decisions.
 
 ### Entry and authority

@@ -2,7 +2,7 @@
 
 - Work item: `<issue URL and stable ID>`
 - Decision ID: `<D-NNN or ADR-NNN>`
-- Approved requirement revision: `<same revision as the Standard brief sign-off>`
+- Approved requirement revision: `<same revision as the Feature PRD sign-off>`
 - ADR link: `<path to docs/plan/_reference/adr/ADR-NNN.md, or "none">`
 - Recorded by: `<architect>`
 - Date: `<YYYY-MM-DD>`
@@ -35,5 +35,5 @@ alternative that was seriously evaluated before the decision was made.
 ---
 
 This record is append-only. Record supersession as a new entry referencing this
-one; never overwrite a prior decision. The sign-off in the Standard brief names
+one; never overwrite a prior decision. The sign-off in the Feature PRD names
 this record's ID or ADR path.

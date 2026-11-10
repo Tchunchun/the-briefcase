@@ -86,7 +86,7 @@ is open.
 
 ## Sign-off
 
-Use [the Standard brief template](../../../../templates/standard/brief.md). Record the
+Use [the Feature PRD template](../../../../templates/standard/brief.md). Record the
 sign-off block naming:
 
 - The exact approved requirement revision (location and immutable revision).

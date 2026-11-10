@@ -4,8 +4,12 @@ A multi-agent workflow framework that takes a software idea from raw thought to 
 
 Start with [Briefcase Lite](lite/README.md) for the requirements, build, and
 review loops using Markdown and Git, with an optional GitHub Projects board.
-For the full workflow with five roles, a CLI, and configurable storage, see
-the [installation guide](#quick-start).
+For the current GitHub-first workflow, see the
+[workflow playbook](workflow-kit/PLAYBOOK.md): Requirements, Architect
+(Standard only), Build, and Review, invoked directly without a Delivery Manager.
+For the legacy workflow with five roles, a CLI, and configurable storage, see
+the [installation guide](#quick-start). The installer still installs that
+legacy workflow, not the additive workflow kit.
 
 ### Technically shape Standard features
 
@@ -48,9 +52,9 @@ updates. This is a repository-specific workflow, not a change to Lite or the
 legacy installed consumer workflow. It is an agent-invoked
 **pass -> merge -> verify -> close** loop, not an unattended background service.
 
-## What This Does
+## Legacy Installed Workflow
 
-Five specialized AI agent roles, a strict handoff protocol between them, and a CLI toolchain (`briefcase`) that manages every planning artifact against a pluggable storage backend (local files or Notion).
+The legacy installed workflow uses five specialized AI agent roles, a strict handoff protocol between them, and a CLI toolchain (`briefcase`) that manages every planning artifact against a pluggable storage backend (local files or Notion). This is not the current repository agent roster.
 
 | Skill | Responsibility |
 |---|---|
