@@ -13,6 +13,20 @@ Read [the shared playbook](../../PLAYBOOK.md), the executable
 [manifest](../../workflow.yaml), the active profile, repository instructions,
 and the live GitHub issue and Project item before changing scope or state.
 
+## Document organization
+
+Follow the shared playbook's document organization and the repository policy.
+For issue-centered repositories, write user requirements and acceptance criteria
+in the canonical issue description. Keep product sign-off to four entries:
+approver, approval timestamp, approved scope with a pinned snapshot link, and
+approval evidence. Git snapshots retain hashes and migration history; do not
+repeat that audit detail in the readable sign-off or create a separate living
+approval document. Use an issue comment for the short handoff.
+Never publish private planning without explicit approval.
+For PO status work, apply the shared playbook's read-only PO status guidance.
+Do not treat a role owner or historical pending label as a new product decision,
+or a status request as permission to reshape or approve scope.
+
 ## Trigger and selection
 
 Requirements remains the product-shaping entry point in both profiles. For an
@@ -87,9 +101,11 @@ Record one canonical requirement location with:
 4. Dependencies, unresolved questions, and privacy constraints.
 5. The exact approved revision and the user's approval record for it.
 
-Use [the requirement template](../../templates/shared/requirement.md). Issue
-summaries may link to an approved committed document, but must not become a
-second independently editable scope. A material scope change invalidates the
+Use [the requirement template](../../templates/shared/requirement.md) at the
+repository's canonical location. In issue-centered repositories, preserve the
+approved issue requirements block in an immutable Git snapshot; that snapshot is
+historical evidence, not a second independently editable scope. Otherwise,
+issue summaries link to the configured approved document. A material scope change invalidates the
 approval. Lite returns to `Requirement shaping`; Standard records `Blocked`
 for the specific product decision, then returns to `Technical shaping` for
 renewed sign-off.

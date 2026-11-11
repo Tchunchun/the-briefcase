@@ -11,8 +11,12 @@ created with an already approved revision may enter Technical shaping directly,
 but Requirements and Architect remain distinct roles and invocations.
 
 Each Task links one canonical approved Feature PRD revision and its own scoped
-acceptance criteria and verification. Issue text may summarize or link that
-scope but must not become a second independently editable requirements source.
+acceptance criteria and verification. Follow the shared playbook's document
+organization and repository policy: an issue-centered repository uses the parent
+issue's approved scope snapshot for that revision, with product requirements
+and concise sign-off in the issue and technical design/sign-off in Git.
+Otherwise issue text summarizes or links the configured canonical document.
+Never create a second independently editable requirements source.
 
 ## Feature and Task architecture gates
 

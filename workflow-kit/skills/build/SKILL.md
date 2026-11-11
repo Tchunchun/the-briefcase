@@ -14,6 +14,21 @@ Read [the shared playbook](../../PLAYBOOK.md), the executable
 [manifest](../../workflow.yaml), the active profile, repository instructions,
 and the approved requirement before changing state or code.
 
+## Document organization
+
+Follow the shared playbook's document organization and the repository policy.
+For issue-centered repositories, read requirements and the concise four-entry
+product sign-off from the canonical issue description, and technical design
+from its direct Git link. Compare the live requirements block with the approved
+snapshot before claiming; do not trust an "Approved" label alone or recreate
+approval, scope, or hashes in another document. Record the short Review handoff
+as an issue comment, linking the exact tested PR head and detailed evidence.
+Keep execution status, Action Owner, and claim in the Project.
+For PO status work, apply the shared playbook's read-only PO status guidance:
+decision-first output, metadata reuse with complete evidence, current approval
+precedence, and one cohesive collector/utility/test slice. Verify the actual
+read-only boundary, not just instruction wording.
+
 ## Trigger and assignment
 
 Run only when the user explicitly asks to run the Build loop. This is not a

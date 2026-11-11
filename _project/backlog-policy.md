@@ -16,10 +16,66 @@ private `Tchunchun/thebriefcase-artifacts` issues or Project draft cards.
 Do not publish private requirements to the public source repository without approval.
 Existing issue-backed work stays linked to its existing issue.
 
-Approved scope and verification stay in linked, revision-bound requirements
-documents in the Git artifact repository: Feature PRDs and scoped Task documents.
-Document readiness is not a second execution backlog.
-Code, implementation revisions, and merge evidence remain in Git and PRs.
+Requirements and product sign-off live in the canonical planning issue
+description; technical design and verification details live in Git. See
+[Document organization](#document-organization). Code, implementation revisions,
+and merge evidence remain in Git and PRs.
+
+## Document organization
+
+Effective 2026-11-11, by explicit user decision. This repository-specific
+organization overrides instructions elsewhere in this policy and in generic
+workflow-kit skills, profiles, and templates that require a living Git PRD,
+separate approval document, or separate handoff document. It does not change
+legacy installed consumers or the lifecycle contract's evidence gates.
+
+| Location | Authority and contents |
+|---|---|
+| Planning issue description | User requirements, exclusions, acceptance criteria, product sign-off, and direct links to the Git technical design and relevant implementation evidence. Standard children reference the parent issue and its approved scope revision rather than copying the parent's requirements. |
+| Git design document | Architecture, technical sign-off, detailed verification plan, technical decisions, risks, and release obligations. Sign-off names the exact approved requirements revision. |
+| Planning issue comments | Short role handoffs: scope/design revisions, readiness evidence and transition decision, remaining concerns, and exact next invocation. Link rather than duplicate specifications. |
+| Project | Execution status, Action Owner, assignment, and Claim Session. Notes provide brief coordination context, not a document directory or a second backlog. |
+
+Use the existing issue as the hub when its visibility is appropriate. Never
+copy private planning into a public implementation issue without explicit
+publication approval. When visibility differs, use one private planning issue
+in the configured artifact repository as the hub and retain the original
+public issue as implementation identity. Link the public issue from the
+private hub; do not expose private references publicly without permission.
+Reuse an existing matching private hub. Do not add a second Project card for
+the same feature: the existing card remains the sole execution record.
+
+`Brief Link` points to the planning issue's requirements section.
+`Artifact Link` points to that issue's document index, which directly links the
+Git design and latest handoff comment. Neither field should make a standalone
+handoff file the only entry point to the design.
+
+### Revision-bound approval
+
+An issue URL, edit timestamp, or an "Approved" label alone is insufficient.
+Define a delimited requirements block in the issue description and preserve
+an immutable Git snapshot of the exact approved block. Keep product sign-off
+to four readable entries: approver, approval timestamp, approved scope with a
+pinned snapshot link, and approval evidence. Keep the snapshot's commit, path,
+SHA-256, and migration history in linked Git records rather than repeating
+them in the issue's sign-off. The snapshot is historical evidence, not a
+second editable requirements source. Before
+claiming work or accepting it, compare the live block with its approved
+snapshot; material changes require renewed product approval and applicable
+technical sign-off. Edits to navigation or handoff links outside that block
+do not themselves change approved scope.
+
+During migration, retain existing committed PRDs, approval records, designs,
+and handoff files as historical evidence. Preserve the approved product text,
+approval identity/date, and design's original scope binding; do not invent a
+new approval or silently rebind a design to changed scope. Add a migration
+record naming the old immutable revisions and new issue/snapshot. Old living
+documents may become pointers to the hub, with their original revisions still
+accessible. New handoffs go in issue comments; do not keep updating both.
+
+Handoffs are historical observations, not current permission to claim work.
+Build and Review must still reread live gates. A documentation reorganization
+must not change status, owner, claim, review verdict, or scope.
 
 ## Workflow-Kit Bootstrap Phase
 

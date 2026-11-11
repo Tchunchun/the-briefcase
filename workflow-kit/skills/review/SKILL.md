@@ -17,6 +17,22 @@ reviewing. Confirm the manifest names Review as `closeout_owner` before merging,
 closing an issue, or setting Done. Any other value is invalid configuration;
 stop before the verdict or mutation rather than silently changing role semantics.
 
+## Document organization
+
+Follow the shared playbook's document organization and the repository policy.
+For issue-centered repositories, read requirements and the concise four-entry
+product sign-off from the canonical issue description. Compare the live
+requirements block with the approved snapshot before acceptance, and use the
+direct Git design link for technical sign-off and verification details.
+Do not demand another product approval or a separate approval document solely
+because the issue's presentation is concise. Preserve exact-revision evidence.
+Record concise review handoffs in issue comments; keep execution status,
+Action Owner, and claim in the Project.
+For PO status work, verify the shared playbook's read-only PO status guidance
+against the exact implementation head, including output order, complete batched
+reads, later approval resolutions, and zero attempted writes. A design review
+or passing baseline tests do not establish implementation acceptance.
+
 ## Trigger and independence
 
 Run only when the user explicitly asks to run the Review loop. If the user

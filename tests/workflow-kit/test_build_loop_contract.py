@@ -98,8 +98,9 @@ def test_every_role_requires_the_executable_transition_gate():
 def test_current_guidance_uses_requirements_terminology():
     agents = (ROOT / "AGENTS.md").read_text()
     assert "brief" not in agents.lower().replace("briefcase", "")
-    assert "Feature\nPRD" in agents
-    assert "task document for Lite" in agents
+    assert "canonical planning issue description holds user\nrequirements" in agents
+    assert "Short handoffs are issue comments" in agents
+    assert "Git holds technical design, technical sign-off" in agents
     assert "## Legacy CLI Project Root Resolution" in agents
     assert "Use GitHub directly for this repository's backlog" in agents
 
@@ -108,6 +109,28 @@ def test_current_guidance_uses_requirements_terminology():
     for path in WORKFLOW_KIT.rglob("*.md"):
         prose = path.read_text().replace("brief.md", "").replace("Briefcase", "")
         assert "brief" not in prose.lower(), path
+
+
+def test_repository_issue_centered_documents_preserve_evidence_and_privacy():
+    policy = (ROOT / "_project" / "backlog-policy.md").read_text()
+    required = [
+        "## Document organization",
+        "Planning issue description",
+        "Git design document",
+        "Planning issue comments",
+        "private planning issue",
+        "do not add a second Project card",
+        "immutable Git snapshot of the exact approved block",
+        "SHA-256",
+        "four readable entries",
+        "migration history in linked Git records",
+        "material changes require renewed product approval",
+        "do not invent a\nnew approval",
+        "New handoffs go in issue comments",
+        "must not change status, owner, claim, review verdict, or scope",
+    ]
+    for phrase in required:
+        assert phrase.casefold() in policy.casefold()
 
 
 def test_explicit_invocation_scans_every_ready_item_sequentially():
