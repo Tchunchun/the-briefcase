@@ -14,12 +14,111 @@ The source-code repository is `Tchunchun/the-briefcase`. It is public, while
 the Project and the artifact repository are private. Keep private planning in
 private `Tchunchun/thebriefcase-artifacts` issues or Project draft cards.
 Do not publish private requirements to the public source repository without approval.
-Existing issue-backed work stays linked to its existing issue.
+Effective 2026-11-11, by explicit user decision, all backlog planning issues
+belong in `Tchunchun/thebriefcase-artifacts`; code, branches, and PRs remain in
+public `Tchunchun/the-briefcase`. The four remaining public backlog issues were
+transferred to the private repository, retaining their existing Project cards:
+public #15 -> private #31, #17 -> #32, #18 -> #33, and #34 -> #34.
+Use the transferred private issue as the canonical planning identity. Project
+#5 remains the only execution backlog; existing private draft cards remain
+private and do not need duplicate issues.
 
-Approved scope and verification stay in linked, revision-bound requirements
-documents in the Git artifact repository: Feature PRDs and scoped Task documents.
-Document readiness is not a second execution backlog.
-Code, implementation revisions, and merge evidence remain in Git and PRs.
+Requirements and product sign-off live in the canonical planning issue
+description. Its Technical design section links the Git design in Standard;
+in Lite, Requirements may leave it empty or add simple inline details. See
+[Document organization](#document-organization). Code, implementation revisions,
+and merge evidence remain in Git and PRs.
+
+## Document organization
+
+Effective 2026-11-11, by explicit user decision. This repository-specific
+organization overrides instructions elsewhere in this policy and in generic
+workflow-kit skills, profiles, and templates that require a living Git PRD,
+separate approval document, or separate handoff document. It does not change
+legacy installed consumers or the lifecycle contract's evidence gates.
+
+| Location | Authority and contents |
+|---|---|
+| Planning issue description | User requirements, exclusions, acceptance criteria, product sign-off, a Technical design section, and relevant implementation evidence. Standard links its Git design; Lite leaves the design section empty or includes simple inline details at Requirements' discretion. Standard children reference the parent issue and its approved scope revision rather than copying the parent's requirements. |
+| Git design document | Standard architecture, technical sign-off, detailed verification plan, technical decisions, risks, and release obligations. Sign-off names the exact approved requirements revision. Lite does not require a separate Git design document. |
+| Planning issue comments | Short role handoffs: scope/design revisions, readiness evidence and transition decision, remaining concerns, and exact next invocation. Link rather than duplicate specifications. |
+| Project | Execution status, Action Owner, assignment, and Claim Session. Notes provide brief coordination context, not a document directory or a second backlog. |
+
+Create new planning issues in the private artifact repository and add them to
+Project #5, not to the public source repository. Use the existing private issue
+as the hub when its visibility is appropriate. Never
+copy private planning into a public implementation issue without explicit
+publication approval. When visibility differs, use one private planning issue
+in the configured artifact repository as the hub and retain the original
+public implementation issue, if one is needed, as implementation identity.
+This does not require retaining public backlog issues transferred by the
+decision above. Link the public issue or PR from the
+private hub; do not expose private references publicly without permission.
+Reuse an existing matching private hub. Do not add a second Project card for
+the same feature: the existing card remains the sole execution record.
+
+`Brief Link` points to the planning issue's requirements section.
+`Artifact Link` points to that issue's document index, which directly links the
+Standard Git design or Lite inline design section, and latest handoff comment.
+Neither field should make a standalone
+handoff file the only entry point to the design.
+
+Use GitHub's native Development relationship and Project `Linked pull requests`
+field for implementation PR navigation, not a custom text field or Notes.
+The manifest maps the native field as `project.fields.pull_request`. Link from
+the private issue's Development sidebar, selecting the public PR's repository;
+this supports cross-repository links without writing private planning references
+in the public PR description. Build verifies the relationship before handoff;
+Review verifies the linked PR and its exact head. Keep detailed history and
+revision-specific evidence in issue comments. Do not replace another session's
+PR relationship without reconciling its claim.
+
+For both Standard and Lite, Build creates or reuses this native link after
+development, reads back the intended PR/base/head and Project relationship,
+and records the short version-bound handoff before In review. The executable
+handoff requires `native-pr-link` evidence; a URL alone is insufficient.
+Review picks up the native-linked PR and compares the exact head against the
+approved issue requirements and applicable technical design, recording
+criterion coverage and design conformance. Standard requires current applicable
+architecture/sign-off; Lite checks the inline details, if any, without a
+mandatory Git design or Architect phase. An empty Lite design section does not
+block review or require a not-applicable rationale. Missing required evidence
+blocks acceptance.
+
+Native links may auto-close the issue when the PR merges into the default
+branch. This is not Project completion: Review still verifies landing and all
+applicable coverage, checks, and release evidence before marking Done. Verify
+an already auto-closed issue rather than closing it again; if it remains open,
+Review closes it after those gates pass. Do not enable an issue-closed-to-Done
+automation. Retain the pre-merge protection against closing partially delivered
+or release-gated scope.
+
+### Revision-bound approval
+
+An issue URL, edit timestamp, or an "Approved" label alone is insufficient.
+Define a delimited requirements block in the issue description and preserve
+an immutable Git snapshot of the exact approved block. Keep product sign-off
+to four readable entries: approver, approval timestamp, approved scope with a
+pinned snapshot link, and approval evidence. Keep the snapshot's commit, path,
+SHA-256, and migration history in linked Git records rather than repeating
+them in the issue's sign-off. The snapshot is historical evidence, not a
+second editable requirements source. Before
+claiming work or accepting it, compare the live block with its approved
+snapshot; material changes require renewed product approval and applicable
+technical sign-off. Edits to navigation or handoff links outside that block
+do not themselves change approved scope.
+
+During migration, retain existing committed PRDs, approval records, designs,
+and handoff files as historical evidence. Preserve the approved product text,
+approval identity/date, and design's original scope binding; do not invent a
+new approval or silently rebind a design to changed scope. Add a migration
+record naming the old immutable revisions and new issue/snapshot. Old living
+documents may become pointers to the hub, with their original revisions still
+accessible. New handoffs go in issue comments; do not keep updating both.
+
+Handoffs are historical observations, not current permission to claim work.
+Build and Review must still reread live gates. A documentation reorganization
+must not change status, owner, claim, review verdict, or scope.
 
 ## Workflow-Kit Bootstrap Phase
 
@@ -333,13 +432,22 @@ bootstrap for the repository.
    and existing review/delivery evidence. Treat requirement changes since an
    old acceptance as new scope needing review. Do not review a new PRD as if
    it had already been approved.
-2. Resolve implementation evidence. Follow recorded PRs and commits, then
+2. Resolve implementation evidence. For current Standard/Lite handoffs, pick
+   up the PR through the canonical issue's native Development relationship and
+   Project `Linked pull requests`, matching the current handoff and tested head.
+   Missing or conflicting native links block pickup until reconciled with Build.
+   For historical work, follow recorded PRs and commits, then
    search the source repository's open, merged, and closed PRs if links are
    missing. Match actual changes to the approved scope, not merely a similar
    PR title. Record verified PR links on the private card. A private draft
    needs no new public issue to be reviewed or completed.
 3. Review the exact implementation revision against every acceptance criterion,
-   using the Review skill's quality checks. Record the base, reviewed SHA,
+   and applicable technical design, using the Review skill's quality checks.
+   Read the issue's Technical design section: Standard requires the linked Git
+   design and current applicable sign-off; Lite uses any inline details and
+   permits an empty section. Do not
+   substitute a PR description or passing CI for this baseline.
+   Record the scope/design revisions, base, reviewed SHA,
    criterion-by-criterion evidence, required check results, and blockers.
    Missing or unperformed required checks prevent acceptance. Reuse earlier
    evidence only after verifying its revision and scope are still applicable.

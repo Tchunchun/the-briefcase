@@ -20,6 +20,7 @@ project:
     resume_status: Resume Status
     review_verdict: Review Verdict
     work_type: Work Type
+    pull_request: Linked pull requests
   options:
     status:
       - Inbox

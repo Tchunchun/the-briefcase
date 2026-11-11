@@ -68,6 +68,94 @@ write permissions, write any GitHub data, claim work, or dispatch a role.
 It is stateless and repeat-safe, with no scheduler or persistent cache.
 The Standard/Lite role roster and legacy installer are unchanged.
 
+## Document organization
+
+Follow the repository's document organization policy before choosing artifact
+locations. Where it selects an issue-centered layout, that policy overrides
+generic references here to a requirements document or handoff packet:
+
+- The canonical issue description has User requirements and Technical design
+  sections, with acceptance criteria and product sign-off for the requirements.
+  Standard's Technical design section links to the Git architecture/design
+  document. For Lite, Requirements decides whether to leave it empty or include
+  simple inline technical details; no separate Git design document is required.
+- Keep product sign-off to four entries: approver, approval timestamp, approved
+  scope with a pinned snapshot link, and approval evidence. Do not invent approval.
+- Git holds Standard technical design, technical sign-off, detailed verification,
+  technical decisions, and both profiles' immutable approval snapshots. Keep
+  hashes and migration history there, not in the issue's readable sign-off.
+- Short handoffs are issue comments with scope/design versions, readiness
+  evidence, remaining concerns, and the next invocation. Preserve any required
+  transition decision with the comment; link detailed evidence instead of
+  duplicating specifications or creating a separate living handoff document.
+- The Project alone owns execution status, Action Owner, and claim.
+
+Before technical sign-off, Build claim, or Review acceptance, compare the live
+issue requirements block with its approved snapshot. Material scope changes
+require renewed approval and applicable technical sign-off; edits to navigation
+or sign-off presentation alone do not. Existing approvals survive a location-only
+migration when the exact scope and original approval evidence are preserved.
+
+Respect visibility: private planning is not published to a public issue without
+explicit approval. Reuse an existing appropriate issue and Project card.
+Repositories without an issue-centered policy retain their configured canonical
+document locations; this does not migrate Lite or legacy installed consumers.
+
+## Build-to-Review handoff
+
+Both Standard and Lite use the shared Build and Review skills. At the end of
+development, Build must create or reuse the native Development link from the
+canonical requirements issue to the implementation PR, including across
+repositories. Verify the issue relationship, native Project `Linked pull
+requests`, intended base, and tested head before moving to In review.
+The executable `handoff-for-review` gate requires `native-pr-link` in addition
+to the implementation PR and passing checks. A text URL alone is insufficient.
+
+Build saves the short handoff in an issue comment with the exact PR head,
+approved requirements revision, and design baseline: Standard's Git design
+revision or Lite's inline details, if any. On explicit
+Review invocation, the separate reviewer picks up the native-linked PR and
+checks that head against the approved requirements and applicable technical
+design. Requirements locations follow the document organization policy above;
+issue-centered work uses the approved issue block and its immutable snapshot.
+Standard requires current architecture/sign-off; Lite checks the inline design
+when present. An empty Lite section is valid without a not-applicable rationale
+or mandatory Architect phase.
+Acceptance revalidates the native link and records requirement coverage and
+design conformance, not just passing CI.
+
+## Read-only PO status guidance
+
+These are implementation and assessment constraints for the standalone PO
+status utility, not a workflow role or permission to start Build. A status-only
+request never authorizes a lifecycle transition, claim, handoff, or GitHub write.
+
+1. **Decision-first presentation:** report observation time and coverage, then
+   explicit pending product decisions, blockers, and moving work grouped as
+   Ready, In progress, and In review. Use concise source-linked bullets and
+   recorded owners. Short prose is not a coverage cap; never silently omit
+   relevant work. Mark empty sections only after a complete read.
+2. **Efficient complete reads:** resolve Project/schema metadata once per
+   invocation and batch necessary source reads. Paginate every connection needed
+   to identify or resolve decisions; do not filter evidence solely by Status,
+   Action Owner, or keywords. Report incomplete/inaccessible sources explicitly.
+   Do not add persistent caches, polling, or a scheduler.
+3. **Current approval evidence:** use the canonical issue's current product
+   sign-off and approved scope binding before interpreting archived draft
+   labels. Check discussion through the latest relevant resolution. A role
+   owner or old pending label alone is not a product decision; conflicting or
+   ambiguous evidence remains unconfirmed, never silently resolved.
+4. **Lean delivery:** keep the collector, utility instructions, discoverability,
+   and focused tests in one cohesive slice. Use a simple evidence shape with
+   explicit coverage and errors; avoid new orchestration, stores, services,
+   planning documents, or abstractions without a demonstrated need. Preserve
+   all approved verification and release obligations.
+
+Verify output order, complete nested pagination, metadata reuse, later approval
+resolutions, incomplete reads, and zero attempted writes on success, failure,
+and repeat invocation. Keep utility observations separate from workflow evidence
+written while developing it; design review is not implementation acceptance.
+
 ## Lifecycle and ownership
 
 The shared statuses are `Inbox`, `Requirement shaping`, `Technical shaping`,
@@ -95,6 +183,12 @@ blocked item records `Resume Status`; clearing the blocker never skips
 validation of the resumed state's gates.
 
 ## Configuration and preflight
+
+New instances start from the [manifest template](templates/workflow.yaml),
+which includes `project.fields.pull_request: Linked pull requests` for Standard
+and Lite. Use GitHub's native Development relationship and Project field,
+not a custom PR text field. Link cross-repository PRs from the issue sidebar.
+Native issue auto-closure never substitutes for the Project Done gates.
 
 Validate the local contract and manifest without GitHub access:
 

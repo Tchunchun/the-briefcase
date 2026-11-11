@@ -21,6 +21,28 @@ re-create or populate them for new boards.
 | Blocking reason | Text | Both | One-line reason this item is Blocked; fill whenever Status → Blocked, clear on unblock |
 | Resume Status | Single select | Both | The Status to restore when the item is unblocked; set at the same time as `Blocking reason` |
 | Artifact Link | Text | Both | URL to the linked artifact or release record, when applicable |
+| Linked pull requests | Native | Both | PRs linked through the issue's Development sidebar; verified by Build and Review |
+
+### Implementation PR navigation
+
+Use GitHub's existing native `Linked pull requests` field for Standard and Lite,
+not a custom PR text field or Notes. The [new-project manifest template](templates/workflow.yaml)
+maps it as `project.fields.pull_request`. Show the native field on item cards
+and task/review views; do not create a duplicate with `createProjectV2Field`.
+
+Link the implementation PR from the issue's **Development** sidebar. Select
+the PR's repository there when the issue and PR live in different repositories.
+Build verifies that the issue relationship and native Project field contain
+the intended PR before handing work to Review. Review verifies the live PR head
+against the current handoff; multiple or conflicting links are not permission
+to guess which implementation was accepted.
+
+Native links can auto-close issues when merged into the default branch. Issue
+closure never automatically sets Project Done: Review must still verify landing,
+scope coverage, checks, and applicable release evidence. Inspect auto-closing
+references before merge so partial scope is not closed prematurely.
+Read-only preflight checks the configured native field without creating or
+repairing Project data.
 
 Standard-only:
 
@@ -107,8 +129,10 @@ blockers without opening individual cards.
 ## Creating a new board
 
 1. Create the GitHub Project V2 (private for Standard; Lite may be public).
-2. Add all required fields above via `createProjectV2Field` mutations or the
-   GitHub UI. Use `TEXT` for text fields, `SINGLE_SELECT` for selects.
+2. Reuse GitHub's native fields, including `Linked pull requests`; never
+   recreate them as custom fields. Add only required custom fields via
+   `createProjectV2Field` mutations or the GitHub UI. Use `TEXT` for text fields,
+   `SINGLE_SELECT` for selects.
 3. Add Status options in the order listed; do not add `User requirement shaping`
    to new Standard boards.
 4. Create the three required views using `createProjectV2View` mutations or the
@@ -134,6 +158,7 @@ gh api graphql -f query='{ user(login: "<owner>") { projectV2(number: <n>) {
   views(first: 10) { nodes { name layout } } } } }'
 ```
 
-For any missing field, add it with `createProjectV2Field`. For any missing view,
-add it with `createProjectV2View`. Never delete existing fields or views that
-active items reference.
+For a missing native field, check access and field visibility rather than
+creating a custom duplicate. For an authorized missing custom field, use
+`createProjectV2Field`. For any missing view, add it with `createProjectV2View`.
+Never delete existing fields or views that active items reference.

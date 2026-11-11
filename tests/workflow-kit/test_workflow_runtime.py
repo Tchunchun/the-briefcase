@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -111,6 +112,28 @@ def test_contract_and_manifest_are_valid():
     assert MANIFEST["closeout_owner"] == "Review"
 
 
+def test_new_project_template_defaults_to_native_pr_links(tmp_path, capsys):
+    target = tmp_path / "workflow-kit"
+    target.mkdir()
+    manifest_path = target / "workflow.yaml"
+    shutil.copyfile(KIT / "templates" / "workflow.yaml", manifest_path)
+    shutil.copyfile(KIT / "contract.yaml", target / "contract.yaml")
+    manifest = RUNTIME.load_yaml(manifest_path)
+
+    assert manifest["project"]["fields"]["pull_request"] == "Linked pull requests"
+    assert "PR URL" not in manifest["project"]["fields"].values()
+    for mode in ("standard", "lite"):
+        manifest["mode"] = mode
+        assert RUNTIME.validate_manifest(manifest, CONTRACT) == []
+
+    assert RUNTIME.main(
+        ["--manifest", str(manifest_path), "--offline", "--json"]
+    ) == 0
+    assert json.loads(capsys.readouterr().out)["preflight"]["passed"]
+    board = (KIT / "board-setup.md").read_text()
+    assert "| Linked pull requests | Native | Both |" in board
+
+
 def test_manifest_contains_names_not_live_ids_or_mutable_state():
     text = (KIT / "workflow.yaml").read_text()
     assert "PVT_" not in text
@@ -155,6 +178,56 @@ def test_ready_rejects_missing_approval_stale_signoff_and_dependency():
         )
         assert not decision.allowed
         assert missing_gate in decision.missing_evidence
+
+
+def test_native_pr_link_gates_handoff_and_acceptance_in_both_profiles():
+    for profile, work_type in (
+        ("lite", "Task"),
+        ("standard", "Task"),
+        ("standard", "Feature"),
+    ):
+        for transition_id in ("handoff-for-review", "accept-review"):
+            evidence = evidence_for(transition_id)
+            assert "native-pr-link" in evidence
+            for missing_value in (None, False):
+                unlinked = evidence.copy()
+                if missing_value is None:
+                    del unlinked["native-pr-link"]
+                else:
+                    unlinked["native-pr-link"] = missing_value
+                decision = decide(
+                    transition_id,
+                    profile=profile,
+                    work_type=work_type,
+                    evidence=unlinked,
+                )
+                assert not decision.allowed
+                assert decision.missing_evidence == ("native-pr-link",)
+
+            linked = decide(
+                transition_id,
+                profile=profile,
+                work_type=work_type,
+                evidence=evidence,
+            )
+            assert linked.allowed, linked
+
+
+def test_lite_handoff_and_acceptance_do_not_require_git_design_evidence():
+    for transition_id in ("handoff-for-review", "accept-review"):
+        evidence = evidence_for(transition_id)
+        assert not any(
+            "design" in gate or "architecture" in gate or "signoff" in gate
+            for gate in evidence
+        )
+        decision = decide(
+            transition_id,
+            profile="lite",
+            work_type="Task",
+            evidence=evidence,
+        )
+        assert decision.allowed, decision
+    assert "Lite inline or empty" in CONTRACT["evidence"]["independent-acceptance"]
 
 
 def test_build_claim_has_no_ready_assignment_cycle():
@@ -299,6 +372,26 @@ def test_live_preflight_passes_without_mutating_github():
     runner, calls = make_runner()
     report = RUNTIME.run_preflight(MANIFEST, CONTRACT, runner=runner)
     assert report.passed, report.errors
+    assert all(
+        command not in call
+        for call in calls
+        for command in ("edit", "create", "delete", "add", "remove")
+    )
+
+
+def test_native_pr_field_is_checked_without_automatic_board_repair():
+    fields = [
+        field for field in live_fields()
+        if field["name"] != MANIFEST["project"]["fields"]["pull_request"]
+    ]
+    runner, calls = make_runner(fields)
+    report = RUNTIME.run_preflight(MANIFEST, CONTRACT, runner=runner)
+    assert not report.passed
+    assert any(
+        "pull_request configured as Linked pull requests" in error
+        for error in report.errors
+    )
+    assert "No changes were made." in RUNTIME.format_report(report)
     assert all(
         command not in call
         for call in calls

@@ -14,6 +14,22 @@ Read [the shared playbook](../../../../PLAYBOOK.md), the executable
 repository instructions, the approved requirement revision, and the live
 GitHub item before recording sign-off or changing any state.
 
+## Document organization
+
+Follow the shared playbook's document organization and the repository policy.
+For issue-centered repositories, use requirements and the concise four-entry
+product sign-off in the canonical issue description. Compare its live
+requirements block with the approved snapshot before technical sign-off.
+Keep technical design, technical sign-off, detailed verification, and technical
+decisions in Git, with a direct link from the issue. Do not copy approved
+product scope into a second editable design document. Record the short Build
+handoff as an issue comment; link detailed evidence rather than create a
+separate living handoff document. Respect the issue's visibility.
+For PO status work, apply the shared playbook's read-only PO status guidance.
+Keep decision-first output and complete batched reads within the approved
+collector boundary; clarify current approval precedence and test expectations
+without introducing a scheduler, extra planning documents, or new role.
+
 ## Trigger and scope
 
 Run only when the user explicitly asks to run the Architecture loop, using
@@ -43,7 +59,8 @@ Re-read the live GitHub issue, the linked requirement revision, and the Standard
 profile. Verify:
 
 1. An approved requirement revision is linked — the exact committed document
-   the user approved.
+   or issue requirements snapshot the user approved. For issue-centered
+   repositories, verify the live requirements still match that snapshot.
 2. The Project status is `Technical shaping` and `Action Owner` is `Architect`,
    or the item is explicitly routed to Architecture.
 3. No competing sign-off names a different revision for this item.
@@ -203,7 +220,8 @@ overwriting them.
 Build assignment is recorded atomically when Build claims `Ready`; it is not a
 prerequisite for Architect to set `Ready`.
 
-Save a private handoff packet with scope revision/approval, technical decisions,
+Save a handoff packet in the repository's configured location (an issue comment
+for issue-centered repositories) with scope revision/approval, technical decisions,
 sign-off, criterion-to-check verification, dependencies and completion evidence,
 existing branch/PR conflicts, remaining gates, and the exact next Build prompt.
 Keep private planning out of public targets. Read back the packet and sign-off,

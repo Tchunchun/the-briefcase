@@ -11,8 +11,16 @@ created with an already approved revision may enter Technical shaping directly,
 but Requirements and Architect remain distinct roles and invocations.
 
 Each Task links one canonical approved Feature PRD revision and its own scoped
-acceptance criteria and verification. Issue text may summarize or link that
-scope but must not become a second independently editable requirements source.
+acceptance criteria and verification. Follow the shared playbook's document
+organization and repository policy: an issue-centered repository uses the parent
+issue's approved scope snapshot for that revision, with product requirements
+and concise sign-off in the issue and technical design/sign-off in Git.
+Otherwise issue text summarizes or links the configured canonical document.
+Never create a second independently editable requirements source.
+The issue description has User requirements and Technical design sections;
+Technical design links to the Git architecture/design document, including its
+revision-bound technical sign-off. Do not replace that document with inline
+technical notes.
 
 ## Feature and Task architecture gates
 
@@ -60,10 +68,20 @@ to `In progress`; assignment is not a prerequisite for `Ready`.
 
 ## Delivery gates
 
+Build must link the implementation PR through the canonical issue's native
+Development relationship and verify the Project's `Linked pull requests` before
+handoff. Separate-session Review picks up that linked PR and checks its exact
+head against the approved scope and applicable Git design/sign-off,
+including inherited parent architecture for Tasks. Missing or stale evidence
+blocks acceptance.
+
 Accepted work remains `In review` until the closeout owner configured in
 [`workflow.yaml`](../../workflow.yaml) merges its reviewed head, verifies
 landing and applicable delivery evidence, closes the item, and sets `Done`.
 There is no separate Deliver stage.
+Native Development links may auto-close an issue on merge. Review verifies
+that closure and all remaining landing/release gates before Project Done;
+issue closure alone does not satisfy this profile.
 
 | Work item | Done gate |
 |---|---|

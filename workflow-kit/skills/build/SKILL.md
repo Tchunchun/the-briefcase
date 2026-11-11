@@ -14,6 +14,23 @@ Read [the shared playbook](../../PLAYBOOK.md), the executable
 [manifest](../../workflow.yaml), the active profile, repository instructions,
 and the approved requirement before changing state or code.
 
+## Document organization
+
+Follow the shared playbook's document organization and the repository policy.
+For issue-centered repositories, read requirements and the concise four-entry
+product sign-off from the canonical issue description. Read its Technical
+design section: Standard uses the linked Git architecture/design document;
+Lite uses any simple inline details and permits an empty section.
+Compare the live requirements block with the approved
+snapshot before claiming; do not trust an "Approved" label alone or recreate
+approval, scope, or hashes in another document. Record the short Review handoff
+as an issue comment, linking the exact tested PR head and detailed evidence.
+Keep execution status, Action Owner, and claim in the Project.
+For PO status work, apply the shared playbook's read-only PO status guidance:
+decision-first output, metadata reuse with complete evidence, current approval
+precedence, and one cohesive collector/utility/test slice. Verify the actual
+read-only boundary, not just instruction wording.
+
 ## Trigger and assignment
 
 Run only when the user explicitly asks to run the Build loop. This is not a
@@ -91,19 +108,37 @@ Markdown status, fabricate a claim, or report a transition as successful.
 
 ## Required PR handoff
 
-After the implementation and checks pass:
+This handoff is mandatory for both Standard and Lite. After the implementation
+and checks pass:
 
 1. Commit the verified change and push the task branch.
 2. Open an implementation PR against the configured base, or update the
    existing PR for an assigned review-fix resumption.
-3. Verify through GitHub readback that the PR is open, its head is the pushed
+3. Link the intended PR from the canonical requirements issue's native
+   Development relationship, selecting the PR repository for cross-repository
+   links. Reuse an existing correct link; do not replace a competing session's
+   link or publish private planning references in a public PR description.
+4. Verify through GitHub readback that the PR is open, its head is the pushed
    tested commit, its base is correct, and the issue and evidence are linked.
-4. Only after that readback succeeds, move `In progress` to `In review`, set
+   Read back the issue relationship and Project `Linked pull requests` field
+   before handoff. A URL in Notes, a PR description, or a handoff comment is
+   not proof of that native relationship; do not create a custom PR text field.
+5. Save and read back a short issue-comment handoff with the PR URL, exact
+   tested head, approved requirements location/revision, checks/evidence, and
+   applicable design baseline. Standard requires the Git design revision and
+   current applicable architecture evidence. Lite records its inline technical
+   details, if any; an empty Technical design section is valid without a
+   separate Git document, not-applicable rationale, or Architect gate.
+6. Only after those readbacks succeed, evaluate `handoff-for-review` with
+   verified `implementation-pr`, `native-pr-link`, and `required-checks`
+   evidence, then move `In progress` to `In review`, set
    `Action Owner: Review`, and hand the PR to a separate Review session.
 
 A local commit, an unpushed branch, a draft description without a PR, or a
 failed PR write is not a review handoff. Keep the item `In progress`, or mark
 it `Blocked` when a stopping condition exists, and report how to resume.
+A missing or failed native link also prevents handoff even if the PR exists
+and its checks pass. Never assert `native-pr-link` without live readback.
 
 Expected successful output:
 
@@ -114,6 +149,7 @@ Status: Ready -> In progress
 Branch: <task branch>
 Checks: passed
 Pull request: <PR URL>
+Native PR link: verified
 Status: In progress -> In review
 ```
 
@@ -121,8 +157,10 @@ Status: In progress -> In review
 
 When Review requests in-scope changes, an explicit Build invocation resumes the
 same item, branch, and PR. Move it to `In progress`, address every blocking
-finding, rerun affected checks, push the new commit, verify the updated PR head,
-and return it to `In review`. The new head requires a fresh Review verdict.
+finding, rerun affected checks, push the new commit, and verify the updated PR
+head. Recheck the native issue/PR relationship and refresh the issue-comment
+handoff for that head before evaluating `handoff-for-review`, then return it to `In review`.
+The new head requires a fresh Review verdict.
 
 ## Boundaries
 

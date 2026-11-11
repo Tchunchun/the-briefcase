@@ -32,6 +32,7 @@ def test_staged_shared_assets_and_relative_links_resolve(tmp_path):
         "templates/shared/review.md",
         "templates/shared/delivery.md",
         "examples/handoffs.md",
+        "templates/workflow.yaml",
     ]
 
     for relative in expected:
@@ -146,3 +147,76 @@ def test_standard_roles_remain_distinct_and_lite_is_unchanged():
     assert "never silently execute the Architecture loop" in requirements
     assert "Requirements and Architect remain distinct roles" in profile
     assert "Build assignment is recorded atomically" in profile
+
+
+def test_active_roles_follow_repository_document_organization():
+    roles = [
+        "skills/requirements/SKILL.md",
+        "skills/build/SKILL.md",
+        "skills/review/SKILL.md",
+        "profiles/standard/skills/architect/SKILL.md",
+    ]
+    for relative in roles:
+        skill = normalized((SOURCE / relative).read_text())
+        for phrase in [
+            "document organization",
+            "repository policy",
+            "issue-centered repositories",
+            "snapshot",
+            "issue comment",
+        ]:
+            assert phrase in skill, (relative, phrase)
+
+    playbook = normalized((SOURCE / "PLAYBOOK.md").read_text())
+    for phrase in [
+        "four entries",
+        "Do not invent approval",
+        "compare the live issue requirements block with its approved snapshot",
+        "private planning is not published to a public issue without explicit approval",
+        "does not migrate Lite or legacy installed consumers",
+    ]:
+        assert phrase in playbook
+
+
+def test_product_signoff_template_has_only_four_approval_entries():
+    requirement = (SOURCE / "templates/shared/requirement.md").read_text()
+    signoff = requirement.split("## Product sign-off\n", 1)[1]
+    fields = re.findall(r"^- ([^:]+):", signoff, flags=re.MULTILINE)
+    assert fields == ["Approved by", "Approved on", "Approved scope", "Evidence"]
+    assert "pinned approved snapshot link" in signoff
+    assert "Keep hashes and migration history in linked Git evidence" in signoff
+    assert "Never record approval on the user's behalf" in signoff
+    assert "Status / Action Owner:" not in requirement
+
+
+def test_po_status_feedback_is_captured_in_active_guidance():
+    agents = normalized((ROOT / "AGENTS.md").read_text())
+    playbook = normalized((SOURCE / "PLAYBOOK.md").read_text())
+    assert "## Read-only PO status guidance" in agents
+    for phrase in [
+        "A request for status is not permission",
+        "design guidance from implementation acceptance",
+    ]:
+        assert phrase in agents
+    for phrase in [
+        "Decision-first presentation",
+        "observation time and coverage",
+        "then explicit pending product decisions, blockers, and moving work",
+        "Project/schema metadata once per invocation",
+        "batch necessary source reads",
+        "do not filter evidence solely by Status, Action Owner, or keywords",
+        "Current approval evidence",
+        "canonical issue's current product sign-off",
+        "Lean delivery",
+        "all approved verification and release obligations",
+        "zero attempted writes on success, failure, and repeat invocation",
+    ]:
+        assert phrase in playbook
+    for relative in [
+        "skills/requirements/SKILL.md",
+        "skills/build/SKILL.md",
+        "skills/review/SKILL.md",
+        "profiles/standard/skills/architect/SKILL.md",
+    ]:
+        skill = normalized((SOURCE / relative).read_text())
+        assert "shared playbook's read-only PO status guidance" in skill

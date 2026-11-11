@@ -3,9 +3,15 @@
 These examples use the shared evidence packets. They demonstrate decisions;
 they are not a second status queue.
 
+Follow the shared playbook's document organization and repository policy.
+In issue-centered repositories, these short handoffs are issue comments linking
+the approved issue scope and Standard Git design or Lite inline design, if any;
+no separate living handoff file is
+needed. Product sign-off stays concise and its immutable evidence stays linked.
+
 ## Happy path
 
-Requirements approves revision `req-abc123` and moves the Feature to
+Requirements records the user's approval of revision `req-abc123` and moves the Feature to
 `Technical shaping / Architect`. Architect signs that revision, verifies Done
 dependencies and no competing implementation, then moves it to `Ready / Build`.
 Build atomically records assignment and Claim Session while moving it to
@@ -13,6 +19,17 @@ Build atomically records assignment and Claim Session while moving it to
 `def456` as `In review / Review`. A separate Review session accepts `def456`,
 merges it, verifies landing and release evidence, closes the task, and writes
 `Done / None` last.
+
+## Lite with optional inline design
+
+Requirements records approved user requirements in the issue's User requirements
+section and leaves Technical design empty when no notes are needed, or adds
+simple inline details. After readiness gates pass, Build implements the task,
+verifies its native issue/PR link, and records the tested head and inline design
+baseline, if any, before handing off to Review. A separate Review session checks
+the exact head against the approved requirements and any inline design.
+An empty Technical design section does not block review or require a rationale,
+Git design document, or Architect sign-off.
 
 ## Refused self-review
 

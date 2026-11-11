@@ -17,11 +17,33 @@ reviewing. Confirm the manifest names Review as `closeout_owner` before merging,
 closing an issue, or setting Done. Any other value is invalid configuration;
 stop before the verdict or mutation rather than silently changing role semantics.
 
+## Document organization
+
+Follow the shared playbook's document organization and the repository policy.
+For issue-centered repositories, read requirements and the concise four-entry
+product sign-off from the canonical issue description. Compare the live
+requirements block with the approved snapshot before acceptance, and use the
+Technical design section. Standard's link supplies the Git architecture/design,
+technical sign-off, and verification details. Lite supplies simple inline
+technical details or an empty section, as determined by Requirements; neither
+a separate Git design nor a not-applicable rationale is required for Lite.
+Do not demand another product approval or a separate approval document solely
+because the issue's presentation is concise. Preserve exact-revision evidence.
+Record concise review handoffs in issue comments; keep execution status,
+Action Owner, and claim in the Project.
+For PO status work, verify the shared playbook's read-only PO status guidance
+against the exact implementation head, including output order, complete batched
+reads, later approval resolutions, and zero attempted writes. A design review
+or passing baseline tests do not establish implementation acceptance.
+
 ## Trigger and independence
 
 Run only when the user explicitly asks to run the Review loop. If the user
 names a PR or issue, review it first; otherwise consider every live `In review`
 item whose `Action Owner` is `Review` and that has a ready implementation PR.
+This pickup uses the native issue/PR relationship in both Standard and Lite.
+If multiple PRs are linked, match the current Build handoff and tested head;
+do not select an arbitrary link or dispatch from a PR URL found only in Notes.
 
 The Review session must be separate from the session that produced the code.
 This applies to features, bugs, tech debt, documentation, and workflow assets.
@@ -42,12 +64,26 @@ means no write or merge.
 Before evaluating behavior, verify:
 
 1. One approved requirement revision is linked.
+   Locate the implementation through the native Development relationship and
+   Project `Linked pull requests` field, not Notes or a custom text field. A missing,
+   inaccessible, or conflicting link blocks the affected review; reconcile it
+   with Build instead of guessing. Verify any explicitly supplied PR matches
+   the card's recorded implementation PR.
 2. The PR is open, reviewable, and targets the intended base.
 3. The recorded implementation head equals the live PR head.
 4. The issue, Project item, checks, dependencies, and parent scope are readable.
 5. Standard architecture evidence is applicable and current: Feature work has
    Feature sign-off; Task work has current parent Feature sign-off plus either
    `parent sign-off applies` or a Task-specific sign-off naming both revisions.
+
+For issue-centered work, the review baseline is the canonical issue's approved
+requirements and acceptance criteria, verified against its immutable snapshot,
+plus its mode-specific Technical design section.
+Standard requires the Git technical-design revision linked from that issue
+and current architecture/sign-off. Lite has no mandatory Architect phase:
+check any inline technical details, or record that the section is empty
+without treating that as a blocker or requiring a not-applicable rationale.
+Missing or stale Standard design evidence blocks review, not just closeout.
 
 Missing or stale evidence blocks a verdict. GitHub read or write failure pauses
 the affected review; never fall back to Markdown status.
@@ -59,12 +95,21 @@ acceptance criterion, record concrete evidence from the exact PR head. Inspect
 the diff, run the required checks, verify no out-of-scope behavior or legacy
 regression, and confirm the expected user experience. Review complete issue
 coverage, not merely the files changed by the PR.
+Also check the applicable linked or inline design's technical decisions,
+interfaces, constraints, and NFR verification against the exact head. Record requirement coverage and
+design conformance separately; a PR description or green checks alone are not
+the review baseline.
+For Lite, record the reviewed inline design content (or empty section) in the
+review evidence and compare it with the live section before acceptance. A design
+change requires refreshed review; a material scope or constraint change also
+requires renewed product approval. Do not require a Git design snapshot for Lite.
 
 Verdicts:
 
 - `Accepted`: every criterion is met, required checks pass, and no blocking
   finding remains. Bind acceptance to the approved requirement revision and
-  exact PR head.
+  exact PR head, plus Standard's Git design revision or Lite's reviewed inline
+  design content, if any.
 - `Changes requested`: in-scope implementation defects have actionable
   findings. Keep the same issue, branch, and PR; Build resumes explicitly.
 - `Blocked`: scope, approval, architecture, access, or evidence is missing and
@@ -75,6 +120,9 @@ Verdicts:
 
 Any new commit invalidates the prior acceptance until the new head is reviewed.
 Re-read the recorded verdict after writing it.
+Before `accept-review`, re-read the native relationship and supply verified
+`native-pr-link` evidence. A link removed or changed since Build blocks
+acceptance until reconciled with the current handoff.
 
 ## Merge and closeout
 
@@ -89,7 +137,10 @@ Merge with an expected-head guard; never bypass protections or accept a changed
 head without renewed review.
 
 After GitHub confirms the merge, verify the accepted changes landed on the
-intended base. Close the linked task, set `Status: Done`, and set
+intended base. Read back native issue auto-closure, or close the linked task
+if it is still open after all completion gates pass. Issue closure is not
+completion evidence and must not automatically set Project Done.
+Set `Status: Done`, and set
 `Action Owner: None`, writing `Done` last and reading every mutation back. There
 is no separate Deliver stage. If merge or post-merge evidence is pending, keep
 `In review` with `Action Owner: Review`. If external action is required, record
@@ -97,7 +148,8 @@ is no separate Deliver stage. If merge or post-merge evidence is pending, keep
 
 For `Changes requested`, move the item to `In progress` with
 `Action Owner: Build` and reuse the same branch and PR. Product-scope blockers
-go to Requirements; technical-design blockers go to Architect.
+go to Requirements; Standard technical-design blockers go to Architect.
+Lite technical questions go to Requirements, not an invented Architect role.
 
 ## Handoff and boundaries
 
