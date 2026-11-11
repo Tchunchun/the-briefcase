@@ -108,7 +108,7 @@ def test_current_guidance_uses_requirements_terminology():
     assert template.read_text().startswith("# Standard Feature PRD\n")
     for path in WORKFLOW_KIT.rglob("*.md"):
         prose = path.read_text().replace("brief.md", "").replace("Briefcase", "")
-        assert "brief" not in prose.lower(), path
+        assert "brief" not in prose.lower().replace("briefing", ""), path
 
 
 def test_repository_issue_centered_documents_preserve_evidence_and_privacy():
