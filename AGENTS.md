@@ -42,6 +42,10 @@ overrides generic playbook instructions to use CLI backlog rows, the legacy
 inbox, or backlog-scanning automation. Use GitHub directly; do not recreate or
 update the retired Markdown backlog. If access fails, report it and pause
 affected work rather than silently falling back to local status.
+Create planning issues in private `Tchunchun/thebriefcase-artifacts` and keep
+them on Project #5. Code, branches, and PRs belong in public
+`Tchunchun/the-briefcase`; do not publish private planning in PR descriptions
+or comments.
 
 Standard uses distinct Requirement shaping and Technical shaping queues.
 `Action Owner` is the automation dispatch authority: Requirements, Architect,
