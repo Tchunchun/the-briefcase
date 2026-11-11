@@ -14,7 +14,14 @@ The source-code repository is `Tchunchun/the-briefcase`. It is public, while
 the Project and the artifact repository are private. Keep private planning in
 private `Tchunchun/thebriefcase-artifacts` issues or Project draft cards.
 Do not publish private requirements to the public source repository without approval.
-Existing issue-backed work stays linked to its existing issue.
+Effective 2026-11-11, by explicit user decision, all backlog planning issues
+belong in `Tchunchun/thebriefcase-artifacts`; code, branches, and PRs remain in
+public `Tchunchun/the-briefcase`. The four remaining public backlog issues were
+transferred to the private repository, retaining their existing Project cards:
+public #15 -> private #31, #17 -> #32, #18 -> #33, and #34 -> #34.
+Use the transferred private issue as the canonical planning identity. Project
+#5 remains the only execution backlog; existing private draft cards remain
+private and do not need duplicate issues.
 
 Requirements and product sign-off live in the canonical planning issue
 description; technical design and verification details live in Git. See
@@ -36,11 +43,15 @@ legacy installed consumers or the lifecycle contract's evidence gates.
 | Planning issue comments | Short role handoffs: scope/design revisions, readiness evidence and transition decision, remaining concerns, and exact next invocation. Link rather than duplicate specifications. |
 | Project | Execution status, Action Owner, assignment, and Claim Session. Notes provide brief coordination context, not a document directory or a second backlog. |
 
-Use the existing issue as the hub when its visibility is appropriate. Never
+Create new planning issues in the private artifact repository and add them to
+Project #5, not to the public source repository. Use the existing private issue
+as the hub when its visibility is appropriate. Never
 copy private planning into a public implementation issue without explicit
 publication approval. When visibility differs, use one private planning issue
 in the configured artifact repository as the hub and retain the original
-public issue as implementation identity. Link the public issue from the
+public implementation issue, if one is needed, as implementation identity.
+This does not require retaining public backlog issues transferred by the
+decision above. Link the public issue or PR from the
 private hub; do not expose private references publicly without permission.
 Reuse an existing matching private hub. Do not add a second Project card for
 the same feature: the existing card remains the sole execution record.
