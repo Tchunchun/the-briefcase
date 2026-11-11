@@ -1,84 +1,10 @@
-"""Regression tests for the two-layer skill-loading architecture.
-
-Validates that:
-- Shared cross-role rules live only in PLAYBOOK.md (always-on layer).
-- Role SKILL.md files reference PLAYBOOK.md instead of duplicating shared content.
-- install.sh supports native skill discovery via the .skills symlink step.
-"""
+"""Regression tests for current repository shaping and review policy."""
 
 from pathlib import Path
 
 import pytest
 
-SKILLS_DIR = Path(__file__).resolve().parents[3] / "skills"
-ROOT_DIR = SKILLS_DIR.parent
-
-ROLE_SKILLS = ["ideation", "architect", "implementation", "review", "delivery-manager"]
-
-
-class TestAlwaysOnLayer:
-    """PLAYBOOK.md must contain the shared cross-role guidance."""
-
-    def test_playbook_has_backend_protocol(self):
-        content = (SKILLS_DIR / "PLAYBOOK.md").read_text()
-        assert "## Backend Protocol" in content
-
-    def test_playbook_has_artifact_access_rules(self):
-        content = (SKILLS_DIR / "PLAYBOOK.md").read_text()
-        assert "## Artifact Access Rules" in content
-
-    def test_playbook_has_session_protocol(self):
-        content = (SKILLS_DIR / "PLAYBOOK.md").read_text()
-        assert "## Session Protocol" in content
-
-    def test_playbook_has_collaboration_protocol(self):
-        content = (SKILLS_DIR / "PLAYBOOK.md").read_text()
-        assert "## Collaboration Protocol" in content
-
-    def test_playbook_has_shared_rules(self):
-        content = (SKILLS_DIR / "PLAYBOOK.md").read_text()
-        assert "## Shared Rules" in content
-
-
-class TestRoleSkillsReferencePlaybook:
-    """Each role skill must use the one-liner reference rather than duplicating."""
-
-    @pytest.mark.parametrize("role", ROLE_SKILLS)
-    def test_skill_references_playbook(self, role):
-        content = (SKILLS_DIR / role / "SKILL.md").read_text()
-        assert "see PLAYBOOK.md" in content, (
-            f"{role}/SKILL.md must reference PLAYBOOK.md for backend/artifact rules"
-        )
-
-    @pytest.mark.parametrize("role", ROLE_SKILLS)
-    def test_skill_does_not_duplicate_artifact_table(self, role):
-        """Role skills should not contain the full artifact access command table."""
-        content = (SKILLS_DIR / role / "SKILL.md").read_text()
-        # The full table in PLAYBOOK starts with "| Action | Command |"
-        # Role skills should not duplicate this; they may have role-specific commands
-        assert "| Action | Command |" not in content, (
-            f"{role}/SKILL.md still contains the shared Artifact Access command table "
-            "which should only be in PLAYBOOK.md"
-        )
-
-    @pytest.mark.parametrize("role", ROLE_SKILLS)
-    def test_skill_does_not_duplicate_backend_check_block(self, role):
-        """No role skill should contain the full 4-line backend check block."""
-        content = (SKILLS_DIR / role / "SKILL.md").read_text()
-        # The characteristic duplicated block pattern
-        assert 'Read `_project/storage.yaml` before touching any artifact.' not in content, (
-            f"{role}/SKILL.md still contains the duplicated Backend Check block "
-            "which should only be in PLAYBOOK.md"
-        )
-
-
-class TestInstallSkillDiscovery:
-    """install.sh must set up .briefcase/skills/ for framework skill access."""
-
-    def test_install_copies_skills_to_briefcase(self):
-        content = (ROOT_DIR / "install.sh").read_text()
-        assert ".briefcase" in content
-        assert "skills" in content
+ROOT_DIR = Path(__file__).resolve().parents[2]
 
 
 class TestRepositoryReviewLoop:
@@ -88,13 +14,6 @@ class TestRepositoryReviewLoop:
         content = (ROOT_DIR / "AGENTS.md").read_text()
         assert '"Run the review loop"' in content
         assert "_project/backlog-policy.md#repository-review-loop" in content
-
-    def test_review_checks_override_before_legacy_workflow(self):
-        content = (SKILLS_DIR / "review" / "SKILL.md").read_text()
-        assert content.index("## Repository Review and Closeout Overrides") < content.index(
-            "## Lane Awareness"
-        )
-        assert "Without such an override, retain the consumer workflow below" in content
 
     @pytest.mark.parametrize(
         ("evidence", "status", "verdict"),
@@ -109,7 +28,9 @@ class TestRepositoryReviewLoop:
     )
     def test_evidence_has_explicit_outcome(self, evidence, status, verdict):
         content = (ROOT_DIR / "_project" / "backlog-policy.md").read_text()
-        row = next(line for line in content.splitlines() if line.startswith(f"| {evidence}"))
+        row = next(
+            line for line in content.splitlines() if line.startswith(f"| {evidence}")
+        )
         columns = [column.strip() for column in row.strip("|").split("|")]
         assert columns[1].startswith(status)
         assert columns[3] == verdict
@@ -160,24 +81,24 @@ class TestRepositoryReviewLoop:
         completion = content.split("For eligible completion,", 1)[1].split(
             "Draft cards have no", 1
         )[0]
-        assert completion.index("merge any eligible open PR") < completion.index(
-            "then close an open linked issue"
-        ) < completion.index("setting Done last")
+        assert (
+            completion.index("merge any eligible open PR")
+            < completion.index("then close an open linked issue")
+            < completion.index("setting Done last")
+        )
         assert "do not attempt to merge again or roll back the merge" in content
 
     def test_merge_authority_is_repository_scoped_and_read_only_is_respected(self):
         policy = (ROOT_DIR / "_project" / "backlog-policy.md").read_text()
         assert "A normal review-loop run is action-enabled" in policy
-        assert "An explicitly read-only review reports the proposed actions without writes" in (
-            policy
+        assert (
+            "An explicitly read-only review reports the proposed actions without writes"
+            in (policy)
         )
         for path in [ROOT_DIR / "AGENTS.md", ROOT_DIR / "README.md"]:
             content = path.read_text()
             assert "merges" in content
             assert "read-only review" in content.lower()
-        skill = (SKILLS_DIR / "review" / "SKILL.md").read_text()
-        assert "When the repository policy authorizes reviewer merges" in skill
-        assert "Without such an override, retain the consumer workflow below" in skill
 
 
 class TestRepositoryRequirementsLoop:
@@ -186,26 +107,20 @@ class TestRepositoryRequirementsLoop:
     def test_requirements_loop_is_discoverable(self):
         for path in [ROOT_DIR / "AGENTS.md", ROOT_DIR / "README.md"]:
             content = path.read_text()
-            assert "_project/backlog-policy.md#repository-technical-shaping-loop" in content
-
-    @pytest.mark.parametrize(
-        ("role", "legacy_heading"),
-        [("ideation", "## Lane Triage"), ("architect", "## Lane Awareness")],
-    )
-    def test_override_precedes_legacy_workflow(self, role, legacy_heading):
-        content = (SKILLS_DIR / role / "SKILL.md").read_text()
-        override = content.index("Requirements-loop")
-        assert content.index(legacy_heading) < override < content.index(
-            "## Required Workflow"
-        )
-        assert "Without an override" in content
-        assert "stop-at-handoff rule" in content
+            assert (
+                "_project/backlog-policy.md#repository-technical-shaping-loop"
+                in content
+            )
 
     @pytest.mark.parametrize(
         ("evidence", "status", "owner"),
         [
             ("Missing approval or a material scope gap", "Blocked", "Requirements"),
-            ("Approved scope awaits technical review", "Technical shaping", "Architect"),
+            (
+                "Approved scope awaits technical review",
+                "Technical shaping",
+                "Architect",
+            ),
             ("An unresolved technical decision", "Blocked", "Architect"),
             ("A dependency, access failure", "Blocked", "Explicit responsible role"),
             ("Approved revision, current sign-off", "Ready", "Build"),
@@ -213,7 +128,9 @@ class TestRepositoryRequirementsLoop:
     )
     def test_requirements_outcomes_are_explicit(self, evidence, status, owner):
         content = (ROOT_DIR / "_project" / "backlog-policy.md").read_text()
-        row = next(line for line in content.splitlines() if line.startswith(f"| {evidence}"))
+        row = next(
+            line for line in content.splitlines() if line.startswith(f"| {evidence}")
+        )
         columns = [column.strip() for column in row.strip("|").split("|")]
         assert columns[1:3] == [status, owner]
 
@@ -257,18 +174,3 @@ class TestRepositoryRequirementsLoop:
             "Stop at this handoff",
         ]:
             assert requirement in loop
-
-
-class TestTokenFootprintBaseline:
-    """Measure total role-skill line count to prevent bloat regression."""
-
-    def test_total_skill_lines_under_threshold(self):
-        """Combined role SKILL.md files should stay reasonably slim.
-        Baseline after dedup: ~820 lines across 5 roles. Allow headroom up to 1000."""
-        total = 0
-        for role in ROLE_SKILLS:
-            total += len((SKILLS_DIR / role / "SKILL.md").read_text().splitlines())
-        assert total < 1000, (
-            f"Combined role skill files are {total} lines — expected < 1000. "
-            "Check for duplicated cross-role content that should be in PLAYBOOK.md."
-        )
