@@ -13,6 +13,15 @@ the one existing canonical PRD at the approved revision. Requirements owns those
 sections and their approval; Architect owns the technical assessment and sign-off.
 Never create an independently editable second scope or store Project status here.
 
+Follow the shared playbook's document organization and repository policy.
+For issue-centered repositories, use the product sections below in the issue
+description with the shared requirement template's four-entry product sign-off.
+Use the technical sections in the Git design, linking the approved issue scope
+and immutable snapshot rather than copying product requirements. Add a direct
+design link to the issue. Short handoffs are issue comments, not separate living
+documents. Keep snapshot hashes and migration history in linked Git evidence.
+This combined template does not require a second editable specification.
+
 ## Context and expected experience
 
 - Problem and outcome: `<current behavior, motivation, desired outcome>`

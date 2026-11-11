@@ -47,6 +47,68 @@ consumer repositories are unaffected.
 - GitHub read or write failure pauses affected work. Report the failed
   operation and do not claim a transition succeeded.
 
+## Document organization
+
+Follow the repository's document organization policy before choosing artifact
+locations. Where it selects an issue-centered layout, that policy overrides
+generic references here to a requirements document or handoff packet:
+
+- The canonical issue description holds user requirements, acceptance criteria,
+  product sign-off, and direct links to the Git technical design.
+- Keep product sign-off to four entries: approver, approval timestamp, approved
+  scope with a pinned snapshot link, and approval evidence. Do not invent approval.
+- Git holds technical design, technical sign-off, detailed verification,
+  technical decisions, and immutable approval snapshots. Keep hashes and migration
+  history there, not in the issue's readable sign-off.
+- Short handoffs are issue comments with scope/design versions, readiness
+  evidence, remaining concerns, and the next invocation. Preserve any required
+  transition decision with the comment; link detailed evidence instead of
+  duplicating specifications or creating a separate living handoff document.
+- The Project alone owns execution status, Action Owner, and claim.
+
+Before technical sign-off, Build claim, or Review acceptance, compare the live
+issue requirements block with its approved snapshot. Material scope changes
+require renewed approval and applicable technical sign-off; edits to navigation
+or sign-off presentation alone do not. Existing approvals survive a location-only
+migration when the exact scope and original approval evidence are preserved.
+
+Respect visibility: private planning is not published to a public issue without
+explicit approval. Reuse an existing appropriate issue and Project card.
+Repositories without an issue-centered policy retain their configured canonical
+document locations; this does not migrate Lite or legacy installed consumers.
+
+## Read-only PO status guidance
+
+These are implementation and assessment constraints for the standalone PO
+status utility, not a workflow role or permission to start Build. A status-only
+request never authorizes a lifecycle transition, claim, handoff, or GitHub write.
+
+1. **Decision-first presentation:** report observation time and coverage, then
+   explicit pending product decisions, blockers, and moving work grouped as
+   Ready, In progress, and In review. Use concise source-linked bullets and
+   recorded owners. Short prose is not a coverage cap; never silently omit
+   relevant work. Mark empty sections only after a complete read.
+2. **Efficient complete reads:** resolve Project/schema metadata once per
+   invocation and batch necessary source reads. Paginate every connection needed
+   to identify or resolve decisions; do not filter evidence solely by Status,
+   Action Owner, or keywords. Report incomplete/inaccessible sources explicitly.
+   Do not add persistent caches, polling, or a scheduler.
+3. **Current approval evidence:** use the canonical issue's current product
+   sign-off and approved scope binding before interpreting archived draft
+   labels. Check discussion through the latest relevant resolution. A role
+   owner or old pending label alone is not a product decision; conflicting or
+   ambiguous evidence remains unconfirmed, never silently resolved.
+4. **Lean delivery:** keep the collector, utility instructions, discoverability,
+   and focused tests in one cohesive slice. Use a simple evidence shape with
+   explicit coverage and errors; avoid new orchestration, stores, services,
+   planning documents, or abstractions without a demonstrated need. Preserve
+   all approved verification and release obligations.
+
+Verify output order, complete nested pagination, metadata reuse, later approval
+resolutions, incomplete reads, and zero attempted writes on success, failure,
+and repeat invocation. Keep utility observations separate from workflow evidence
+written while developing it; design review is not implementation acceptance.
+
 ## Lifecycle and ownership
 
 The shared statuses are `Inbox`, `Requirement shaping`, `Technical shaping`,

@@ -3,9 +3,14 @@
 These examples use the shared evidence packets. They demonstrate decisions;
 they are not a second status queue.
 
+Follow the shared playbook's document organization and repository policy.
+In issue-centered repositories, these short handoffs are issue comments linking
+the approved issue scope and Git design; no separate living handoff file is
+needed. Product sign-off stays concise and its immutable evidence stays linked.
+
 ## Happy path
 
-Requirements approves revision `req-abc123` and moves the Feature to
+Requirements records the user's approval of revision `req-abc123` and moves the Feature to
 `Technical shaping / Architect`. Architect signs that revision, verifies Done
 dependencies and no competing implementation, then moves it to `Ready / Build`.
 Build atomically records assignment and Claim Session while moving it to

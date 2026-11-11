@@ -68,9 +68,20 @@ There is no separate Deliver stage. Required checks, approvals, and branch
 protections still apply; queued or gated work stays open. Explicitly
 read-only reviews do not mutate.
 
-Approved scope lives in one revision-bound requirements document: a Feature
-PRD with scoped child Task documents for Standard, or a task document for Lite.
-The Project owns execution status, not the requirements document.
+For this repository, the canonical planning issue description holds user
+requirements, acceptance criteria, product sign-off, and a direct Git design
+link. Git holds technical design, technical sign-off, verification details,
+decisions, and immutable approval snapshots. Short handoffs are issue comments,
+not separate living documents. See the
+[document organization policy](_project/backlog-policy.md#document-organization)
+for revision binding, privacy, and historical-document migration.
+The Project alone owns execution status, owner, and claim.
+Keep product sign-off to four entries: approver, approval timestamp, approved
+scope with a pinned snapshot link, and approval evidence. Keep hashes, full
+revision identifiers, and migration history in the linked Git evidence rather
+than repeating them in the issue. Verify the live requirements against the
+approved snapshot before sign-off, Build claim, or Review acceptance; a concise
+presentation does not waive revision binding or authorize approval by an agent.
 The configured Git artifact backend still stores planning documents, decisions,
 release records, and history; no GitHub storage adapter is implied. This policy
 is for framework development, not a change to the legacy installed consumer
@@ -80,6 +91,15 @@ For an explicitly invoked workflow role, every Project transition must pass the
 live preflight and executable transition gate in
 [the workflow playbook](workflow-kit/PLAYBOOK.md#mandatory-transition-gate).
 `--offline` validation alone never authorizes a Project write.
+
+## Read-only PO status guidance
+
+A request for status is not permission to invoke a delivery role or mutate
+GitHub. Follow the shared playbook's read-only PO status guidance: observation
+time and coverage first, then product decisions, blockers, and moving work.
+Batch complete reads without dropping evidence; use current, scope-bound
+approval rather than archived pending labels. Keep the delivery small and
+read-only, and distinguish design guidance from implementation acceptance.
 
 ## Development Commands
 
