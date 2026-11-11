@@ -66,7 +66,8 @@ Before an invoked role writes Project state, it must run the live preflight and
 an allowed `runtime.py --transition ...` decision, preserve that decision, and
 verify every resulting field by readback. The
 [Workflow Kit CI](.github/workflows/workflow-kit.yml) enforces offline contract
-validation, scenario tests, focused lint, and the complete non-live test suite.
+validation, scenario tests, focused lint, and the complete current-workflow test
+suite in one job.
 
 After bootstrap is explicitly ended, with no target the loop captures Technical
 shaping work owned by Architect. The Requirements loop never silently becomes
@@ -642,25 +643,32 @@ Future backends (Linear, GitHub Projects, etc.) can be added by implementing the
 - **Language:** Python 3.11+
 - **CLI:** Click
 - **Storage:** Local filesystem (default), Notion API (`notion-client` SDK)
-- **Testing:** pytest, pytest-mock, HTTP mocking for Notion API tests
+- **Testing:** pytest and mocked GitHub tooling for current workflow-kit tests
 - **Code style:** PEP 8 via `ruff`; config in YAML; secrets in `.env`
 
 ---
 
 ## Development (Framework Contributors)
 
+The maintained test suite covers the current workflow kit and repository
+shaping/review policy under `tests/workflow-kit/`. Legacy CLI, installer,
+storage, Notion, sync, automation, and legacy-role tests have been removed.
+Their implementation remains unchanged, but is no longer covered by this
+suite. No dependency installations or live external services run inside tests.
+See [the testing strategy](_project/testing-strategy.md).
+
 ```bash
-# Run all tests
+# Run all maintained tests
 python3 -m pytest tests/
 
 # Run one test file
-python3 -m pytest tests/path/to/test_file.py
+python3 -m pytest tests/workflow-kit/test_workflow_runtime.py
 
-# Lint
-ruff check src/ tests/
+# Lint current runtime and tests
+ruff check workflow-kit/*.py tests/workflow-kit
 
-# Format
-ruff format src/ tests/
+# Format current runtime and tests
+ruff format workflow-kit/*.py tests/workflow-kit
 
 # Run CLI from the framework repo
 python3 -m src.cli.main <command>

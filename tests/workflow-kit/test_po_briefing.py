@@ -509,6 +509,19 @@ def test_real_cli_missing_manifest_returns_machine_readable_failure(tmp_path):
     assert payload["errors"] and payload["operations"] == []
 
 
+def test_playbook_preserves_utility_and_current_workflow_guidance():
+    playbook = (KIT / "PLAYBOOK.md").read_text()
+    for heading in [
+        "## Read-only PO briefing utility",
+        "## Document organization",
+        "## Build-to-Review handoff",
+        "## Read-only PO status guidance",
+    ]:
+        assert heading in playbook
+    for marker in ["<<<<<<<", "=======", ">>>>>>>"]:
+        assert marker not in playbook
+
+
 def test_skill_is_decision_first_evidence_bound_and_outside_roles():
     text = SKILL.read_text()
     sections = [

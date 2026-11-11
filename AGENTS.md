@@ -121,19 +121,21 @@ read-only, and distinguish design guidance from implementation acceptance.
 
 ## Development Commands
 
-The CLI commands below maintain the legacy framework and its supported storage
-backends. They are not the entry points for the current Requirements, Architect,
-Build, or Review loops. Use GitHub directly for this repository's backlog.
+The maintained tests cover the current workflow kit and repository policy in
+`tests/workflow-kit/`. Legacy runtime, installer, storage, integrations, and
+role tests have been removed; legacy implementation remains unchanged without
+automated regression coverage. CLI commands below are legacy tools, not entry
+points for current roles. Use GitHub directly for this repository's backlog.
 
 | Task | Command |
 |------|---------|
-| Run all tests | `python3 -m pytest tests/` |
-| Test one file | `python3 -m pytest tests/path/to/test_file.py` |
-| Lint all | `ruff check src/ tests/` |
+| Run all maintained tests | `python3 -m pytest tests/` |
+| Test one file | `python3 -m pytest tests/workflow-kit/test_workflow_runtime.py` |
+| Lint current workflow | `ruff check workflow-kit/*.py tests/workflow-kit` |
 | Lint one file | `ruff check path/to/file.py` |
 | Run CLI (framework repo) | `python3 -m src.cli.main <command>` |
 | Run CLI (consumer project) | `./briefcase <command>` |
-| Format | `ruff format src/ tests/` |
+| Format current workflow | `ruff format workflow-kit/*.py tests/workflow-kit` |
 
 For legacy Notion integration only, load `.env` before CLI commands that hit Notion:
 ```

@@ -4,10 +4,8 @@ on:
   pull_request:
     paths:
       - "workflow-kit/**"
-      - "tests/workflow-kit/**"
-      - "tests/e2e/**"
-      - "tests/cli/integration/test_install.py"
-      - "tests/cli/integration/test_agent_wrapper.py"
+      - "tests/**"
+      - "pyproject.toml"
       - "AGENTS.md"
       - "README.md"
       - "_project/backlog-policy.md"
@@ -16,10 +14,8 @@ on:
     branches: [main]
     paths:
       - "workflow-kit/**"
-      - "tests/workflow-kit/**"
-      - "tests/e2e/**"
-      - "tests/cli/integration/test_install.py"
-      - "tests/cli/integration/test_agent_wrapper.py"
+      - "tests/**"
+      - "pyproject.toml"
       - "AGENTS.md"
       - "README.md"
       - "_project/backlog-policy.md"
@@ -48,35 +44,13 @@ jobs:
       - name: Validate schema and runtime syntax
         run: |
           python -m json.tool workflow-kit/manifest.schema.json >/dev/null
-          python -m py_compile workflow-kit/runtime.py
+          python -m py_compile workflow-kit/*.py
 
-      - name: Run workflow contract tests
-        run: >-
-          python -m pytest
-          tests/workflow-kit
-          tests/core/unit/test_skill_loading_efficiency.py
+      - name: Run complete current-workflow suite
+        run: python -m pytest tests/
 
       - name: Lint changed runtime surfaces
         run: >-
           ruff check
-          workflow-kit/runtime.py
-          workflow-kit/briefing.py
+          workflow-kit/*.py
           tests/workflow-kit
-          tests/cli/integration/test_install.py
-          tests/cli/integration/test_agent_wrapper.py
-
-  non-live-baseline:
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-
-      - uses: actions/setup-python@v5
-        with:
-          python-version: "3.12"
-          cache: pip
-
-      - name: Install development dependencies
-        run: python -m pip install -e ".[dev]"
-
-      - name: Run complete non-live suite
-        run: python -m pytest tests/
