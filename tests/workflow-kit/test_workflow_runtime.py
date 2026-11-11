@@ -112,7 +112,7 @@ def test_contract_and_manifest_are_valid():
     assert MANIFEST["closeout_owner"] == "Review"
 
 
-def test_new_project_template_defaults_to_pr_url(tmp_path, capsys):
+def test_new_project_template_defaults_to_native_pr_links(tmp_path, capsys):
     target = tmp_path / "workflow-kit"
     target.mkdir()
     manifest_path = target / "workflow.yaml"
@@ -120,7 +120,8 @@ def test_new_project_template_defaults_to_pr_url(tmp_path, capsys):
     shutil.copyfile(KIT / "contract.yaml", target / "contract.yaml")
     manifest = RUNTIME.load_yaml(manifest_path)
 
-    assert manifest["project"]["fields"]["pull_request"] == "PR URL"
+    assert manifest["project"]["fields"]["pull_request"] == "Linked pull requests"
+    assert "PR URL" not in manifest["project"]["fields"].values()
     for mode in ("standard", "lite"):
         manifest["mode"] = mode
         assert RUNTIME.validate_manifest(manifest, CONTRACT) == []
@@ -130,8 +131,7 @@ def test_new_project_template_defaults_to_pr_url(tmp_path, capsys):
     ) == 0
     assert json.loads(capsys.readouterr().out)["preflight"]["passed"]
     board = (KIT / "board-setup.md").read_text()
-    assert "| PR URL | Text | Both |" in board
-
+    assert "| Linked pull requests | Native | Both |" in board
 
 
 def test_manifest_contains_names_not_live_ids_or_mutable_state():
@@ -329,7 +329,7 @@ def test_live_preflight_passes_without_mutating_github():
     )
 
 
-def test_configured_pr_url_is_required_without_automatic_board_repair():
+def test_native_pr_field_is_checked_without_automatic_board_repair():
     fields = [
         field for field in live_fields()
         if field["name"] != MANIFEST["project"]["fields"]["pull_request"]
@@ -337,7 +337,10 @@ def test_configured_pr_url_is_required_without_automatic_board_repair():
     runner, calls = make_runner(fields)
     report = RUNTIME.run_preflight(MANIFEST, CONTRACT, runner=runner)
     assert not report.passed
-    assert any("pull_request configured as PR URL" in error for error in report.errors)
+    assert any(
+        "pull_request configured as Linked pull requests" in error
+        for error in report.errors
+    )
     assert "No changes were made." in RUNTIME.format_report(report)
     assert all(
         command not in call

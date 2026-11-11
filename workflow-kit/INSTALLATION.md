@@ -14,14 +14,15 @@ profile (`standard` or `lite`), repository, Project owner/number, and private
 artifact repository/root for that project. The template's `contract.yaml` path
 is relative to this destination, not the template's source directory.
 
-The template includes `project.fields.pull_request: PR URL` by default.
-During authorized initial board setup, create `PR URL` as a text field alongside
-the other [required fields](board-setup.md), and show it on item cards and
-task/review views. Build fills it after opening the implementation PR; Notes
-is not the PR locator. This default applies to both Standard and Lite.
+The template includes `project.fields.pull_request: Linked pull requests` by
+default. Use GitHub's existing native field, not a custom PR URL text field.
+Show it on item cards and task/review views. Build links the PR from the issue's
+Development sidebar and verifies the native field before handoff; Notes is not
+the PR locator. This default applies to both Standard and Lite. The issue
+sidebar supports selecting a PR in another repository.
 
 Run `python3 workflow-kit/runtime.py --offline` in the target checkout, then
-the read-only live preflight after the board is configured. A missing `PR URL`
+the read-only live preflight after the board is configured. A missing native PR
 field fails preflight for a manifest that configures it; preflight never creates
 the field. Existing manifests and boards are not automatically migrated.
 These are manual setup assets, not a new installer or CLI initialization command.
@@ -47,7 +48,7 @@ After the pilot passes, add a separate workflow-kit installer with:
 - explicit Lite or Standard selection;
 - existing-install and version detection;
 - manifest creation from user-supplied repository, Project, and artifact data;
-- the new-project manifest defaults, including the `PR URL` text field and its
+- the new-project manifest defaults, including native `Linked pull requests` and its
   `project.fields.pull_request` mapping;
 - `gh` authentication plus the same read-only preflight;
 - dry-run output and an exact mutation preview for any optional setup step;

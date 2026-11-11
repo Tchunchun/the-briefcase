@@ -68,6 +68,9 @@ Accepted work remains `In review` until the closeout owner configured in
 [`workflow.yaml`](../../workflow.yaml) merges its reviewed head, verifies
 landing and applicable delivery evidence, closes the item, and sets `Done`.
 There is no separate Deliver stage.
+Native Development links may auto-close an issue on merge. Review verifies
+that closure and all remaining landing/release gates before Project Done;
+issue closure alone does not satisfy this profile.
 
 | Work item | Done gate |
 |---|---|

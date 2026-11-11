@@ -61,16 +61,23 @@ the same feature: the existing card remains the sole execution record.
 Git design and latest handoff comment. Neither field should make a standalone
 handoff file the only entry point to the design.
 
-`PR URL` is a text field holding the current implementation pull request's full
-URL, including when a private planning issue and public PR belong to different
-repositories. The manifest maps it as `project.fields.pull_request`. Build
-records it after verifying the PR and before handing work to Review; Review
-uses it to locate and verify the live PR and exact head. Do not use Notes as
-the PR locator or rely on the native `Linked pull requests` field being
-populated across repositories. Keep prior/supplemental PR history in issue
-comments. A PR URL is navigation, not acceptance or merge evidence; setting it
-does not authorize a lifecycle transition. Do not change another session's
-existing PR link without reconciling its claim.
+Use GitHub's native Development relationship and Project `Linked pull requests`
+field for implementation PR navigation, not a custom text field or Notes.
+The manifest maps the native field as `project.fields.pull_request`. Link from
+the private issue's Development sidebar, selecting the public PR's repository;
+this supports cross-repository links without writing private planning references
+in the public PR description. Build verifies the relationship before handoff;
+Review verifies the linked PR and its exact head. Keep detailed history and
+revision-specific evidence in issue comments. Do not replace another session's
+PR relationship without reconciling its claim.
+
+Native links may auto-close the issue when the PR merges into the default
+branch. This is not Project completion: Review still verifies landing and all
+applicable coverage, checks, and release evidence before marking Done. Verify
+an already auto-closed issue rather than closing it again; if it remains open,
+Review closes it after those gates pass. Do not enable an issue-closed-to-Done
+automation. Retain the pre-merge protection against closing partially delivered
+or release-gated scope.
 
 ### Revision-bound approval
 

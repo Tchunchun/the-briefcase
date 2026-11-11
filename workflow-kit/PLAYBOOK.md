@@ -138,9 +138,10 @@ validation of the resumed state's gates.
 ## Configuration and preflight
 
 New instances start from the [manifest template](templates/workflow.yaml),
-which includes `project.fields.pull_request: PR URL` for Standard and Lite.
-Create the text field as part of authorized initial board setup; it is a
-default for new projects, not an automatic migration of existing boards.
+which includes `project.fields.pull_request: Linked pull requests` for Standard
+and Lite. Use GitHub's native Development relationship and Project field,
+not a custom PR text field. Link cross-repository PRs from the issue sidebar.
+Native issue auto-closure never substitutes for the Project Done gates.
 
 Validate the local contract and manifest without GitHub access:
 

@@ -16,6 +16,7 @@
 
 - Action Owner: `<Review until complete | None when Done>`
 - Issue closure verified: `<yes | no>`
+- Closure mechanism: `<native PR auto-close | Review closure>`
 - Project `Done` verified: `<yes | no>`
 - Remaining obligations: `<none | explicit blocker and owner>`
 
@@ -24,3 +25,5 @@ There is no separate Deliver stage. The configured closeout owner does not mark
 release evidence are all verified. A Task may complete independently after its
 own gate passes; Feature completion additionally requires full required child
 coverage and Feature-level release evidence.
+Native issue auto-closure is not acceptance, landing, release, or Project Done
+evidence; Review still verifies every applicable gate.

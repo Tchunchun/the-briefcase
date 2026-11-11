@@ -113,9 +113,10 @@ After the implementation and checks pass:
    existing PR for an assigned review-fix resumption.
 3. Verify through GitHub readback that the PR is open, its head is the pushed
    tested commit, its base is correct, and the issue and evidence are linked.
-   When `project.fields.pull_request` is configured, record the full PR URL in
-   that Project field (`PR URL` here) and read it back before handoff. Do not
-   use Notes as the PR locator or overwrite a competing session's PR link.
+   Use the issue's native Development relationship, selecting the PR repository
+   for cross-repository links. Read back the issue relationship and Project
+   `Linked pull requests` field before handoff; do not write a custom PR text
+   field, use Notes as the PR locator, or replace a competing session's link.
 4. Only after that readback succeeds, move `In progress` to `In review`, set
    `Action Owner: Review`, and hand the PR to a separate Review session.
 

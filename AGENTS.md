@@ -80,9 +80,12 @@ not separate living documents. See the
 [document organization policy](_project/backlog-policy.md#document-organization)
 for revision binding, privacy, and historical-document migration.
 The Project alone owns execution status, owner, and claim.
-Store the current implementation PR in the dedicated Project `PR URL` field,
-not Notes. Build records and reads it back before the Review handoff; Review
-verifies that URL and its live head rather than inferring a PR from Notes.
+Use GitHub's native Development links and Project `Linked pull requests` field,
+not a custom PR field or Notes. Build verifies the native link before handoff;
+Review verifies the linked PR and exact head. Native issue auto-closure on merge
+does not authorize Project Done before all landing and delivery gates pass.
+Prefer native GitHub fields and relationships; check their cross-repository
+capabilities before introducing a duplicate custom field.
 Keep product sign-off to four entries: approver, approval timestamp, approved
 scope with a pinned snapshot link, and approval evidence. Keep hashes, full
 revision identifiers, and migration history in the linked Git evidence rather

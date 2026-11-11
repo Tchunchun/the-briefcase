@@ -133,19 +133,20 @@ def test_repository_issue_centered_documents_preserve_evidence_and_privacy():
         assert phrase.casefold() in policy.casefold()
 
 
-def test_implementation_pr_has_dedicated_project_navigation():
+def test_implementation_pr_uses_native_github_navigation():
     policy = normalized((ROOT / "_project" / "backlog-policy.md").read_text())
     board = normalized((WORKFLOW_KIT / "board-setup.md").read_text())
     review = normalized((WORKFLOW_KIT / "skills/review/SKILL.md").read_text())
     build = normalized(BUILD_SKILL)
-    assert "pull_request: PR URL" in WORKFLOW_CONFIG
-    assert "`PR URL` is a text field" in policy
-    assert "Do not use Notes as the PR locator" in policy
-    assert "private planning issues and public PRs span repositories" in board
-    assert "project.fields.pull_request" in build
-    assert "read it back before handoff" in build
-    assert "not Notes" in review
+    assert "pull_request: Linked pull requests" in WORKFLOW_CONFIG
+    assert "not a custom text field or Notes" in policy
+    assert "different repositories" in board
+    assert "do not create a duplicate" in board
+    assert "native Development relationship" in build
+    assert "`Linked pull requests` field before handoff" in build
+    assert "not Notes or a custom text field" in review
     assert "missing, inaccessible, or conflicting link blocks" in review
+    assert "must not automatically set Project Done" in review
 
 
 def test_explicit_invocation_scans_every_ready_item_sequentially():

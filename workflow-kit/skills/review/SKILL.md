@@ -58,8 +58,8 @@ means no write or merge.
 Before evaluating behavior, verify:
 
 1. One approved requirement revision is linked.
-   When `project.fields.pull_request` is configured, locate the implementation
-   PR through that Project field (`PR URL` here), not Notes. A missing,
+   Locate the implementation through the native Development relationship and
+   Project `Linked pull requests` field, not Notes or a custom text field. A missing,
    inaccessible, or conflicting link blocks the affected review; reconcile it
    with Build instead of guessing. Verify any explicitly supplied PR matches
    the card's recorded implementation PR.
@@ -110,7 +110,10 @@ Merge with an expected-head guard; never bypass protections or accept a changed
 head without renewed review.
 
 After GitHub confirms the merge, verify the accepted changes landed on the
-intended base. Close the linked task, set `Status: Done`, and set
+intended base. Read back native issue auto-closure, or close the linked task
+if it is still open after all completion gates pass. Issue closure is not
+completion evidence and must not automatically set Project Done.
+Set `Status: Done`, and set
 `Action Owner: None`, writing `Done` last and reading every mutation back. There
 is no separate Deliver stage. If merge or post-merge evidence is pending, keep
 `In review` with `Action Owner: Review`. If external action is required, record
