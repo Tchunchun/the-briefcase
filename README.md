@@ -11,6 +11,26 @@ For the legacy workflow with five roles, a CLI, and configurable storage, see
 the [installation guide](#quick-start). The installer still installs that
 legacy workflow, not the additive workflow kit.
 
+### Get a read-only PO briefing
+
+Say **"Give me a read-only PO status briefing"** to use the standalone
+[PO utility](workflow-kit/utilities/po-status/SKILL.md). It reports observation
+time and coverage, pending product decisions, blockers, then Ready/In progress/
+In review work with source links and recorded owners. It is not a workflow role
+and never changes GitHub state, claims work, or produces a handoff.
+
+Its paginated evidence collector is also available directly:
+
+```bash
+python3 workflow-kit/briefing.py
+```
+
+The collector returns JSON to stdout and exits nonzero for incomplete reads.
+Use authenticated `gh` with read access; workflow write permissions are not
+required. Output may contain private planning: keep it within the authorized
+audience, never post it publicly. Repeated external invocation is supported;
+this feature does not install a scheduler, cache, or automation.
+
 ### Technically shape Standard features
 
 For framework development on the Standard board, say **"Run the technical shaping

@@ -60,6 +60,7 @@ jobs:
         run: >-
           ruff check
           workflow-kit/runtime.py
+          workflow-kit/briefing.py
           tests/workflow-kit
           tests/cli/integration/test_install.py
           tests/cli/integration/test_agent_wrapper.py

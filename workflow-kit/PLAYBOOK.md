@@ -47,6 +47,27 @@ consumer repositories are unaffected.
 - GitHub read or write failure pauses affected work. Report the failed
   operation and do not claim a transition succeeded.
 
+## Read-only PO briefing utility
+
+For **"Give me a read-only PO status briefing"**, use the
+[PO status utility](utilities/po-status/SKILL.md), outside the role system.
+Its [collector](briefing.py) performs paginated GitHub queries and emits JSON:
+
+```bash
+python3 workflow-kit/briefing.py
+```
+
+Present observation time and coverage, explicit product decisions, blockers,
+then moving work grouped as Ready, In progress, and In review. Use current
+scope-bound approval and complete discussion evidence, not old pending labels
+or role ownership alone. Report inaccessible/incomplete evidence explicitly.
+Keep all output within the caller's authorized audience.
+
+The utility does not run live role preflight or transition gates, require
+write permissions, write any GitHub data, claim work, or dispatch a role.
+It is stateless and repeat-safe, with no scheduler or persistent cache.
+The Standard/Lite role roster and legacy installer are unchanged.
+
 ## Lifecycle and ownership
 
 The shared statuses are `Inbox`, `Requirement shaping`, `Technical shaping`,
