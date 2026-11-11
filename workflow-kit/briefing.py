@@ -7,12 +7,11 @@ import json
 import subprocess
 from collections.abc import Callable
 from dataclasses import asdict, dataclass, field
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
 import yaml
-
 from runtime import load_yaml, validate_contract, validate_manifest
 
 Runner = Callable[[list[str]], subprocess.CompletedProcess[str]]
@@ -38,10 +37,10 @@ nodes {
 COMMENTS = """
 nodes { body url createdAt updatedAt author { login } }
 """
-SOURCE = """
+SOURCE = f"""
 id title body url updatedAt
-comments(first:100) { %s %s }
-""" % (COMMENTS, PAGE_INFO)
+comments(first:100) {{ {COMMENTS} {PAGE_INFO} }}
+"""
 METADATA = """
 query BriefingProject($owner:String!,$number:Int!) {
   repositoryOwner(login:$owner) {
@@ -50,33 +49,33 @@ query BriefingProject($owner:String!,$number:Int!) {
   }
 }
 """ % ((f"id title url fields(first:100) {{ {FIELDS} {PAGE_INFO} }}",) * 2)
-SCHEMA_PAGE = """
-query BriefingSchema($id:ID!,$cursor:String) {
-  node(id:$id) { ... on ProjectV2 {
-    fields(first:100,after:$cursor) { %s %s }
-  } }
-}
-""" % (FIELDS, PAGE_INFO)
-ITEM_PAGE = """
-query BriefingItems($id:ID!,$cursor:String) {
-  node(id:$id) { ... on ProjectV2 {
-    items(first:100,after:$cursor) {
+SCHEMA_PAGE = f"""
+query BriefingSchema($id:ID!,$cursor:String) {{
+  node(id:$id) {{ ... on ProjectV2 {{
+    fields(first:100,after:$cursor) {{ {FIELDS} {PAGE_INFO} }}
+  }} }}
+}}
+"""
+ITEM_PAGE = f"""
+query BriefingItems($id:ID!,$cursor:String) {{
+  node(id:$id) {{ ... on ProjectV2 {{
+    items(first:100,after:$cursor) {{
       totalCount
-      nodes {
+      nodes {{
         id databaseId isArchived
-        fieldValues(first:100) { %s %s }
-        content {
+        fieldValues(first:100) {{ {VALUES} {PAGE_INFO} }}
+        content {{
           __typename
-          ... on Issue { %s }
-          ... on PullRequest { %s }
-          ... on DraftIssue { id title body updatedAt }
-        }
-      }
-      %s
-    }
-  } }
-}
-""" % (VALUES, PAGE_INFO, SOURCE, SOURCE, PAGE_INFO)
+          ... on Issue {{ {SOURCE} }}
+          ... on PullRequest {{ {SOURCE} }}
+          ... on DraftIssue {{ id title body updatedAt }}
+        }}
+      }}
+      {PAGE_INFO}
+    }}
+  }} }}
+}}
+"""
 
 
 class ReadError(Exception):
@@ -115,7 +114,7 @@ def _run(args: list[str]) -> subprocess.CompletedProcess[str]:
 
 
 def _now() -> str:
-    return datetime.now(timezone.utc).isoformat()
+    return datetime.now(UTC).isoformat()
 
 
 @dataclass
