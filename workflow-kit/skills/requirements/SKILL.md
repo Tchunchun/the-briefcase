@@ -22,6 +22,14 @@ approver, approval timestamp, approved scope with a pinned snapshot link, and
 approval evidence. Git snapshots retain hashes and migration history; do not
 repeat that audit detail in the readable sign-off or create a separate living
 approval document. Use an issue comment for the short handoff.
+Include User requirements and Technical design sections in the issue description.
+For Standard, the Technical design section links to the Git architecture/design
+document owned and signed by Architect; Requirements does not provide technical
+sign-off. For Lite, Requirements decides whether to leave the section empty or
+write simple inline technical details appropriate to the requirement. Lite
+requires neither a separate Git design document nor an Architect phase.
+Keep inline design within approved scope and constraints; it cannot silently
+add product obligations or bypass a stopping technical question.
 Never publish private planning without explicit approval.
 For PO status work, apply the shared playbook's read-only PO status guidance.
 Do not treat a role owner or historical pending label as a new product decision,
@@ -100,6 +108,8 @@ Record one canonical requirement location with:
 3. A verification plan that maps each criterion to a check and owner.
 4. Dependencies, unresolved questions, and privacy constraints.
 5. The exact approved revision and the user's approval record for it.
+6. A Technical design section: Standard's Git document link, or Lite's optional
+   inline details. An empty Lite section needs no not-applicable rationale.
 
 Use [the requirement template](../../templates/shared/requirement.md) at the
 repository's canonical location. In issue-centered repositories, preserve the

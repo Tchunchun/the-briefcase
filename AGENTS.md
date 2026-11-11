@@ -73,9 +73,13 @@ protections still apply; queued or gated work stays open. Explicitly
 read-only reviews do not mutate.
 
 For this repository, the canonical planning issue description holds user
-requirements, acceptance criteria, product sign-off, and a direct Git design
-link. Git holds technical design, technical sign-off, verification details,
-decisions, and immutable approval snapshots. Short handoffs are issue comments,
+requirements, acceptance criteria, product sign-off, and a Technical design
+section. Standard links that section to the Git architecture/design document.
+Lite leaves it empty or includes simple inline technical details, as determined
+by Requirements; no separate Git design or Architect phase is required.
+Git holds technical design, technical sign-off, verification details, and
+decisions for Standard, plus immutable approval snapshots for both profiles.
+Short handoffs are issue comments,
 not separate living documents. See the
 [document organization policy](_project/backlog-policy.md#document-organization)
 for revision binding, privacy, and historical-document migration.
@@ -86,6 +90,10 @@ Review verifies the linked PR and exact head. Native issue auto-closure on merge
 does not authorize Project Done before all landing and delivery gates pass.
 Prefer native GitHub fields and relationships; check their cross-repository
 capabilities before introducing a duplicate custom field.
+Both Standard and Lite require verified native PR linking before In review.
+Separate-session Review uses the linked PR's exact head, approved requirements
+in the issue, and the mode-specific Technical design section: Standard's linked
+Git design or Lite's inline details. An empty Lite section does not block review.
 Keep product sign-off to four entries: approver, approval timestamp, approved
 scope with a pinned snapshot link, and approval evidence. Keep hashes, full
 revision identifiers, and migration history in the linked Git evidence rather

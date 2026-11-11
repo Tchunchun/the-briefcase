@@ -8,34 +8,42 @@
 
 Follow the shared playbook's document organization and repository policy.
 For issue-centered repositories, put this requirement in the issue description,
-use a delimited requirements block and an immutable approval snapshot, and link
-the Git technical design. Do not create a second editable requirements document.
-Keep detailed verification and technical decisions in Git; short handoffs are
-issue comments. Repositories with other configured locations retain them.
+use a delimited requirements block and an immutable approval snapshot.
+Standard links a Git technical design; Lite may leave Technical design empty
+or include simple inline details at Requirements' discretion.
+Do not create a second editable requirements document.
+Keep Standard's detailed verification and technical decisions in Git; short
+handoffs are issue comments. Repositories with other configured locations retain them.
 
-## Context and outcome
+## User requirements
+
+<!-- approved-requirements:start -->
+
+### Context and outcome
 
 `<problem, affected user, and observable outcome>`
 
-## Scope
+### Scope
 
 - `<included behavior>`
 
-## Exclusions
+### Exclusions
 
 - `<explicitly excluded behavior>`
 
-## Acceptance and verification
+### Acceptance and verification
 
 | Criterion | Observable result | Check | Owner |
 |---|---|---|---|
 | `<AC-01>` | `<result>` | `<command or inspection>` | `<role>` |
 
-## Dependencies and questions
+### Dependencies and questions
 
 - Blockers: `<issue links or none>`
 - Open questions: `<questions or none>`
 - Privacy/visibility: `<target and constraint>`
+
+<!-- approved-requirements:end -->
 
 ## Product sign-off
 
@@ -48,3 +56,11 @@ Keep hashes and migration history in linked Git evidence, not in this section.
 Never record approval on the user's behalf.
 
 Material scope changes require a new approved revision.
+
+## Technical design
+
+For Standard, replace this guidance with the Git architecture/design document
+link, including its technical sign-off. For Lite, Requirements removes this
+guidance and either leaves the section empty or writes simple technical details.
+An empty Lite section requires no not-applicable rationale, separate Git design,
+or Architect sign-off. Inline notes must not change approved scope or constraints.

@@ -47,8 +47,9 @@ evidence:
   no-competing-work: No active competing session, branch, worktree, or PR exists.
   claim-writable: Assignee and Claim Session can be recorded atomically with the transition.
   implementation-pr: The tested implementation head is pushed in the intended PR.
+  native-pr-link: The intended PR is verified in the canonical issue's Development relationship and native Project field.
   changes-requested: Review recorded actionable in-scope findings for the exact head.
-  independent-acceptance: A separate Review session accepted the exact PR head.
+  independent-acceptance: A separate Review session accepted the exact PR head against approved requirements and technical design (Standard Git; Lite inline or empty).
   reviewed-head-current: The live PR head still equals the independently reviewed head.
   required-checks: All applicable required checks passed.
   landing-verified: The accepted change landed on the intended base.
@@ -129,7 +130,7 @@ transitions:
     to: in-review
     actor: Build
     profiles: [lite, standard]
-    requires: [implementation-pr, required-checks]
+    requires: [implementation-pr, native-pr-link, required-checks]
 
   - id: request-build-fixes
     from: in-review
@@ -143,7 +144,7 @@ transitions:
     to: in-review
     actor: Review
     profiles: [lite, standard]
-    requires: [independent-acceptance, reviewed-head-current, required-checks]
+    requires: [native-pr-link, independent-acceptance, reviewed-head-current, required-checks]
     effects: [set-review-verdict-accepted]
 
   - id: complete-task

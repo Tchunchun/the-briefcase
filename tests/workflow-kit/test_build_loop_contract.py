@@ -206,17 +206,88 @@ def test_github_failure_never_falls_back_to_markdown():
 def test_pull_request_is_required_before_in_review():
     push = BUILD_SKILL.index("Commit the verified change and push")
     open_pr = BUILD_SKILL.index("Open an implementation PR")
+    link_pr = BUILD_SKILL.index("Link the intended PR")
     verify_pr = BUILD_SKILL.index("Verify through GitHub readback")
+    handoff = BUILD_SKILL.index("Save and read back a short issue-comment handoff")
     in_review = BUILD_SKILL.index("move `In progress` to `In review`")
 
-    assert push < open_pr < verify_pr < in_review
+    assert push < open_pr < link_pr < verify_pr < handoff < in_review
+    assert "mandatory for both Standard and Lite" in normalized(BUILD_SKILL)
+    assert "Never assert `native-pr-link` without live readback" in BUILD_SKILL
     assert "failed PR write is not a review handoff" in BUILD_SKILL
+
+
+def test_review_uses_issue_requirements_and_applicable_git_design():
+    review = normalized((WORKFLOW_KIT / "skills/review/SKILL.md").read_text())
+    template = (WORKFLOW_KIT / "templates/shared/review.md").read_text()
+    assert "canonical issue's approved requirements and acceptance criteria" in review
+    assert "verified against its immutable snapshot" in review
+    assert "Git technical-design revision linked from that issue" in review
+    assert "technical decisions, interfaces, constraints, and NFR verification" in review
+    assert "record that the section is empty" in review
+    assert "requiring a not-applicable rationale" in review
+    assert "Missing or stale Standard design evidence blocks review" in review
+    assert "match the current Build handoff and tested head" in review
+    assert "## Criterion evidence" in template
+    assert "## Design conformance" in template
+    assert "Native PR relationship:" in template
+    assert "Technical design:" in template
+
+
+def test_issue_template_has_mode_specific_technical_design():
+    template = (WORKFLOW_KIT / "templates/shared/requirement.md").read_text()
+    requirements = (
+        WORKFLOW_KIT / "skills/requirements/SKILL.md"
+    ).read_text()
+    lite = normalized(
+        (WORKFLOW_KIT / "profiles/lite/PROFILE.md").read_text()
+    )
+    standard = normalized(STANDARD_PROFILE)
+
+    assert "## User requirements\n" in template
+    assert "## Technical design\n" in template
+    scope = template.split("<!-- approved-requirements:start -->", 1)[1].split(
+        "<!-- approved-requirements:end -->", 1
+    )[0]
+    assert "### Acceptance and verification" in scope
+    assert "## Technical design" not in scope
+    assert template.index("<!-- approved-requirements:end -->") < template.index(
+        "## Technical design\n"
+    )
+    assert "either leaves the section empty or writes simple technical details" in (
+        normalized(template)
+    )
+    assert "Requirements decides whether to leave the section empty" in (
+        normalized(requirements)
+    )
+    assert "No separate Git design document or technical sign-off is required" in lite
+    assert "empty Technical design section does not block review" in lite
+    assert "Technical design links to the Git architecture/design document" in standard
+    assert "Do not replace that document with inline technical notes" in standard
+
+
+def test_build_and_review_allow_empty_lite_design_without_a_git_document():
+    build = normalized(BUILD_SKILL)
+    review = normalized((WORKFLOW_KIT / "skills/review/SKILL.md").read_text())
+    record = normalized(
+        (WORKFLOW_KIT / "templates/shared/review.md").read_text()
+    )
+    assert "Lite uses any simple inline details and permits an empty section" in build
+    assert "an empty Technical design section is valid" in build
+    assert "reviewed inline design content (or empty section)" in review
+    assert "Do not require a Git design snapshot for Lite" in review
+    assert "Lite technical questions go to Requirements" in review
+    assert "an empty section needs no rationale or conformance rows" in record
 
 
 def test_review_fixes_reuse_the_same_branch_and_pr():
     assert "resumes the\nsame item, branch, and PR" in BUILD_SKILL
     assert "return it to `In review`" in BUILD_SKILL
     assert "new head requires a fresh Review verdict" in BUILD_SKILL
+    fixes = BUILD_SKILL.split("## Review fixes", 1)[1]
+    assert fixes.index("Recheck the native issue/PR relationship") < fixes.index(
+        "return it to `In review`"
+    )
 
 
 def test_build_cannot_merge_close_or_mark_done():

@@ -180,6 +180,56 @@ def test_ready_rejects_missing_approval_stale_signoff_and_dependency():
         assert missing_gate in decision.missing_evidence
 
 
+def test_native_pr_link_gates_handoff_and_acceptance_in_both_profiles():
+    for profile, work_type in (
+        ("lite", "Task"),
+        ("standard", "Task"),
+        ("standard", "Feature"),
+    ):
+        for transition_id in ("handoff-for-review", "accept-review"):
+            evidence = evidence_for(transition_id)
+            assert "native-pr-link" in evidence
+            for missing_value in (None, False):
+                unlinked = evidence.copy()
+                if missing_value is None:
+                    del unlinked["native-pr-link"]
+                else:
+                    unlinked["native-pr-link"] = missing_value
+                decision = decide(
+                    transition_id,
+                    profile=profile,
+                    work_type=work_type,
+                    evidence=unlinked,
+                )
+                assert not decision.allowed
+                assert decision.missing_evidence == ("native-pr-link",)
+
+            linked = decide(
+                transition_id,
+                profile=profile,
+                work_type=work_type,
+                evidence=evidence,
+            )
+            assert linked.allowed, linked
+
+
+def test_lite_handoff_and_acceptance_do_not_require_git_design_evidence():
+    for transition_id in ("handoff-for-review", "accept-review"):
+        evidence = evidence_for(transition_id)
+        assert not any(
+            "design" in gate or "architecture" in gate or "signoff" in gate
+            for gate in evidence
+        )
+        decision = decide(
+            transition_id,
+            profile="lite",
+            work_type="Task",
+            evidence=evidence,
+        )
+        assert decision.allowed, decision
+    assert "Lite inline or empty" in CONTRACT["evidence"]["independent-acceptance"]
+
+
 def test_build_claim_has_no_ready_assignment_cycle():
     transition = next(
         item for item in CONTRACT["transitions"] if item["id"] == "claim-build-work"

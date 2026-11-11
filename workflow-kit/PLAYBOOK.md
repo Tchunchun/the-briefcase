@@ -53,13 +53,16 @@ Follow the repository's document organization policy before choosing artifact
 locations. Where it selects an issue-centered layout, that policy overrides
 generic references here to a requirements document or handoff packet:
 
-- The canonical issue description holds user requirements, acceptance criteria,
-  product sign-off, and direct links to the Git technical design.
+- The canonical issue description has User requirements and Technical design
+  sections, with acceptance criteria and product sign-off for the requirements.
+  Standard's Technical design section links to the Git architecture/design
+  document. For Lite, Requirements decides whether to leave it empty or include
+  simple inline technical details; no separate Git design document is required.
 - Keep product sign-off to four entries: approver, approval timestamp, approved
   scope with a pinned snapshot link, and approval evidence. Do not invent approval.
-- Git holds technical design, technical sign-off, detailed verification,
-  technical decisions, and immutable approval snapshots. Keep hashes and migration
-  history there, not in the issue's readable sign-off.
+- Git holds Standard technical design, technical sign-off, detailed verification,
+  technical decisions, and both profiles' immutable approval snapshots. Keep
+  hashes and migration history there, not in the issue's readable sign-off.
 - Short handoffs are issue comments with scope/design versions, readiness
   evidence, remaining concerns, and the next invocation. Preserve any required
   transition decision with the comment; link detailed evidence instead of
@@ -76,6 +79,29 @@ Respect visibility: private planning is not published to a public issue without
 explicit approval. Reuse an existing appropriate issue and Project card.
 Repositories without an issue-centered policy retain their configured canonical
 document locations; this does not migrate Lite or legacy installed consumers.
+
+## Build-to-Review handoff
+
+Both Standard and Lite use the shared Build and Review skills. At the end of
+development, Build must create or reuse the native Development link from the
+canonical requirements issue to the implementation PR, including across
+repositories. Verify the issue relationship, native Project `Linked pull
+requests`, intended base, and tested head before moving to In review.
+The executable `handoff-for-review` gate requires `native-pr-link` in addition
+to the implementation PR and passing checks. A text URL alone is insufficient.
+
+Build saves the short handoff in an issue comment with the exact PR head,
+approved requirements revision, and design baseline: Standard's Git design
+revision or Lite's inline details, if any. On explicit
+Review invocation, the separate reviewer picks up the native-linked PR and
+checks that head against the approved requirements and applicable technical
+design. Requirements locations follow the document organization policy above;
+issue-centered work uses the approved issue block and its immutable snapshot.
+Standard requires current architecture/sign-off; Lite checks the inline design
+when present. An empty Lite section is valid without a not-applicable rationale
+or mandatory Architect phase.
+Acceptance revalidates the native link and records requirement coverage and
+design conformance, not just passing CI.
 
 ## Read-only PO status guidance
 
