@@ -32,6 +32,7 @@ def test_staged_shared_assets_and_relative_links_resolve(tmp_path):
         "templates/shared/review.md",
         "templates/shared/delivery.md",
         "examples/handoffs.md",
+        "templates/workflow.yaml",
     ]
 
     for relative in expected:

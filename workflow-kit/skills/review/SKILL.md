@@ -58,6 +58,11 @@ means no write or merge.
 Before evaluating behavior, verify:
 
 1. One approved requirement revision is linked.
+   When `project.fields.pull_request` is configured, locate the implementation
+   PR through that Project field (`PR URL` here), not Notes. A missing,
+   inaccessible, or conflicting link blocks the affected review; reconcile it
+   with Build instead of guessing. Verify any explicitly supplied PR matches
+   the card's recorded implementation PR.
 2. The PR is open, reviewable, and targets the intended base.
 3. The recorded implementation head equals the live PR head.
 4. The issue, Project item, checks, dependencies, and parent scope are readable.

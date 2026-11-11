@@ -1,0 +1,52 @@
+version: 1
+
+# Copy to workflow-kit/workflow.yaml in a new target checkout.
+# Replace example names and the Project number before running live preflight.
+contract: contract.yaml
+mode: standard
+
+repository:
+  name: example-owner/example-app
+  base_branch: main
+
+project:
+  owner: example-owner
+  number: 1
+  fields:
+    status: Status
+    action_owner: Action Owner
+    assignees: Assignees
+    claim_session: Claim Session
+    resume_status: Resume Status
+    review_verdict: Review Verdict
+    work_type: Work Type
+    pull_request: PR URL
+  options:
+    status:
+      - Inbox
+      - Requirement shaping
+      - Technical shaping
+      - Ready
+      - In progress
+      - In review
+      - Blocked
+      - Done
+    action_owner: [Requirements, Architect, Build, Review, None]
+    resume_status:
+      - Inbox
+      - Requirement shaping
+      - Technical shaping
+      - Ready
+      - In progress
+      - In review
+    review_verdict: [Pending, Accepted, Changes requested, Blocked]
+    work_type: [Idea, Feature, Task]
+
+artifacts:
+  repository: example-owner/example-artifacts
+  root: projects/example-project
+
+review:
+  merge_strategy: squash
+
+closeout_owner: Review

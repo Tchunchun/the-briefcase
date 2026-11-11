@@ -21,6 +21,27 @@ re-create or populate them for new boards.
 | Blocking reason | Text | Both | One-line reason this item is Blocked; fill whenever Status → Blocked, clear on unblock |
 | Resume Status | Single select | Both | The Status to restore when the item is unblocked; set at the same time as `Blocking reason` |
 | Artifact Link | Text | Both | URL to the linked artifact or release record, when applicable |
+| PR URL | Text | Both | Full current implementation PR URL; set by Build and verified by Review, not stored in Notes |
+
+### Implementation PR navigation
+
+Every new workflow-kit board includes the `PR URL` text field by default for
+both Standard and Lite. The [new-project manifest template](templates/workflow.yaml)
+maps it as `project.fields.pull_request`. Create it during authorized initial
+board setup and show it on item cards and the task/review table views.
+Store the full current implementation PR URL,
+not a PR number or URL embedded in Notes. Build records it after verifying the
+PR and reads it back before handing work to Review; Review rechecks its live
+head and evidence. Keep historical links in issue comments.
+
+The native `Linked pull requests` field may remain available, but it does not
+replace this explicit field when private planning issues and public PRs span
+repositories. Updating PR navigation does not change Status, Action Owner,
+claims, or Review Verdict, and does not establish acceptance or landing.
+Do not silently create this field during the read-only preflight; board setup
+requires explicit authorization.
+Existing projects without this field need an explicit migration; do not make
+the read-only preflight create it or silently require it in older manifests.
 
 Standard-only:
 

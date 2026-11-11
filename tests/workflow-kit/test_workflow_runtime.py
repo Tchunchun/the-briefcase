@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import shutil
 import subprocess
 import sys
 from pathlib import Path
@@ -109,6 +110,28 @@ def test_contract_and_manifest_are_valid():
     assert RUNTIME.validate_contract(CONTRACT) == []
     assert RUNTIME.validate_manifest(MANIFEST, CONTRACT) == []
     assert MANIFEST["closeout_owner"] == "Review"
+
+
+def test_new_project_template_defaults_to_pr_url(tmp_path, capsys):
+    target = tmp_path / "workflow-kit"
+    target.mkdir()
+    manifest_path = target / "workflow.yaml"
+    shutil.copyfile(KIT / "templates" / "workflow.yaml", manifest_path)
+    shutil.copyfile(KIT / "contract.yaml", target / "contract.yaml")
+    manifest = RUNTIME.load_yaml(manifest_path)
+
+    assert manifest["project"]["fields"]["pull_request"] == "PR URL"
+    for mode in ("standard", "lite"):
+        manifest["mode"] = mode
+        assert RUNTIME.validate_manifest(manifest, CONTRACT) == []
+
+    assert RUNTIME.main(
+        ["--manifest", str(manifest_path), "--offline", "--json"]
+    ) == 0
+    assert json.loads(capsys.readouterr().out)["preflight"]["passed"]
+    board = (KIT / "board-setup.md").read_text()
+    assert "| PR URL | Text | Both |" in board
+
 
 
 def test_manifest_contains_names_not_live_ids_or_mutable_state():
@@ -299,6 +322,23 @@ def test_live_preflight_passes_without_mutating_github():
     runner, calls = make_runner()
     report = RUNTIME.run_preflight(MANIFEST, CONTRACT, runner=runner)
     assert report.passed, report.errors
+    assert all(
+        command not in call
+        for call in calls
+        for command in ("edit", "create", "delete", "add", "remove")
+    )
+
+
+def test_configured_pr_url_is_required_without_automatic_board_repair():
+    fields = [
+        field for field in live_fields()
+        if field["name"] != MANIFEST["project"]["fields"]["pull_request"]
+    ]
+    runner, calls = make_runner(fields)
+    report = RUNTIME.run_preflight(MANIFEST, CONTRACT, runner=runner)
+    assert not report.passed
+    assert any("pull_request configured as PR URL" in error for error in report.errors)
+    assert "No changes were made." in RUNTIME.format_report(report)
     assert all(
         command not in call
         for call in calls

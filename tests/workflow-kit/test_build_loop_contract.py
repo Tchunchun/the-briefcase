@@ -133,6 +133,21 @@ def test_repository_issue_centered_documents_preserve_evidence_and_privacy():
         assert phrase.casefold() in policy.casefold()
 
 
+def test_implementation_pr_has_dedicated_project_navigation():
+    policy = normalized((ROOT / "_project" / "backlog-policy.md").read_text())
+    board = normalized((WORKFLOW_KIT / "board-setup.md").read_text())
+    review = normalized((WORKFLOW_KIT / "skills/review/SKILL.md").read_text())
+    build = normalized(BUILD_SKILL)
+    assert "pull_request: PR URL" in WORKFLOW_CONFIG
+    assert "`PR URL` is a text field" in policy
+    assert "Do not use Notes as the PR locator" in policy
+    assert "private planning issues and public PRs span repositories" in board
+    assert "project.fields.pull_request" in build
+    assert "read it back before handoff" in build
+    assert "not Notes" in review
+    assert "missing, inaccessible, or conflicting link blocks" in review
+
+
 def test_explicit_invocation_scans_every_ready_item_sequentially():
     required = [
         "user explicitly asks to run the Build loop",

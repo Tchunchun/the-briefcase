@@ -80,6 +80,9 @@ not separate living documents. See the
 [document organization policy](_project/backlog-policy.md#document-organization)
 for revision binding, privacy, and historical-document migration.
 The Project alone owns execution status, owner, and claim.
+Store the current implementation PR in the dedicated Project `PR URL` field,
+not Notes. Build records and reads it back before the Review handoff; Review
+verifies that URL and its live head rather than inferring a PR from Notes.
 Keep product sign-off to four entries: approver, approval timestamp, approved
 scope with a pinned snapshot link, and approval evidence. Keep hashes, full
 revision identifiers, and migration history in the linked Git evidence rather
